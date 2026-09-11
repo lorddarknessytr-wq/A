@@ -3,8 +3,8 @@
 
   "source_channel_guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
 
-  "owner_guid": "u0IahsF05003ed26a32d073c66c1388d",
-  "_comment_owner": "u0IahsF05003ed26a32d073c66c1388d",
+  "owner_guid": "https://rubika.ir/Lord_Phantom",
+  "_comment_owner": "https://rubika.ir/Lord_Phantom",
 
   "schedule": {
     "start_hour_tehran": 11,
@@ -14,7 +14,7 @@
 
   "destination_channels": [
     {
-      "guid": "c0DBT990e47b63fa688bba87d5736cc2",
+      "guid": "https://rubika.ir/Addonmine",
       "name": "کانال یک",
       "channel_link": "https://rubika.ir/Addonmine",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",
