@@ -1,12 +1,9 @@
 """
 bot_core.py
-------------
-توابع مشترکی که run_bot.py و get_my_guid.py استفاده می‌کنند:
-- خواندن/نوشتن فایل‌های JSON
-- محاسبه ساعت تهران
-- استخراج هشتگ/توضیحات/ورژن از کپشن
-- ساخت و ارسال پیام‌های مود/ویدیو
-- ارسال گزارش وضعیت و باگ به پیوی مالک ربات (با جلوگیری از سیل پیام)
+-----------
+هسته ربات با استفاده مستقیم از Rubika Bot API v3.
+عمداً به کتابخانه rubka وابسته نیستیم تا نام/امضای متدهای کتابخانه
+باعث ناسازگاری با مستندات رسمی API نشود.
 """
 
 import json
@@ -14,16 +11,124 @@ import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import requests
 
 BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / "config.json"
 STATE_PATH = BASE_DIR / "state.json"
 
 TEHRAN_OFFSET = timedelta(hours=3, minutes=30)
-
 MAX_ERRORS_STORED = 200
 ERRORS_PER_PAGE = 5
 ERROR_NOTIFY_COOLDOWN_MINUTES = 10
+API_BASE = "https://botapi.rubika.ir/v3"
+
+
+class RubikaAPIError(RuntimeError):
+    pass
+
+
+class RubikaBot:
+    """Wrapper کوچک و مستقیم برای متدهای رسمی Bot API v3."""
+
+    def __init__(self, token: str):
+        if not token:
+            raise ValueError("RUBIKA_BOT_TOKEN تنظیم نشده است.")
+        self.token = token.strip()
+        self.session = requests.Session()
+        self.session.headers.update({"Content-Type": "application/json"})
+
+    def _post(self, method: str, data=None):
+        url = f"{API_BASE}/{self.token}/{method}"
+        response = self.session.post(url, json=data or {}, timeout=60)
+        response.raise_for_status()
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise RubikaAPIError(
+                f"{method}: پاسخ JSON معتبر نبود: {response.text[:300]}"
+            ) from exc
+
+        # در API روبیکا، خطای API را با status/data برمی‌گردانند؛
+        # این بررسی متن خطا را برای Actions واضح‌تر می‌کند.
+        if isinstance(payload, dict):
+            status = str(payload.get("status", "")).lower()
+            if status and status not in ("ok", "success"):
+                raise RubikaAPIError(f"{method}: {payload}")
+
+        return payload
+
+    def get_me(self):
+        return self._post("getMe")
+
+    def send_message(self, chat_id, text, **kwargs):
+        data = {"chat_id": chat_id, "text": text}
+        for key in (
+            "chat_keypad", "disable_notification", "inline_keypad",
+            "reply_to_message_id", "chat_keypad_type", "metadata"
+        ):
+            if key in kwargs and kwargs[key] is not None:
+                data[key] = kwargs[key]
+        return self._post("sendMessage", data)
+
+    def get_updates(self, offset_id=None, limit=50):
+        data = {"limit": limit}
+        if offset_id:
+            data["offset_id"] = offset_id
+        return self._post("getUpdates", data)
+
+    def send_file(self, chat_id, file_id, text="", **kwargs):
+        data = {"chat_id": chat_id, "file_id": file_id}
+        if text:
+            data["text"] = text
+        for key in (
+            "reply_to_message_id", "disable_notification",
+            "chat_keypad", "inline_keypad", "chat_keypad_type"
+        ):
+            if key in kwargs and kwargs[key] is not None:
+                data[key] = kwargs[key]
+        return self._post("sendFile", data)
+
+    def send_image(self, chat_id, file_id, text=""):
+        # طبق API رسمی، ارسال فایل/مدیای موجود با sendFile انجام می‌شود.
+        return self.send_file(chat_id, file_id, text)
+
+    def send_document(self, chat_id, file_id, text=""):
+        return self.send_file(chat_id, file_id, text)
+
+    def get_file(self, file_id):
+        return self._post("getFile", {"file_id": file_id})
+
+    def edit_message_text(self, chat_id, message_id, text):
+        return self._post(
+            "editMessageText",
+            {"chat_id": chat_id, "message_id": message_id, "text": text},
+        )
+
+    def _upload_url(self, file_type):
+        result = self._post("requestSendFile", {"type": file_type})
+        data = result.get("data", result) if isinstance(result, dict) else {}
+        upload_url = data.get("upload_url")
+        if not upload_url:
+            raise RubikaAPIError(f"requestSendFile: upload_url پیدا نشد: {result}")
+        return upload_url
+
+    def upload_file(self, path, file_type="File"):
+        upload_url = self._upload_url(file_type)
+        p = Path(path)
+        with p.open("rb") as f:
+            response = self.session.post(
+                upload_url,
+                files={"file": (p.name, f)},
+                timeout=300,
+            )
+        response.raise_for_status()
+        payload = response.json()
+        data = payload.get("data", payload) if isinstance(payload, dict) else {}
+        file_id = data.get("file_id")
+        if not file_id:
+            raise RubikaAPIError(f"آپلود فایل: file_id پیدا نشد: {payload}")
+        return file_id
 
 
 def load_json(path):
@@ -52,9 +157,6 @@ def tehran_now():
     return datetime.now(timezone.utc) + TEHRAN_OFFSET
 
 
-# ---------------------------------------------------------------------------
-# پارس کپشن پست‌های کانال منبع
-# ---------------------------------------------------------------------------
 def parse_caption(caption: str):
     caption = caption or ""
     hashtags = re.findall(r"#\S+", caption)
@@ -75,12 +177,14 @@ def parse_caption(caption: str):
         title = line
         break
 
-    return {"title": title, "hashtags": hashtags, "description": description, "version": version}
+    return {
+        "title": title,
+        "hashtags": hashtags,
+        "description": description,
+        "version": version,
+    }
 
 
-# ---------------------------------------------------------------------------
-# ارسال مود / ویدیو به یک کانال مقصد
-# ---------------------------------------------------------------------------
 def send_mod(bot, channel, mod):
     lines = []
     if mod.get("title"):
@@ -91,25 +195,32 @@ def send_mod(bot, channel, mod):
         lines.append(f"📝 توضیحات: {mod['description']}")
     if mod.get("version"):
         lines.append(f"🔢 ورژن: {mod['version']}")
-    lines.append(f"🔗 کانال: {channel['channel_link']}")
+    if channel.get("channel_link"):
+        lines.append(f"🔗 کانال: {channel['channel_link']}")
     if channel.get("mod_photo_extra_text"):
         lines.append(channel["mod_photo_extra_text"])
 
-    bot.send_image(chat_id=channel["guid"], file_id=mod["photo_file_id"], text="\n".join(lines))
-    bot.send_document(chat_id=channel["guid"], file_id=mod["file_file_id"], text=channel.get("mod_file_caption", ""))
+    bot.send_image(
+        chat_id=channel["guid"],
+        file_id=mod["photo_file_id"],
+        text="\n".join(lines),
+    )
+    bot.send_document(
+        chat_id=channel["guid"],
+        file_id=mod["file_file_id"],
+        text=channel.get("mod_file_caption", ""),
+    )
 
 
 def send_video(bot, channel, video):
     lines = [video.get("title", "ویدیو جدید")]
     if channel.get("video_extra_text"):
         lines.append(channel["video_extra_text"])
-    caption = "\n".join(lines)
-
-    send_video_fn = getattr(bot, "send_video", None)
-    if callable(send_video_fn):
-        send_video_fn(chat_id=channel["guid"], file_id=video["video_file_id"], text=caption)
-    else:
-        bot.send_document(chat_id=channel["guid"], file_id=video["video_file_id"], text=caption)
+    bot.send_file(
+        chat_id=channel["guid"],
+        file_id=video["video_file_id"],
+        text="\n".join(lines),
+    )
 
 
 def is_video_slot(hour: int, config: dict) -> bool:
@@ -129,17 +240,14 @@ def pick_item(items, used_ids):
     return chosen, used_ids + [chosen["id"]]
 
 
-# ---------------------------------------------------------------------------
-# پیام به مالک ربات (وضعیت / باگ) — با جلوگیری از سیل پیام
-# ---------------------------------------------------------------------------
 def notify_owner(bot, config, text):
     owner = config.get("owner_guid")
     if not owner or owner.startswith("c0xYOUR"):
-        return  # owner_guid هنوز تنظیم نشده
+        return
     try:
         bot.send_message(chat_id=owner, text=text)
-    except Exception:
-        pass  # اگر خودِ ارسال گزارش هم خطا داد، دیگر چیزی برای گزارش‌کردن نداریم
+    except Exception as exc:
+        print(f"[WARN] ارسال پیام به owner شکست خورد: {exc}")
 
 
 def log_error(state, category, message):
@@ -147,7 +255,7 @@ def log_error(state, category, message):
         "id": str(uuid.uuid4())[:6],
         "time": tehran_now().strftime("%Y-%m-%d %H:%M"),
         "category": category,
-        "message": str(message)[:300],
+        "message": str(message)[:500],
         "notified": False,
     }
     state.setdefault("errors", []).append(err)
@@ -156,7 +264,6 @@ def log_error(state, category, message):
 
 
 def maybe_notify_new_errors(bot, config, state):
-    """فقط یک پیام خلاصه می‌فرستد (نه یکی‌یکی)، و حداکثر هر N دقیقه یک‌بار."""
     unnotified = [e for e in state.get("errors", []) if not e.get("notified")]
     if not unnotified:
         return
@@ -166,15 +273,18 @@ def maybe_notify_new_errors(bot, config, state):
     if last_time:
         try:
             last_dt = datetime.strptime(last_time, "%Y-%m-%d %H:%M")
-            if (now.replace(tzinfo=None) - last_dt) < timedelta(minutes=ERROR_NOTIFY_COOLDOWN_MINUTES):
+            if (now.replace(tzinfo=None) - last_dt) < timedelta(
+                minutes=ERROR_NOTIFY_COOLDOWN_MINUTES
+            ):
                 return
         except Exception:
             pass
 
     notify_owner(
-        bot, config,
+        bot,
+        config,
         f"⚠️ {len(unnotified)} خطای جدید ثبت شد.\n"
-        f"برای دیدن جزئیات (دسته‌بندی‌شده، ۵ تا ۵ تا)، به من پیام بده: /bugs"
+        f"برای جزئیات به من پیام بده: /bugs",
     )
     for e in unnotified:
         e["notified"] = True
@@ -182,8 +292,7 @@ def maybe_notify_new_errors(bot, config, state):
 
 
 def build_bugs_page(state, offset=0):
-    """۵ خطای بعدی را دسته‌بندی‌شده متن‌بندی می‌کند و اینکه آیا صفحه بعدی هست یا نه."""
-    errors = list(reversed(state.get("errors", [])))  # جدیدترین اول
+    errors = list(reversed(state.get("errors", [])))
     page = errors[offset: offset + ERRORS_PER_PAGE]
     has_more = len(errors) > offset + ERRORS_PER_PAGE
 

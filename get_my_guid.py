@@ -1,50 +1,61 @@
 """
 get_my_guid.py
----------------
-برای پیدا کردن GUID پیوی خودتان یا GUID کانال منبع، این اسکریپت را (از تب
-Actions در گیت‌هاب، workflow با نام "Find GUIDs") دستی اجرا کنید.
-
-قبلش:
-  - یک پیام دلخواه (مثلاً "سلام") به پیوی ربات بفرستید تا owner_guid دیده شود.
-  - مطمئن شوید ربات در کانال منبع ادمین است و کانال منبع اخیراً پستی گذاشته
-    (یا یک پست تستی در کانال منبع بگذارید) تا source_channel_guid دیده شود.
-
-خروجی را در لاگ اجرای Actions (قابل مشاهده از گوشی) می‌بینید.
+--------------
+GUID های دیده‌شده در getUpdates رسمی Rubika Bot API v3 را چاپ می‌کند.
 """
 
 import os
-from rubka import Robot
+import bot_core as core
+
+
+def response_data(resp):
+    if not isinstance(resp, dict):
+        return {}
+    data = resp.get("data")
+    return data if isinstance(data, dict) else resp
 
 
 def main():
     token = os.environ.get("RUBIKA_BOT_TOKEN")
-    bot = Robot(token=token)
+    bot = core.RubikaBot(token)
+
+    print("=== تست getMe ===")
+    print(bot.get_me())
 
     resp = bot.get_updates(limit=100)
-    updates = resp.get("data", {}).get("updates", []) if isinstance(resp, dict) else []
+    data = response_data(resp)
+    updates = data.get("updates", []) if isinstance(data, dict) else []
 
     seen = {}
     for u in updates:
         msg = u.get("new_message") or u.get("updated_message") or {}
+        if not isinstance(msg, dict):
+            continue
+
         chat_id = msg.get("chat_id") or u.get("chat_id")
         if not chat_id:
             continue
-        preview = (msg.get("text") or "").strip()[:40]
-        seen.setdefault(chat_id, {"count": 0, "sample_text": preview})
+
+        preview = (msg.get("text") or "").strip()[:80]
+        seen.setdefault(
+            chat_id,
+            {"count": 0, "sample_text": preview},
+        )
         seen[chat_id]["count"] += 1
 
-    print("=== GUID های دیده‌شده در آپدیت‌های اخیر ===")
+    print("\n=== GUID های دیده‌شده در آپدیت‌های اخیر ===")
     if not seen:
-        print("هیچ آپدیتی دیده نشد. یک پیام به پیوی ربات بفرستید یا در کانال منبع پستی بگذارید و دوباره اجرا کنید.")
+        print(
+            "هیچ آپدیتی دیده نشد. یک پیام به پیوی ربات بفرستید "
+            "یا در کانال منبع یک پست تستی بگذارید و دوباره اجرا کنید."
+        )
         return
 
     for chat_id, info in seen.items():
-        print(f"{chat_id}   |   تعداد پیام: {info['count']}   |   نمونه متن: {info['sample_text']}")
-
-    print("\nراهنما:")
-    print("- اگر همین الان به ربات پیام دادید، GUID حساب خودتان همینجاست -> بگذارید در owner_guid")
-    print("- اگر کانال منبع پستی گذاشته، GUID آن همینجاست -> بگذارید در source_channel_guid")
-    print("- برای هر کانال مقصد هم همین کار را انجام دهید (یک پیام تستی در آن کانال بگذارید)")
+        print(
+            f"{chat_id} | تعداد پیام: {info['count']} "
+            f"| نمونه: {info['sample_text']}"
+        )
 
 
 if __name__ == "__main__":
