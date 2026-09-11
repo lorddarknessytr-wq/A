@@ -1,20 +1,32 @@
 {
-  "last_offset_id": "6aa4059eb75dd1ab183840b7",
+  "last_offset_id": "6aa41269572f68848e6ee1b0",
   "mods": [],
   "videos": [],
   "used_mods_per_channel": {
     "c0xCHANNEL_ONE_GUID": [],
     "c0xCHANNEL_TWO_GUID": []
   },
-  "used_videos_per_channel": {},
+  "used_videos_per_channel": {
+    "c0DBT990e47b63fa688bba87d5736cc2": [],
+    "c0xCHANNEL_TWO_GUID": []
+  },
   "pending_photo": null,
   "posted_hours_today": {
     "date": "2026-09-11",
     "hours": [
-      18
+      18,
+      19
     ]
   },
-  "errors": [],
-  "last_error_notify_time": null,
+  "errors": [
+    {
+      "id": "022adb",
+      "time": "2026-09-11 19:00",
+      "category": "پیام سلامت اجرای دستی",
+      "message": "sendMessage: {'status': 'INVALID_ACCESS'}",
+      "notified": true
+    }
+  ],
+  "last_error_notify_time": "2026-09-11 19:00",
   "bug_page_offset": 0
 }
