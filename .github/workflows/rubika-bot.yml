@@ -2,12 +2,16 @@ name: Rubika Mod Bot
 
 on:
   schedule:
-    # هر ساعت، از ۷:۳۰ تا ۱۹:۳۰ UTC  =  ۱۱:۰۰ تا ۲۳:۰۰ به وقت تهران
-    - cron: "30 7-19 * * *"
-  workflow_dispatch: {}   # امکان اجرای دستی از تب Actions در گیت‌هاب
+    # هر ۱۵ دقیقه اجرا می‌شود (برای پاسخ‌گویی سریع‌تر در پیوی + دقت زمان‌بندی پست‌ها)
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
 
 permissions:
   contents: write
+
+concurrency:
+  group: rubika-mod-bot
+  cancel-in-progress: false
 
 jobs:
   run-bot:
@@ -24,15 +28,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Collect new mods/videos from source channel
+      - name: Run bot (collect + post + owner DM)
         env:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN }}
-        run: python collect_mods.py
-
-      - name: Post scheduled content to destination channels
-        env:
-          RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN }}
-        run: python post_scheduler.py
+        run: python run_bot.py
 
       - name: Save updated state.json back to the repo
         run: |
@@ -40,4 +39,5 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add state.json
           git diff --quiet --cached || git commit -m "update state [skip ci]"
+          git pull --rebase || true
           git push
