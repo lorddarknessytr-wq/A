@@ -2,7 +2,6 @@ name: Rubika Mod Bot
 
 on:
   schedule:
-    # هر ۱۵ دقیقه اجرا می‌شود (برای پاسخ‌گویی سریع‌تر در پیوی + دقت زمان‌بندی پست‌ها)
     - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
@@ -16,9 +15,12 @@ concurrency:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,18 +28,23 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
 
-      - name: Run bot (collect + post + owner DM)
+      - name: Run bot
         env:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: python run_bot.py
 
-      - name: Save updated state.json back to the repo
+      - name: Save updated state.json
+        if: always()
         run: |
           git config user.name "rubika-mod-bot"
           git config user.email "actions@users.noreply.github.com"
           git add state.json
-          git diff --quiet --cached || git commit -m "update state [skip ci]"
-          git pull --rebase || true
-          git push
+          if git diff --cached --quiet; then
+            echo "No state changes."
+          else
+            git commit -m "update state [skip ci]"
+            git push
+          fi
