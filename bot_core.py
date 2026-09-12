@@ -32,9 +32,6 @@ ERROR_NOTIFY_COOLDOWN_MINUTES = 10
 REQUEST_TIMEOUT = 20
 
 
-# ---------------------------------------------------------------------------
-# فایل‌های JSON
-# ---------------------------------------------------------------------------
 def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -61,17 +58,11 @@ def tehran_now():
     return datetime.now(timezone.utc) + TEHRAN_OFFSET
 
 
-# ---------------------------------------------------------------------------
-# ارتباط خام با Rubika Bot API (طبق مستندات رسمی)
-# ---------------------------------------------------------------------------
 def api_call(token, method, payload=None):
-    """یک متد از Bot API را صدا می‌زند و بدنهٔ JSON پاسخ را برمی‌گرداند.
-    طبق مستندات، همهٔ درخواست‌ها POST هستند."""
     url = f"https://botapi.rubika.ir/v3/{token}/{method}"
     resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     body = resp.json()
-    # برخی پاسخ‌ها داخل کلید "data" هستند، برخی مستقیم؛ هر دو حالت پشتیبانی می‌شود
     return body.get("data", body) if isinstance(body, dict) else body
 
 
@@ -84,8 +75,6 @@ def send_message(token, chat_id, text):
 
 
 def send_file(token, chat_id, file_id, text=""):
-    """طبق مستندات رسمی، متد جدایی برای عکس/ویدیو وجود ندارد؛
-    همه (عکس، ویدیو، فایل) با همین متد sendFile ارسال می‌شوند."""
     return api_call(token, "sendFile", {"chat_id": chat_id, "file_id": file_id, "text": text})
 
 
@@ -96,9 +85,6 @@ def get_updates(token, offset_id=None, limit=50):
     return api_call(token, "getUpdates", payload)
 
 
-# ---------------------------------------------------------------------------
-# پارس کپشن پست‌های کانال منبع
-# ---------------------------------------------------------------------------
 def parse_caption(caption: str):
     caption = caption or ""
     hashtags = re.findall(r"#\S+", caption)
@@ -106,7 +92,7 @@ def parse_caption(caption: str):
     desc_match = re.search(r"(?:توضیحات|توضیح)\s*[:：]\s*(.+)", caption)
     description = desc_match.group(1).strip() if desc_match else ""
 
-    version_match = re.search(r"(?:ورژن|نسخه)\s*[:：]\s*(\S+)", caption)
+    version_match = re.search(r"(?:ورژن|نسخه)\s*[:：]\s*(.+)", caption)
     version = version_match.group(1).strip() if version_match else ""
 
     title = ""
@@ -122,9 +108,6 @@ def parse_caption(caption: str):
     return {"title": title, "hashtags": hashtags, "description": description, "version": version}
 
 
-# ---------------------------------------------------------------------------
-# ارسال مود / ویدیو به یک کانال مقصد (هر دو با sendFile طبق مستندات)
-# ---------------------------------------------------------------------------
 def send_mod(token, channel, mod):
     lines = []
     if mod.get("title"):
@@ -167,9 +150,6 @@ def pick_item(items, used_ids):
     return chosen, used_ids + [chosen["id"]]
 
 
-# ---------------------------------------------------------------------------
-# پیام به مالک ربات (وضعیت / باگ) — با جلوگیری از سیل پیام
-# ---------------------------------------------------------------------------
 def notify_owner(token, config, text):
     owner = config.get("owner_guid")
     if not owner or owner.startswith("c0xYOUR"):
@@ -222,9 +202,7 @@ def maybe_notify_new_errors(token, config, state):
 
 
 def build_bugs_page(state):
-    """۵ خطای بعدی را برمی‌گرداند و offset را در state جلو می‌برد.
-    وقتی به انتها برسد، دوباره از اول شروع می‌شود."""
-    errors = list(reversed(state.get("errors", [])))  # جدیدترین اول
+    errors = list(reversed(state.get("errors", [])))
     if not errors:
         return "🎉 هیچ باگی ثبت نشده."
 
