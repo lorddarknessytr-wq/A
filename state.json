@@ -14,8 +14,8 @@
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-12 19:10"
   },
   "known_users": [],
-  "awaiting_broadcast": false,
-  "awaiting_panel_selection": false,
+  "awaiting_broadcast": true,
+  "awaiting_panel_selection": true,
   "posted_hours_today": {
     "date": "2026-09-12",
     "hours": [
