@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa4059eb75dd1ab183840b7",
+  "last_offset_id": "6aa4371d3eaa37a6c41690d9",
   "mods": [],
   "videos": [],
   "pending_photo": null,
@@ -11,7 +11,8 @@
     "c0xCHANNEL_ONE_GUID": []
   },
   "channel_activated": {
-    "c0xCHANNEL_ONE_GUID": "2026-09-12 19:40"
+    "c0xCHANNEL_ONE_GUID": "2026-09-12 19:40",
+    "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-12 19:42"
   },
   "known_users": [
     "b0IahsF0BEAo0c667263fa750539d1d2",
