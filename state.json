@@ -1,13 +1,18 @@
 {
-  "last_offset_id": "6aa4f30f318be32574f8e186",
+  "last_offset_id": "6aa50ca067b29e732868c16d",
   "mods": [],
   "videos": [],
   "used_mods_per_channel": {},
-  "used_videos_per_channel": {},
+  "used_videos_per_channel": {
+    "c0xCHANNEL_ONE_GUID": [],
+    "c0xCHANNEL_TWO_GUID": []
+  },
   "pending_photo": null,
   "posted_hours_today": {
     "date": "2026-09-12",
-    "hours": []
+    "hours": [
+      11
+    ]
   },
   "errors": [],
   "last_error_notify_time": null,
