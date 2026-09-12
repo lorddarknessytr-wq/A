@@ -104,8 +104,12 @@ def get_me(token):
     return api_call(token, "getMe")
 
 
-def send_message(token, chat_id, text):
-    return api_call(token, "sendMessage", {"chat_id": chat_id, "text": text})
+def send_message(token, chat_id, text, chat_keypad=None, chat_keypad_type=None):
+    payload = {"chat_id": chat_id, "text": text}
+    if chat_keypad:
+        payload["chat_keypad"] = chat_keypad
+        payload["chat_keypad_type"] = chat_keypad_type or "New"
+    return api_call(token, "sendMessage", payload)
 
 
 def send_file(token, chat_id, file_id, text=""):
@@ -350,13 +354,7 @@ def fast_forward_offset(token, state):
         total_skipped += len(updates)
         next_offset = resp.get("next_offset_id") if isinstance(resp, dict) else None
         if not next_offset:
-            last_update = updates[-1]
-            last_msg = last_update.get("new_message") or last_update.get("updated_message") or {}
-            next_offset = (
-                last_update.get("update_id")
-                or last_update.get("id")
-                or last_msg.get("message_id")
-            )
+            next_offset = extract_ref_id(updates[-1])
         if not next_offset or next_offset == offset:
             break
         offset = next_offset
@@ -365,6 +363,92 @@ def fast_forward_offset(token, state):
     if offset:
         state["last_offset_id"] = offset
     return total_skipped
+
+
+# ---------------------------------------------------------------------------
+# جلوگیریِ قطعی از پردازش تکراریِ یک پیام (مستقل از درست‌بودن offset)
+# ---------------------------------------------------------------------------
+MAX_PROCESSED_IDS = 3000
+
+
+def extract_ref_id(update):
+    """شناسه‌ای یکتا برای یک آپدیت، برای هم offset و هم تشخیص تکراری."""
+    msg = update.get("new_message") or update.get("updated_message") or {}
+    return update.get("update_id") or update.get("id") or msg.get("message_id")
+
+
+def is_duplicate(state, ref_id):
+    if not ref_id:
+        return False
+    return ref_id in state.setdefault("processed_ids", [])
+
+
+def mark_processed(state, ref_id):
+    if not ref_id:
+        return
+    ids = state.setdefault("processed_ids", [])
+    ids.append(ref_id)
+    if len(ids) > MAX_PROCESSED_IDS:
+        del ids[: len(ids) - MAX_PROCESSED_IDS]
+
+
+# ---------------------------------------------------------------------------
+# کیبورد دکمه‌دار برای مالک ربات
+# ---------------------------------------------------------------------------
+def owner_keypad(config):
+    panel_keyword = config.get("panel_keyword", "پنل")
+    post_now_keyword = config.get("post_now_keyword", "پست فوری")
+    return {
+        "rows": [
+            {"buttons": [
+                {"id": "1", "type": "Simple", "button_text": panel_keyword},
+                {"id": "2", "type": "Simple", "button_text": post_now_keyword},
+            ]},
+            {"buttons": [
+                {"id": "3", "type": "Simple", "button_text": "/bugs"},
+                {"id": "4", "type": "Simple", "button_text": "/reset_queue"},
+            ]},
+        ],
+        "resize_keyboard": True,
+        "on_time_keyboard": False,
+    }
+
+
+def send_owner_message(token, config, text):
+    """پیام به مالک با کیبورد دکمه‌دار ثابت (پنل / پست فوری / بگز / ریست صف)."""
+    return send_message(
+        token, config["owner_guid"], text,
+        chat_keypad=owner_keypad(config), chat_keypad_type="New",
+    )
+
+
+# ---------------------------------------------------------------------------
+# پست فوری (بدون صبر برای ساعت زمان‌بندی‌شده)
+# ---------------------------------------------------------------------------
+def post_now_to_all_channels(token, config, state):
+    results = []
+    channels = config.get("destination_channels", [])
+    if not channels:
+        return ["هیچ کانال مقصدی در config.json ثبت نشده."]
+
+    for channel in channels:
+        if not channel.get("enabled", True):
+            continue
+        guid = channel["guid"]
+        name = channel.get("name", guid)
+        try:
+            used = state.setdefault("used_mods_per_channel", {}).setdefault(guid, [])
+            item, used = pick_item(state.get("mods", []), used)
+            state["used_mods_per_channel"][guid] = used
+            if item is not None:
+                send_mod(token, channel, item)
+                results.append(f"🎮 {name}: مود «{item.get('title') or ('#' + str(item.get('number')))}» پست شد.")
+            else:
+                results.append(f"⚠️ {name}: هیچ موردی توی صف مودها نیست (اول یک پست تستی توی کانال منبع بذارید).")
+        except Exception as e:
+            log_error(state, f"پست فوری به {name}", e)
+            results.append(f"❌ {name}: ارسال ناموفق بود (جزئیات در /bugs).")
+    return results
 
 
 # ---------------------------------------------------------------------------

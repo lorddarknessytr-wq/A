@@ -3,9 +3,10 @@
 
   "source_channel_guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
 
-  "owner_guid": "b0IahsF0BEAo0c667263fa750539d1d2",
+  "owner_guid": "PUT_YOUR_OWNER_GUID_HERE",
 
   "panel_keyword": "پنل",
+  "post_now_keyword": "پست فوری",
   "broadcast_secret": "بگو-رمز-خودتو-اینجا-عوض-کن",
 
   "schedule": {
@@ -16,10 +17,10 @@
 
   "destination_channels": [
     {
-      "guid": "c0DBT990e47b63fa688bba87d5736cc2",
+      "guid": "c0xCHANNEL_ONE_GUID",
       "name": "کانال یک",
       "enabled": true,
-      "channel_link": "https://rubika.ir/Addonmine",
+      "channel_link": "https://rubika.ir/your_channel_one",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",
       "video_extra_text": "🎬 ویدیوی امروز رو از دست ندید!"
     }
