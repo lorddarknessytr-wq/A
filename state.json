@@ -7,7 +7,9 @@
   "used_mods_per_channel": {
     "c0ECrHf06f41d4ee8759a5c9cb703079": []
   },
-  "used_videos_per_channel": {},
+  "used_videos_per_channel": {
+    "c0ECrHf06f41d4ee8759a5c9cb703079": []
+  },
   "channel_activated": {
     "c0ECrHf06f41d4ee8759a5c9cb703079": "2026-09-12 20:20"
   },
@@ -21,7 +23,8 @@
     "date": "2026-09-12",
     "hours": [
       20,
-      21
+      21,
+      23
     ]
   },
   "errors": [
