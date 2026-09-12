@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa4f22200316aeaff7cc9fc",
+  "last_offset_id": "6aa56e1d643e13d23449b720",
   "mods": [],
   "videos": [],
   "pending_photo": null,
@@ -15,7 +15,7 @@
     "c0DBT990e47b63fa688bba87d5736cc2"
   ],
   "awaiting_broadcast": false,
-  "awaiting_panel_selection": false,
+  "awaiting_panel_selection": true,
   "posted_hours_today": {
     "date": "2026-09-12",
     "hours": [
