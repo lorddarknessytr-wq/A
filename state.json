@@ -1,17 +1,34 @@
 {
-  "last_offset_id": null,
+  "last_offset_id": "6aa4059eb75dd1ab183840b7",
   "mods": [],
   "videos": [],
   "pending_photo": null,
   "files_by_number": {},
-  "used_mods_per_channel": {},
+  "used_mods_per_channel": {
+    "c0DBT990e47b63fa688bba87d5736cc2": []
+  },
   "used_videos_per_channel": {},
-  "channel_activated": {},
+  "channel_activated": {
+    "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-12 18:50"
+  },
   "known_users": [],
   "awaiting_broadcast": false,
   "awaiting_panel_selection": false,
-  "posted_hours_today": {"date": null, "hours": []},
-  "errors": [],
-  "last_error_notify_time": null,
+  "posted_hours_today": {
+    "date": "2026-09-12",
+    "hours": [
+      18
+    ]
+  },
+  "errors": [
+    {
+      "id": "880418",
+      "time": "2026-09-12 18:51",
+      "category": "پردازش پیام",
+      "message": "502 Server Error: Bad Gateway for url: https://botapi.rubika.ir/v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/sendMessage",
+      "notified": true
+    }
+  ],
+  "last_error_notify_time": "2026-09-12 18:52",
   "bug_page_offset": 0
 }
