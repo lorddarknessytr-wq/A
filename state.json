@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa4059eb75dd1ab183840b7",
+  "last_offset_id": "6aa4371d3eaa37a6c41690d9",
   "mods": [],
   "videos": [],
   "pending_photo": null,
@@ -22,7 +22,15 @@
       20
     ]
   },
-  "errors": [],
-  "last_error_notify_time": null,
+  "errors": [
+    {
+      "id": "683696",
+      "time": "2026-09-12 20:32",
+      "category": "پردازش پیام",
+      "message": "502 Server Error: Bad Gateway for url: https://botapi.rubika.ir/v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/sendMessage",
+      "notified": true
+    }
+  ],
+  "last_error_notify_time": "2026-09-12 20:34",
   "bug_page_offset": 0
 }
