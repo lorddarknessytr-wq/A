@@ -3,31 +3,25 @@
 
   "source_channel_guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
 
-  "owner_guid": "b0IahsF0BEAo0c667263fa750539d1d2",
-  "_comment_owner": "b0IahsF0BEAo0c667263fa750539d1d2",
+  "owner_guid": "PUT_YOUR_OWNER_GUID_HERE",
+
+  "panel_keyword": "پنل",
+  "broadcast_secret": "بگو-رمز-خودتو-اینجا-عوض-کن",
 
   "schedule": {
     "start_hour_tehran": 11,
     "end_hour_tehran": 23,
-    "video_every_n_slots": 4
+    "video_every_n_hours": 4
   },
 
   "destination_channels": [
     {
-      "guid": "c0DBT990e47b63fa688bba87d5736cc2",
+      "guid": "c0xCHANNEL_ONE_GUID",
       "name": "کانال یک",
-      "channel_link": "https://rubika.ir/Addonmine",
+      "enabled": true,
+      "channel_link": "https://rubika.ir/your_channel_one",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",
-      "mod_file_caption": "دانلود کنید و لذت ببرید 🎮\nحتما نظر خودتون رو زیر پست بنویسید.",
       "video_extra_text": "🎬 ویدیوی امروز رو از دست ندید!"
-    },
-    {
-      "guid": "c0xCHANNEL_TWO_GUID",
-      "name": "کانال دو",
-      "channel_link": "https://rubika.ir/your_channel_two",
-      "mod_photo_extra_text": "🎁 مود جدید",
-      "mod_file_caption": "فایل مود آماده نصبه ✅",
-      "video_extra_text": "🎥 این ویدیو رو حتما ببینید"
     }
   ]
 }

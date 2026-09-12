@@ -1,16 +1,19 @@
 """
 bot_core.py
 ------------
-این فایل مستقیماً و فقط با متدهای مستندشدهٔ رسمی روبیکا کار می‌کند
-(https://botapi.rubika.ir/v3/{token}/...) — هیچ کتابخونهٔ واسط غیررسمی
-استفاده نشده، فقط `requests`. دلیلش: کتابخونه‌های واسط (مثل rubka) مستندات
-کامل و قابل‌اطمینانی ندارند و باعث چند باگ قبلی شدند.
+با متدهای رسمی روبیکا (فقط requests، بدون کتابخونهٔ واسط) کار می‌کند.
 
-توابع اینجا:
-- ارتباط خام با API (api_call)
-- پارس کپشن پست‌های کانال منبع
-- ارسال مود/ویدیو
-- گزارش وضعیت/خطا به پیوی مالک (بدون سیل پیام)
+ویژگی‌های این نسخه:
+- به‌جای پست‌کردن خودِ فایل توی کانال مقصد، فقط عکس+توضیحات پست می‌شه؛
+  کاربرها با فرستادن #شماره یا /شماره به پیوی ربات، فایل رو می‌گیرن.
+- تشخیص نوع فایل «سخت‌گیرانه» نیست: هر فایلی که عکس یا ویدیو نباشه،
+  به‌عنوان «فایل قابل‌دریافت» در نظر گرفته می‌شه (رفع باگ قبلی).
+- پنل مدیریت: با فرستادن کلمهٔ رمز پنل، لیست کانال‌ها میاد؛ با فرستادن
+  عدد کانال، جزئیاتش (تعداد پست، تاریخ فعال‌سازی) نشون داده می‌شه.
+- پخش همگانی: با فرستادن کلمهٔ رمز، ربات می‌گه پیامتو بفرست؛ پیام بعدی
+  برای همهٔ کاربرهایی که تابه‌حال به ربات پیام دادن (به‌جز کانال‌ها)
+  فوروارد می‌شه.
+- شمارش کاربران یکتا که به ربات پیام داده‌اند.
 """
 
 import json
@@ -32,6 +35,9 @@ ERROR_NOTIFY_COOLDOWN_MINUTES = 10
 REQUEST_TIMEOUT = 20
 
 
+# ---------------------------------------------------------------------------
+# فایل‌های JSON
+# ---------------------------------------------------------------------------
 def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -58,6 +64,9 @@ def tehran_now():
     return datetime.now(timezone.utc) + TEHRAN_OFFSET
 
 
+# ---------------------------------------------------------------------------
+# ارتباط خام با Rubika Bot API
+# ---------------------------------------------------------------------------
 def api_call(token, method, payload=None):
     url = f"https://botapi.rubika.ir/v3/{token}/{method}"
     resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
@@ -85,6 +94,30 @@ def get_updates(token, offset_id=None, limit=50):
     return api_call(token, "getUpdates", payload)
 
 
+# ---------------------------------------------------------------------------
+# شناسایی کانال‌های شناخته‌شده (برای تفکیک «کاربر» از «کانال»)
+# ---------------------------------------------------------------------------
+def known_channel_guids(config):
+    guids = {config.get("source_channel_guid")}
+    for ch in config.get("destination_channels", []):
+        guids.add(ch.get("guid"))
+    guids.discard(None)
+    return guids
+
+
+def track_known_user(state, config, chat_id):
+    if not chat_id or chat_id in known_channel_guids(config):
+        return
+    if chat_id == config.get("owner_guid"):
+        return
+    users = state.setdefault("known_users", [])
+    if chat_id not in users:
+        users.append(chat_id)
+
+
+# ---------------------------------------------------------------------------
+# پارس کپشن پست‌های کانال منبع
+# ---------------------------------------------------------------------------
 def parse_caption(caption: str):
     caption = caption or ""
     hashtags = re.findall(r"#\S+", caption)
@@ -94,6 +127,9 @@ def parse_caption(caption: str):
 
     version_match = re.search(r"(?:ورژن|نسخه)\s*[:：]\s*(.+)", caption)
     version = version_match.group(1).strip() if version_match else ""
+
+    number_match = re.search(r"#(\d+)\b", caption)
+    number = number_match.group(1) if number_match else None
 
     title = ""
     for line in caption.splitlines():
@@ -105,9 +141,15 @@ def parse_caption(caption: str):
         title = line
         break
 
-    return {"title": title, "hashtags": hashtags, "description": description, "version": version}
+    return {
+        "title": title, "hashtags": hashtags, "description": description,
+        "version": version, "number": number,
+    }
 
 
+# ---------------------------------------------------------------------------
+# ارسال مود (فقط عکس) / ویدیو به یک کانال مقصد
+# ---------------------------------------------------------------------------
 def send_mod(token, channel, mod):
     lines = []
     if mod.get("title"):
@@ -118,12 +160,13 @@ def send_mod(token, channel, mod):
         lines.append(f"📝 توضیحات: {mod['description']}")
     if mod.get("version"):
         lines.append(f"🔢 ورژن: {mod['version']}")
+    if mod.get("number"):
+        lines.append(f"📥 برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو به ربات در پیوی بفرستید.")
     lines.append(f"🔗 کانال: {channel['channel_link']}")
     if channel.get("mod_photo_extra_text"):
         lines.append(channel["mod_photo_extra_text"])
 
     send_file(token, channel["guid"], mod["photo_file_id"], "\n".join(lines))
-    send_file(token, channel["guid"], mod["file_file_id"], channel.get("mod_file_caption", ""))
 
 
 def send_video(token, channel, video):
@@ -131,12 +174,6 @@ def send_video(token, channel, video):
     if channel.get("video_extra_text"):
         lines.append(channel["video_extra_text"])
     send_file(token, channel["guid"], video["video_file_id"], "\n".join(lines))
-
-
-def is_video_slot(hour: int, config: dict) -> bool:
-    start = config["schedule"]["start_hour_tehran"]
-    every_n = config["schedule"]["video_every_n_slots"]
-    return (hour - start) % every_n == 0
 
 
 def pick_item(items, used_ids):
@@ -150,9 +187,12 @@ def pick_item(items, used_ids):
     return chosen, used_ids + [chosen["id"]]
 
 
+# ---------------------------------------------------------------------------
+# پیام به مالک ربات — با جلوگیری از سیل پیام
+# ---------------------------------------------------------------------------
 def notify_owner(token, config, text):
     owner = config.get("owner_guid")
-    if not owner or owner.startswith("c0xYOUR"):
+    if not owner or owner.startswith("PUT_YOUR"):
         print("DEBUG: notify_owner skipped — owner_guid تنظیم نشده")
         return
     try:
@@ -180,7 +220,6 @@ def maybe_notify_new_errors(token, config, state):
     unnotified = [e for e in state.get("errors", []) if not e.get("notified")]
     if not unnotified:
         return
-
     last_time = state.get("last_error_notify_time")
     now = tehran_now()
     if last_time:
@@ -190,11 +229,9 @@ def maybe_notify_new_errors(token, config, state):
                 return
         except Exception:
             pass
-
     notify_owner(
         token, config,
-        f"⚠️ {len(unnotified)} خطای جدید ثبت شد.\n"
-        f"برای دیدن جزئیات (دسته‌بندی‌شده، ۵ تا ۵ تا)، به من پیام بده: /bugs"
+        f"⚠️ {len(unnotified)} خطای جدید ثبت شد.\nبرای دیدن جزئیات: /bugs"
     )
     for e in unnotified:
         e["notified"] = True
@@ -205,11 +242,9 @@ def build_bugs_page(state):
     errors = list(reversed(state.get("errors", [])))
     if not errors:
         return "🎉 هیچ باگی ثبت نشده."
-
     offset = state.get("bug_page_offset", 0)
     if offset >= len(errors):
         offset = 0
-
     page = errors[offset: offset + ERRORS_PER_PAGE]
     next_offset = offset + ERRORS_PER_PAGE
     state["bug_page_offset"] = next_offset if next_offset < len(errors) else 0
@@ -228,5 +263,60 @@ def build_bugs_page(state):
         lines.append("\n(به انتهای لیست رسیدید؛ دوباره /bugs بفرستید تا از اول شروع بشه)")
     else:
         lines.append("\nبرای دیدن بعدی، دوباره بنویسید: /bugs")
-
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# پنل مدیریت
+# ---------------------------------------------------------------------------
+def build_panel_list(config):
+    channels = config.get("destination_channels", [])
+    if not channels:
+        return "هیچ کانال مقصدی در config.json ثبت نشده."
+    lines = ["🎛 پنل مدیریت کانال‌ها", ""]
+    for i, ch in enumerate(channels, start=1):
+        status = "✅ فعال" if ch.get("enabled", True) else "⛔ غیرفعال"
+        lines.append(f"{i}. {ch.get('name', ch['guid'])} — {status}")
+    lines.append("\nبرای دیدن جزئیات، عدد همون کانال رو بفرستید.")
+    return "\n".join(lines)
+
+
+def build_channel_detail(config, state, index):
+    channels = config.get("destination_channels", [])
+    if index < 1 or index > len(channels):
+        return "همچین شماره‌ای در لیست نیست."
+    ch = channels[index - 1]
+    guid = ch["guid"]
+    posts_count = len(state.get("used_mods_per_channel", {}).get(guid, []))
+    activated = state.get("channel_activated", {}).get(guid, "هنوز فعالیتی ثبت نشده")
+    status = "✅ فعال" if ch.get("enabled", True) else "⛔ غیرفعال"
+    return (
+        f"📊 {ch.get('name', guid)}\n"
+        f"وضعیت: {status}\n"
+        f"تعداد پست‌های ارسالی: {posts_count}\n"
+        f"فعال از: {activated}"
+    )
+
+
+def track_channel_activation(state, config):
+    activated = state.setdefault("channel_activated", {})
+    for ch in config.get("destination_channels", []):
+        guid = ch["guid"]
+        if guid not in activated:
+            activated[guid] = tehran_now().strftime("%Y-%m-%d %H:%M")
+
+
+# ---------------------------------------------------------------------------
+# پخش همگانی
+# ---------------------------------------------------------------------------
+def broadcast_to_users(token, state, text):
+    users = state.get("known_users", [])
+    sent, failed = 0, 0
+    for uid in users:
+        try:
+            send_message(token, uid, text)
+            sent += 1
+        except Exception as e:
+            failed += 1
+            print(f"DEBUG: broadcast failed for {uid}: {e}")
+    return sent, failed
