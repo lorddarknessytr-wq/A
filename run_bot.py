@@ -150,12 +150,17 @@ def main():
         updates = []
         next_offset = None
 
+    print(f"DEBUG: تعداد آپدیت‌های دریافتی از getUpdates: {len(updates)}")
+    if updates:
+        print(f"DEBUG: نمونهٔ خام اولین آپدیت: {updates[0]}")
+
     for update in updates:
         msg = update.get("new_message") or update.get("updated_message") or update
         if not isinstance(msg, dict):
             continue
         chat_id = msg.get("chat_id") or update.get("chat_id")
         text = (msg.get("text") or "").strip()
+        print(f"DEBUG: پیام پردازش‌شده -> chat_id={chat_id} | text={text!r}")
 
         try:
             if text == "/myid" and chat_id:
