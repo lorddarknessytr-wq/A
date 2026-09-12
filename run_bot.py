@@ -40,11 +40,10 @@ def handle_source_channel_message(state, msg):
     caption = msg.get("text") or ""
 
     if not file_info:
-        print(f"DEBUG: پیام کانال منبع بدون فایل بود، نادیده گرفته شد. متن: {caption[:60]!r}")
         return
 
-    file_type = file_info.get("file_type") or file_info.get("type")
-    print(f"DEBUG: پیام کانال منبع -> file_type={file_type!r} | file_info خام={file_info} | caption={caption[:60]!r}")
+    file_type = file_info.get("file_type")
+    print(f"DEBUG: پیام کانال منبع -> file_type={file_type!r} caption={caption[:60]!r}")
 
     if file_type == "Image":
         parsed = core.parse_caption(caption)
@@ -105,45 +104,30 @@ def handle_number_request(token, state, chat_id, text):
 def handle_owner_message(token, config, state, text):
     panel_keyword = config.get("panel_keyword", "پنل")
     broadcast_secret = config.get("broadcast_secret", "")
-    post_now_keyword = config.get("post_now_keyword", "پست فوری")
 
     if state.get("awaiting_broadcast"):
         state["awaiting_broadcast"] = False
         sent, failed = core.broadcast_to_users(token, state, text)
-        core.send_owner_message(token, config, f"📣 پیام برای {sent} کاربر ارسال شد. (ناموفق: {failed})")
+        core.send_message(token, config["owner_guid"], f"📣 پیام برای {sent} کاربر ارسال شد. (ناموفق: {failed})")
         return
 
     if broadcast_secret and text == broadcast_secret:
         state["awaiting_broadcast"] = True
-        core.send_owner_message(token, config, "پیام خودت رو بفرست تا برای همهٔ کاربرها ارسالش کنم.")
+        core.send_message(token, config["owner_guid"], "پیام خودت رو بفرست تا برای همهٔ کاربرها ارسالش کنم.")
         return
 
     if text == panel_keyword:
         state["awaiting_panel_selection"] = True
-        core.send_owner_message(token, config, core.build_panel_list(config))
+        core.send_message(token, config["owner_guid"], core.build_panel_list(config))
         return
 
     if state.get("awaiting_panel_selection") and text.isdigit():
         state["awaiting_panel_selection"] = False
-        core.send_owner_message(token, config, core.build_channel_detail(config, state, int(text)))
+        core.send_message(token, config["owner_guid"], core.build_channel_detail(config, state, int(text)))
         return
 
     if text == "/bugs":
-        core.send_owner_message(token, config, core.build_bugs_page(state))
-        return
-
-    if text == "/reset_queue":
-        skipped = core.fast_forward_offset(token, state)
-        core.send_owner_message(
-            token, config,
-            f"♻️ صف پیام‌های خونده‌نشده خالی شد ({skipped} پیام قدیمی رد شد).\n"
-            f"از این لحظه به بعد ربات فقط پیام‌های جدید رو پردازش می‌کنه."
-        )
-        return
-
-    if text == post_now_keyword:
-        results = core.post_now_to_all_channels(token, config, state)
-        core.send_owner_message(token, config, "📤 پست فوری:\n" + "\n".join(results))
+        core.send_message(token, config["owner_guid"], core.build_bugs_page(state))
         return
 
     n_mods = len(state.get("mods", []))
@@ -159,10 +143,9 @@ def handle_owner_message(token, config, state, text):
         f"🎬 ویدیوهای ذخیره‌شده: {n_videos}\n"
         f"🐞 تعداد کل باگ‌های ثبت‌شده: {n_errors}\n"
         f"برای دیدن گزارش باگ‌ها: /bugs\n"
-        f"برای پنل کانال‌ها: {panel_keyword}\n"
-        f"برای پست فوری یک مود: {post_now_keyword}"
+        f"برای پنل کانال‌ها: {panel_keyword}"
     )
-    core.send_owner_message(token, config, status)
+    core.send_message(token, config["owner_guid"], status)
 
 
 def run_posting_schedule(token, config, state):
@@ -253,32 +236,11 @@ def main():
         updates = []
         next_offset = None
 
-    # --- رفع باگ اصلی: پیشروی همیشگی offset -----------------------------
-    # روبیکا وقتی صفحه‌ی بعدی وجود نداره (یعنی همین دسته، آخرین دسته‌ست)
-    # next_offset_id رو خالی برمی‌گردونه. قبلاً کد در این حالت last_offset_id
-    # رو دست‌نخورده رها می‌کرد، پس دفعه‌ی بعد دقیقاً همین پیام‌ها دوباره
-    # خونده و دوباره پردازش می‌شدن (باگ اصلی «تکرار پیام‌ها»).
-    if not next_offset and updates:
-        fallback_offset = core.extract_ref_id(updates[-1])
-        if fallback_offset:
-            next_offset = fallback_offset
-            print(f"DEBUG: next_offset_id از روبیکا خالی بود؛ از شناسه‌ی آخرین پیام استفاده شد: {fallback_offset}")
-
-    print(f"DEBUG: تعداد آپدیت‌های دریافتی: {len(updates)} | offset فعلی: {state.get('last_offset_id')} | offset بعدی: {next_offset}")
+    print(f"DEBUG: تعداد آپدیت‌های دریافتی: {len(updates)}")
 
     for update in updates:
-        ref_id = core.extract_ref_id(update)
-
-        # --- محافظ دوم، مستقل از offset: حتی اگه به هر دلیلی (اورلپ بین
-        # صفحات، پاسخ تکراری خودِ سرور روبیکا، اجرای هم‌زمان دو ورک‌فلو)
-        # همین پیام دوباره برسه، اینجا با شناسه‌ی خودش شناسایی و رد می‌شه.
-        if core.is_duplicate(state, ref_id):
-            print(f"DEBUG: آپدیت تکراری (ref_id={ref_id}) نادیده گرفته شد")
-            continue
-
         msg = update.get("new_message") or update.get("updated_message") or update
         if not isinstance(msg, dict):
-            core.mark_processed(state, ref_id)
             continue
         chat_id = msg.get("chat_id") or update.get("chat_id")
         text = (msg.get("text") or "").strip()
@@ -297,8 +259,6 @@ def main():
                 handle_owner_message(token, config, state, text)
         except Exception as e:
             core.log_error(state, "پردازش پیام", e)
-        finally:
-            core.mark_processed(state, ref_id)
 
     if next_offset:
         state["last_offset_id"] = next_offset
