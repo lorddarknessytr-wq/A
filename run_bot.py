@@ -130,6 +130,15 @@ def handle_owner_message(token, config, state, text):
         core.send_message(token, config["owner_guid"], core.build_bugs_page(state))
         return
 
+    if text == "/reset_queue":
+        skipped = core.fast_forward_offset(token, state)
+        core.send_message(
+            token, config["owner_guid"],
+            f"♻️ صف پیام‌های خونده‌نشده خالی شد ({skipped} پیام قدیمی رد شد).\n"
+            f"از این لحظه به بعد ربات فقط پیام‌های جدید رو پردازش می‌کنه."
+        )
+        return
+
     n_mods = len(state.get("mods", []))
     n_videos = len(state.get("videos", []))
     n_errors = len(state.get("errors", []))
@@ -236,7 +245,26 @@ def main():
         updates = []
         next_offset = None
 
-    print(f"DEBUG: تعداد آپدیت‌های دریافتی: {len(updates)}")
+    # --- رفع باگ اصلی: پیشروی همیشگی offset -----------------------------
+    # روبیکا وقتی صفحه‌ی بعدی وجود نداره (یعنی همین دسته، آخرین دسته‌ست)
+    # next_offset_id رو خالی برمی‌گردونه. قبلاً کد در این حالت last_offset_id
+    # رو دست‌نخورده رها می‌کرد، پس دفعه‌ی بعد دقیقاً همین پیام‌ها دوباره
+    # خونده و دوباره پردازش می‌شدن (باگ اصلی «تکرار پیام‌ها»).
+    # الان: اگه next_offset_id نبود ولی پیام جدیدی رسیده، از شناسه‌ی خودِ
+    # آخرین پیام به‌عنوان offset بعدی استفاده می‌کنیم.
+    if not next_offset and updates:
+        last_update = updates[-1]
+        last_msg = last_update.get("new_message") or last_update.get("updated_message") or {}
+        fallback_offset = (
+            last_update.get("update_id")
+            or last_update.get("id")
+            or last_msg.get("message_id")
+        )
+        if fallback_offset:
+            next_offset = fallback_offset
+            print(f"DEBUG: next_offset_id از روبیکا خالی بود؛ از شناسه‌ی آخرین پیام به‌عنوان offset بعدی استفاده شد: {fallback_offset}")
+
+    print(f"DEBUG: تعداد آپدیت‌های دریافتی: {len(updates)} | offset فعلی: {state.get('last_offset_id')} | offset بعدی: {next_offset}")
 
     for update in updates:
         msg = update.get("new_message") or update.get("updated_message") or update

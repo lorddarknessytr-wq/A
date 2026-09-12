@@ -67,12 +67,37 @@ def tehran_now():
 # ---------------------------------------------------------------------------
 # ارتباط خام با Rubika Bot API
 # ---------------------------------------------------------------------------
-def api_call(token, method, payload=None):
+def api_call(token, method, payload=None, retries=3, backoff_seconds=2):
+    """
+    فراخوانی متد API روبیکا.
+    خطاهای موقت سرور (502/503/504 یا Timeout) را چند بار با فاصله دوباره
+    امتحان می‌کند (باگ قبلی: هر 502 موقت بلافاصله به‌عنوان خطای دائمی ثبت
+    می‌شد). اگر پاسخ status != OK باشد، پیام خطای خودِ روبیکا را در exception
+    قرار می‌دهد تا در گزارش باگ‌ها قابل‌فهم باشد.
+    """
+    import time as _time
+
     url = f"https://botapi.rubika.ir/v3/{token}/{method}"
-    resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
-    resp.raise_for_status()
-    body = resp.json()
-    return body.get("data", body) if isinstance(body, dict) else body
+    last_exc = None
+
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
+            if resp.status_code in (502, 503, 504):
+                last_exc = RuntimeError(f"{resp.status_code} موقت از سرور روبیکا (تلاش {attempt}/{retries})")
+                _time.sleep(backoff_seconds * attempt)
+                continue
+            resp.raise_for_status()
+            body = resp.json()
+            if isinstance(body, dict) and body.get("status") not in (None, "OK"):
+                raise RuntimeError(f"روبیکا خطا برگرداند [{method}]: {body}")
+            return body.get("data", body) if isinstance(body, dict) else body
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            last_exc = e
+            _time.sleep(backoff_seconds * attempt)
+            continue
+
+    raise last_exc or RuntimeError(f"فراخوانی {method} بدون دلیل مشخص شکست خورد")
 
 
 def get_me(token):
@@ -304,6 +329,42 @@ def track_channel_activation(state, config):
         guid = ch["guid"]
         if guid not in activated:
             activated[guid] = tehran_now().strftime("%Y-%m-%d %H:%M")
+
+
+# ---------------------------------------------------------------------------
+# ریست دستیِ صف (برای خلاص شدن فوری از انباشت پیام‌های قدیمی)
+# ---------------------------------------------------------------------------
+def fast_forward_offset(token, state):
+    """
+    همه‌ی آپدیت‌های در صف مانده را بدون پردازش محتوا رد می‌کند و فقط
+    آخرین offset را ذخیره می‌کند. برای زمانی که به‌خاطر باگ قبلی، صف
+    خیلی بزرگ شده و کاربر می‌خواهد فوراً از این لحظه به بعد تمیز شروع شود.
+    """
+    offset = state.get("last_offset_id")
+    total_skipped = 0
+    for _ in range(50):  # حداکثر ۵۰ صفحه (۵۰ در ۱۰۰ = ۵۰۰۰ پیام) در هر اجرا
+        resp = get_updates(token, offset_id=offset, limit=100)
+        updates = resp.get("updates", []) if isinstance(resp, dict) else []
+        if not updates:
+            break
+        total_skipped += len(updates)
+        next_offset = resp.get("next_offset_id") if isinstance(resp, dict) else None
+        if not next_offset:
+            last_update = updates[-1]
+            last_msg = last_update.get("new_message") or last_update.get("updated_message") or {}
+            next_offset = (
+                last_update.get("update_id")
+                or last_update.get("id")
+                or last_msg.get("message_id")
+            )
+        if not next_offset or next_offset == offset:
+            break
+        offset = next_offset
+        if len(updates) < 100:
+            break
+    if offset:
+        state["last_offset_id"] = offset
+    return total_skipped
 
 
 # ---------------------------------------------------------------------------
