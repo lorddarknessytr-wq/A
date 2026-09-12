@@ -1,16 +1,27 @@
 {
-  "last_offset_id": null,
+  "last_offset_id": "6aa4059eb75dd1ab183840b7",
   "mods": [],
   "videos": [],
   "pending_photo": null,
   "files_by_number": {},
-  "used_mods_per_channel": {},
+  "used_mods_per_channel": {
+    "c0ECrHf06f41d4ee8759a5c9cb703079": []
+  },
   "used_videos_per_channel": {},
-  "channel_activated": {},
-  "known_users": [],
+  "channel_activated": {
+    "c0ECrHf06f41d4ee8759a5c9cb703079": "2026-09-12 20:20"
+  },
+  "known_users": [
+    "c0DBT990e47b63fa688bba87d5736cc2"
+  ],
   "awaiting_broadcast": false,
   "awaiting_panel_selection": false,
-  "posted_hours_today": {"date": null, "hours": []},
+  "posted_hours_today": {
+    "date": "2026-09-12",
+    "hours": [
+      20
+    ]
+  },
   "errors": [],
   "last_error_notify_time": null,
   "bug_page_offset": 0
