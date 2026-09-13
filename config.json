@@ -6,7 +6,7 @@
   "owner_guid": "b0IahsF0BEAo0c667263fa750539d1d2",
 
   "panel_keyword": "پنل",
-  "broadcast_secret": "بگو-رمز-خودتو-اینجا-عوض-کن",
+  "broadcast_secret": "forward-all",
 
   "schedule": {
     "start_hour_tehran": 11,
