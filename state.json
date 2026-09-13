@@ -1,9 +1,14 @@
 {
-  "last_offset_id": "6aa69d8b1bfa45252117f4e9",
+  "last_offset_id": "6aa69f1bf66d21c4c0e3c100",
   "mods": [],
   "videos": [],
   "pending_photo": null,
-  "files_by_number": {},
+  "files_by_number": {
+    "1": {
+      "file_id": "dxeKOlfI08587458952584011011883836457742026091316",
+      "title": "فایل شماره 1"
+    }
+  },
   "used_mods_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": []
   },
