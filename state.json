@@ -13,10 +13,12 @@
   "awaiting_broadcast": false,
   "awaiting_panel_selection": false,
   "posted_hours_today": {
-    "date": null,
+    "date": "2026-09-13",
     "hours": []
   },
-  "sent_log": {},
+  "sent_log": {
+    "heartbeat": "2026-09-13 10:53"
+  },
   "errors": [],
   "last_error_notify_time": null,
   "bug_page_offset": 0
