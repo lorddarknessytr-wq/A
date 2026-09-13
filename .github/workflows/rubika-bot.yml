@@ -7,6 +7,10 @@ on:
         description: "برای پست فوری مود: شمارهٔ کانال (طبق ترتیب config.json) یا all برای همه؛ خالی=بدون پست فوری"
         required: false
         default: ""
+      flush_updates:
+        description: "برای دور ریختن فوری انبار پیام‌های قدیمی (بدون پاسخ دادن به هیچ‌کدوم) بنویسید: yes"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -35,6 +39,7 @@ jobs:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN }}
           TRIGGER_TYPE: ${{ github.event_name }}
           FORCE_POST_CHANNEL: ${{ github.event.inputs.force_post_channel }}
+          FLUSH_UPDATES: ${{ github.event.inputs.flush_updates }}
         run: python run_bot.py
 
       - name: Save updated state.json back to the repo
