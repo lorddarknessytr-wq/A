@@ -113,12 +113,63 @@ def track_known_user(state, config, chat_id):
         users.append(chat_id)
 
 
+def prune_known_users(state, config):
+    """ورودی‌هایی که در واقع کانال هستن (مثلاً چون قبلاً GUID اشتباه بوده)
+    یا مالک ربات هستن رو از known_users پاک می‌کند — خودترمیم‌شونده."""
+    channels = known_channel_guids(config)
+    owner = config.get("owner_guid")
+    users = state.get("known_users", [])
+    state["known_users"] = [u for u in users if u not in channels and u != owner]
+
+
+# ---------------------------------------------------------------------------
+# حافظهٔ موقت فایل‌های اخیر — برای پیام‌هایی که بعداً ادیت می‌شوند و در
+# آپدیتِ ادیت، اطلاعات فایل همراهش نیست (فقط متن جدید می‌آید)
+# ---------------------------------------------------------------------------
+RECENT_FILES_TTL_MINUTES = 120
+
+
+def remember_recent_file(state, message_id, file_id, file_type):
+    if not message_id:
+        return
+    cache = state.setdefault("recent_files", {})
+    cache[str(message_id)] = {
+        "file_id": file_id,
+        "file_type": file_type,
+        "seen": tehran_now().strftime("%Y-%m-%d %H:%M"),
+    }
+    # پاک‌سازی ورودی‌های قدیمی‌تر از RECENT_FILES_TTL_MINUTES
+    cutoff = tehran_now().replace(tzinfo=None) - timedelta(minutes=RECENT_FILES_TTL_MINUTES)
+    for k in list(cache.keys()):
+        try:
+            if datetime.strptime(cache[k]["seen"], "%Y-%m-%d %H:%M") < cutoff:
+                del cache[k]
+        except Exception:
+            del cache[k]
+
+
+def recall_recent_file(state, message_id):
+    if not message_id:
+        return None
+    return state.get("recent_files", {}).get(str(message_id))
+
+
 # ---------------------------------------------------------------------------
 # پارس کپشن — موقعیتی و دقیق
 # ---------------------------------------------------------------------------
 def _content_lines(caption: str):
     lines = [l.strip() for l in (caption or "").splitlines() if l.strip()]
     return [l for l in lines if not l.startswith("#")]
+
+
+_LABEL_RE = re.compile(r"^\s*(عنوان|توضیحات|توضیح|ورژن|نسخه)\s*[:：]\s*")
+
+
+def _strip_label(line: str) -> str:
+    """اگر خط با برچسبی مثل «عنوان:» شروع شده باشه، برچسب رو حذف می‌کنه؛
+    اگر نه، خودِ خط رو بدون تغییر برمی‌گردونه. یعنی هم فرمت با برچسب و
+    هم بدون برچسب پشتیبانی می‌شه."""
+    return _LABEL_RE.sub("", line).strip()
 
 
 def parse_mod_caption(caption: str):
@@ -132,9 +183,9 @@ def parse_mod_caption(caption: str):
     if "#مود" not in caption:
         return None
     lines = _content_lines(caption)
-    title = lines[0] if len(lines) > 0 else ""
-    description = lines[1] if len(lines) > 1 else ""
-    version = lines[2] if len(lines) > 2 else ""
+    title = _strip_label(lines[0]) if len(lines) > 0 else ""
+    description = _strip_label(lines[1]) if len(lines) > 1 else ""
+    version = _strip_label(lines[2]) if len(lines) > 2 else ""
     number_match = re.search(r"#(\d+)\b", caption)
     number = number_match.group(1) if number_match else None
     return {"title": title, "description": description, "version": version, "number": number}
@@ -149,7 +200,7 @@ def parse_video_caption(caption: str):
     if "#ویدئو" not in caption and "#ویدیو" not in caption:
         return None
     lines = _content_lines(caption)
-    title = lines[0] if lines else "ویدیو جدید"
+    title = _strip_label(lines[0]) if lines else "ویدیو جدید"
     return {"title": title}
 
 

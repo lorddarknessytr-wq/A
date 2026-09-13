@@ -30,6 +30,20 @@ def uuid_short():
 def handle_source_channel_message(state, msg):
     file_info = msg.get("file")
     caption = msg.get("text") or ""
+    message_id = msg.get("message_id")
+
+    # اگر همین آپدیت فایل داره، در حافظهٔ موقت ذخیره‌اش کن (حتی اگه هنوز
+    # تگ #مود/#ویدئو نداشته باشه) تا اگه بعداً فقط کپشنش ادیت شد و آپدیتِ
+    # ادیت فاقد اطلاعات فایل بود، بتونیم از همین حافظه بازیابی‌اش کنیم.
+    if file_info and file_info.get("file_type") and message_id:
+        core.remember_recent_file(state, message_id, file_info.get("file_id"), file_info.get("file_type"))
+
+    if not file_info and message_id:
+        cached = core.recall_recent_file(state, message_id)
+        if cached:
+            file_info = {"file_type": cached["file_type"], "file_id": cached["file_id"]}
+            print(f"DEBUG: فایل از حافظهٔ موقت بازیابی شد (پیام ادیت‌شده) -> {cached['file_type']}")
+
     if not file_info:
         return
 
@@ -247,6 +261,7 @@ def main():
         return
 
     core.track_channel_activation(state, config)
+    core.prune_known_users(state, config)
     n_users_before = len(state.get("known_users", []))
 
     print(f"DEBUG: وضعیت لود شده -> last_offset_id={state.get('last_offset_id')!r} "
@@ -282,11 +297,15 @@ def main():
             me = core.get_me(token)
             bot_name = (me.get("bot") or {}).get("title") or "ربات"
             now_str = core.tehran_now().strftime("%Y-%m-%d %H:%M")
+            n_active_channels = len([c for c in config.get("destination_channels", []) if c.get("enabled", True)])
             core.notify_owner(
                 token, config,
                 f"🟢 {bot_name} راه‌اندازی شد و وصل است.\n"
                 f"🕰 ساعت تهران: {now_str}\n"
-                f"👥 تعداد کاربران: {n_users_before}"
+                f"👥 تعداد کاربران: {n_users_before}\n"
+                f"📡 تعداد کانال‌های فعال: {n_active_channels}\n"
+                f"🎮 تعداد مودها: {len(state.get('mods', []))}\n"
+                f"🎬 تعداد ویدیوها: {len(state.get('videos', []))}"
             )
         except Exception as e:
             core.log_error(state, "تست اتصال (getMe)", e)
@@ -322,6 +341,9 @@ def main():
 
             if text == "/myid" and chat_id:
                 core.send_message(token, chat_id, f"GUID این چت:\n{chat_id}")
+            elif text == "/help" and chat_id:
+                help_text = config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1).")
+                core.send_message(token, chat_id, help_text)
             elif handle_number_request(token, state, chat_id, text):
                 pass
             elif chat_id and chat_id == config.get("source_channel_guid"):
