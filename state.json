@@ -1,16 +1,20 @@
 {
-  "last_offset_id": "6aa6a0fcf2b071ec8b04736b",
+  "last_offset_id": "6aa6b6943398ea97c8e1100c",
   "mods": [],
   "videos": [],
   "pending_photo": null,
   "files_by_number": {
     "1": {
-      "file_id": "dxeKOlfI08587458952584011011883836457742026091316",
+      "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
       "title": "فایل شماره 1"
     },
     "5": {
       "file_id": "dxeKOlfI08587458952584011011883836457742026091316",
       "title": "فایل شماره 5"
+    },
+    "7": {
+      "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
+      "title": "فایل شماره 7"
     }
   },
   "used_mods_per_channel": {
@@ -32,11 +36,12 @@
     "hours": [
       11,
       12,
-      16
+      16,
+      18
     ]
   },
   "sent_log": {
-    "heartbeat": "2026-09-13 16:35"
+    "heartbeat": "2026-09-13 18:13"
   },
   "errors": [],
   "last_error_notify_time": null,
