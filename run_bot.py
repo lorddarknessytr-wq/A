@@ -329,6 +329,7 @@ def main():
     print(f"DEBUG: تعداد آپدیت‌های دریافتی: {len(updates)} | next_offset={next_offset!r}")
 
     for update in updates:
+        print(f"DEBUG: RAW update کامل: {update}")
         msg = update.get("new_message") or update.get("updated_message") or update
         if not isinstance(msg, dict):
             continue
@@ -338,6 +339,9 @@ def main():
 
         try:
             core.track_known_user(state, config, chat_id)
+
+            if chat_id and chat_id == config.get("source_channel_guid"):
+                print(f"DEBUG: RAW پیام کانال منبع (کامل): {msg}")
 
             if text == "/myid" and chat_id:
                 core.send_message(token, chat_id, f"GUID این چت:\n{chat_id}")
