@@ -400,9 +400,13 @@ def main():
             elif text == "/help" and chat_id:
                 help_text = config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1).")
                 core.send_message(token, chat_id, help_text)
-            elif handle_number_request(token, state, chat_id, text):
+            elif not msg.get("file") and handle_number_request(token, state, chat_id, text):
                 pass
-            elif chat_id and chat_id == config.get("source_channel_guid"):
+            elif chat_id and msg.get("file") and chat_id in (
+                config.get("source_channel_guid"), config.get("owner_guid")
+            ):
+                # پست کانال منبع، یا فایل/عکسی که مستقیم (یا فوروارد) به
+                # پیوی خودِ ربات فرستاده شده — هر دو با یک منطق پردازش می‌شن
                 handle_source_channel_message(state, msg)
             elif chat_id and chat_id == config.get("owner_guid"):
                 handle_owner_message(token, config, state, text)
