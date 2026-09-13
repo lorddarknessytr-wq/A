@@ -253,6 +253,30 @@ def main():
           f"mods={len(state.get('mods', []))} videos={len(state.get('videos', []))} "
           f"users={n_users_before} errors={len(state.get('errors', []))}")
 
+    if os.environ.get("FLUSH_UPDATES", "").strip().lower() in ("yes", "true", "1"):
+        flushed = 0
+        offset = state.get("last_offset_id")
+        for _ in range(30):  # حداکثر ۳۰ بار (۳۰×۵۰=۱۵۰۰ پیام) در یک اجرا
+            try:
+                resp = core.get_updates(token, offset_id=offset, limit=50)
+            except Exception as e:
+                core.log_error(state, "پاک‌سازی انبار", e)
+                break
+            batch = resp.get("updates", []) if isinstance(resp, dict) else []
+            next_off = resp.get("next_offset_id") if isinstance(resp, dict) else None
+            flushed += len(batch)
+            if not batch or not next_off or next_off == offset:
+                offset = next_off or offset
+                break
+            offset = next_off
+
+        if offset:
+            state["last_offset_id"] = offset
+        core.notify_owner(token, config, f"🧹 پاک‌سازی انجام شد. {flushed} پیام قدیمی بدون پاسخ دور ریخته شد.")
+        core.save_state(state)
+        print(f"DEBUG: flush کامل شد -> {flushed} پیام, offset نهایی={offset!r}")
+        return
+
     if os.environ.get("TRIGGER_TYPE") == "workflow_dispatch" and core.should_send_now(state, "heartbeat", 8):
         try:
             me = core.get_me(token)
