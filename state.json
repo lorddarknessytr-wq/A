@@ -1,7 +1,13 @@
 {
-  "last_offset_id": "6aa6b8ff3c7597c57f55db0c",
+  "last_offset_id": "6aa6c40620e24d3f38b55d66",
   "mods": [],
-  "videos": [],
+  "videos": [
+    {
+      "id": "83620262",
+      "video_file_id": "dxNGSHXT00668497306914071013083283623332026091310",
+      "title": "ویدیو جدید"
+    }
+  ],
   "pending_photo": null,
   "files_by_number": {
     "1": {
@@ -21,7 +27,9 @@
     "c0DBT990e47b63fa688bba87d5736cc2": []
   },
   "used_videos_per_channel": {
-    "c0DBT990e47b63fa688bba87d5736cc2": []
+    "c0DBT990e47b63fa688bba87d5736cc2": [
+      "83620262"
+    ]
   },
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-13 10:46"
@@ -37,11 +45,12 @@
       11,
       12,
       16,
-      18
+      18,
+      19
     ]
   },
   "sent_log": {
-    "heartbeat": "2026-09-13 18:26"
+    "heartbeat": "2026-09-13 19:10"
   },
   "errors": [],
   "last_error_notify_time": null,
