@@ -40,19 +40,11 @@
   "awaiting_broadcast": false,
   "awaiting_panel_selection": false,
   "posted_hours_today": {
-    "date": "2026-09-13",
-    "hours": [
-      11,
-      12,
-      16,
-      18,
-      19,
-      22,
-      23
-    ]
+    "date": "2026-09-14",
+    "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-13 23:30"
+    "heartbeat": "2026-09-14 00:00"
   },
   "errors": [],
   "last_error_notify_time": null,
