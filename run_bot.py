@@ -115,6 +115,47 @@ def handle_number_request(token, state, chat_id, text):
     return True
 
 
+def run_resync(token, config, state):
+    """از ابتدای بافر روبیکا (نه از last_offset_id فعلی) همه‌چیز رو دوباره
+    می‌خونه و از کانال منبع، مود/ویدیوهایی که جا مونده بودن رو پیدا می‌کنه.
+    برای موقعی که مشکوکیم یه پیام قدیمی رد شده (مثلاً با flush قبلی)."""
+    offset = None
+    total_updates = 0
+    mods_before = len(state.get("mods", []))
+    videos_before = len(state.get("videos", []))
+
+    for _ in range(30):
+        try:
+            resp = core.get_updates(token, offset_id=offset, limit=50)
+        except Exception as e:
+            core.log_error(state, "دستور /update", e)
+            break
+        batch = resp.get("updates", []) if isinstance(resp, dict) else []
+        next_off = resp.get("next_offset_id") if isinstance(resp, dict) else None
+        total_updates += len(batch)
+
+        for update in batch:
+            msg = update.get("new_message") or update.get("updated_message") or update
+            if not isinstance(msg, dict):
+                continue
+            chat_id = msg.get("chat_id") or update.get("chat_id")
+            if chat_id == config.get("source_channel_guid"):
+                try:
+                    handle_source_channel_message(state, msg)
+                except Exception as e:
+                    core.log_error(state, "پردازش /update", e)
+
+        if not batch or not next_off or next_off == offset:
+            offset = next_off or offset
+            break
+        offset = next_off
+
+    if offset:
+        state["last_offset_id"] = offset
+
+    return total_updates, len(state.get("mods", [])) - mods_before, len(state.get("videos", [])) - videos_before
+
+
 def handle_owner_message(token, config, state, text):
     panel_keyword = config.get("panel_keyword", "پنل")
     broadcast_secret = config.get("broadcast_secret", "")
@@ -138,6 +179,17 @@ def handle_owner_message(token, config, state, text):
     if state.get("awaiting_panel_selection") and text.isdigit():
         state["awaiting_panel_selection"] = False
         core.send_message(token, config["owner_guid"], core.build_channel_detail(config, state, int(text)))
+        return
+
+    if text == "/update":
+        total, new_mods, new_videos = run_resync(token, config, state)
+        core.send_message(
+            token, config["owner_guid"],
+            f"🔄 بازخوانی کامل شد.\n"
+            f"کل آپدیت‌های بررسی‌شده: {total}\n"
+            f"مود جدید پیدا شد: {new_mods}\n"
+            f"ویدیوی جدید پیدا شد: {new_videos}"
+        )
         return
 
     if text == "/bugs":
