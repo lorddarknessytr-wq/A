@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa6b6943398ea97c8e1100c",
+  "last_offset_id": "6aa6b8ff3c7597c57f55db0c",
   "mods": [],
   "videos": [],
   "pending_photo": null,
@@ -13,7 +13,7 @@
       "title": "فایل شماره 5"
     },
     "7": {
-      "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
+      "file_id": "dxhicajB02977172815350718523267813807242026091318",
       "title": "فایل شماره 7"
     }
   },
@@ -41,7 +41,7 @@
     ]
   },
   "sent_log": {
-    "heartbeat": "2026-09-13 18:13"
+    "heartbeat": "2026-09-13 18:26"
   },
   "errors": [],
   "last_error_notify_time": null,
