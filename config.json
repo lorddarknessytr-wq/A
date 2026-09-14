@@ -22,11 +22,11 @@
 
   "destination_channels": [
     {
-      "guid": "c0xCHANNEL_ONE_GUID",
+      "guid": "c0DBT990e47b63fa688bba87d5736cc2",
       "name": "کانال یک",
       "enabled": true,
       "send_file_directly": false,
-      "channel_link": "https://rubika.ir/your_channel_one",
+      "channel_link": "https://rubika.ir/Addonmine",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",
       "mod_file_caption": "دانلود کنید و لذت ببرید 🎮",
       "video_extra_text": "🎬 ویدیوی امروز رو از دست ندید!"
