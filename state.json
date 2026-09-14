@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa85aa3fa356498b0ba3798",
+  "last_offset_id": "6aa85b1102f16a898c220bb2",
   "mods": [
     {
       "id": "ee83d5e9",
@@ -52,7 +52,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-15 00:00"
+    "heartbeat": "2026-09-15 00:08"
   },
   "errors": [
     {
@@ -99,17 +99,15 @@
     }
   ],
   "last_error_notify_time": "2026-09-15 00:00",
-  "bug_page_offset": 0,
+  "bug_page_offset": 5,
   "owner_keypad_set": true,
   "user_message_history": {
     "u0IahsF05003ed26a32d073c66c1388d": [
-      1789430771.010663,
-      1789430773.327006
+      1789430939.819321,
+      1789430952.630249
     ],
     "u0KZR3M01835df70ed5360ccd648f712": [
-      1789430775.699705,
-      1789430778.138208,
-      1789430779.225284
+      1789430917.051598
     ]
   },
   "recent_user_requests": {
