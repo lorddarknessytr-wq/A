@@ -1,2 +1,1 @@
 requests
-rubka>=8.1.10,<9

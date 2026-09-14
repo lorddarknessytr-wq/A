@@ -60,15 +60,11 @@ def handle_source_channel_message(state, msg):
 
     elif video_parsed is not None or file_type == "Video":
         title = (video_parsed or {}).get("title") or caption.strip() or "ویدیو جدید"
-        fid = file_info.get("file_id")
-        if not any(v.get("video_file_id") == fid for v in state["videos"]):
-            state["videos"].append({
-                "id": uuid_short(),
-                "video_file_id": fid,
-                "title": title,
-            })
-        else:
-            print(f"DEBUG: ویدیوی تکراری نادیده گرفته شد -> file_id={fid}")
+        state["videos"].append({
+            "id": uuid_short(),
+            "video_file_id": file_info.get("file_id"),
+            "title": title,
+        })
 
     else:
         file_number = core.extract_number(caption)
@@ -88,17 +84,14 @@ def handle_source_channel_message(state, msg):
         }
 
         if pending and pending.get("number") == file_number:
-            if not any(str(m.get("number")) == str(file_number) and m.get("photo_file_id") == pending.get("file_id") for m in state["mods"]):
-                state["mods"].append({
-                    "id": uuid_short(),
-                    "photo_file_id": pending["file_id"],
-                    "title": pending["title"],
-                    "description": pending["description"],
-                    "version": pending["version"],
-                    "number": file_number,
-                })
-            else:
-                print(f"DEBUG: مود تکراری نادیده گرفته شد -> number={file_number}")
+            state["mods"].append({
+                "id": uuid_short(),
+                "photo_file_id": pending["file_id"],
+                "title": pending["title"],
+                "description": pending["description"],
+                "version": pending["version"],
+                "number": file_number,
+            })
             state["pending_photo"] = None
         elif pending and pending.get("number") != file_number:
             print(f"DEBUG: شمارهٔ فایل (#{file_number}) با شمارهٔ عکسِ در انتظار "
@@ -110,7 +103,7 @@ def handle_source_channel_message(state, msg):
 NUMBER_REQUEST_RE = re.compile(r"^[#/](\d+)$")
 
 
-def handle_number_request(token, config, state, chat_id, text):
+def handle_number_request(token, state, chat_id, text):
     m = NUMBER_REQUEST_RE.match(text)
     if not m:
         return False
@@ -118,32 +111,8 @@ def handle_number_request(token, config, state, chat_id, text):
     entry = state.get("files_by_number", {}).get(number)
     if not entry:
         core.send_message(token, chat_id, f"فایلی با شمارهٔ {number} پیدا نشد.")
-        return True
-
-    # هر درخواست فایل، حتی اگر کاربر قبلاً /start زده باشد، دوباره عضویت را چک می‌کند.
-    try:
-        joined, missing = core.check_force_join(token, config, chat_id)
-    except Exception as exc:
-        core.log_error(state, "بررسی عضویت اجباری", exc)
-        core.notify_owner(token, config, f"⚠️ بررسی عضویت اجباری برای {chat_id} شکست خورد؛ فایل ارسال نشد.\n{exc}")
-        core.send_message(token, chat_id, "⚠️ فعلاً امکان بررسی عضویت وجود ندارد. چند لحظه بعد دوباره تلاش کنید.")
-        return True
-    if not joined:
-        core.send_message(token, chat_id, core.force_join_message(missing))
-        return True
-
-    if core.already_delivered(state, chat_id, number):
-        core.send_message(token, chat_id, "ℹ️ این فایل قبلاً برای شما ارسال شده است و دوباره ارسال نمی‌شود.")
-        return True
-
-    try:
-        result = core.send_file(token, chat_id, entry["file_id"], entry.get("title", ""))
-        core.mark_delivered(state, chat_id, number)
-        print(f"DEBUG: file delivered -> user={chat_id} number={number} result={result}")
-    except Exception as exc:
-        core.log_error(state, f"ارسال فایل #{number} به {chat_id}", exc)
-        core.send_message(token, chat_id, "❌ ارسال فایل ناموفق بود. لطفاً دوباره تلاش کنید.")
-        raise
+    else:
+        core.send_file(token, chat_id, entry["file_id"], entry.get("title", ""))
     return True
 
 
@@ -200,14 +169,13 @@ def handle_ticket_flow(token, config, state, chat_id, text):
         core.notify_owner(
             token, config,
             f"🎫 تیکت جدید\n"
-            f"شناسه کاربر (GUID): {chat_id}\n"
             f"از: {chat_id}\n"
             f"زمان: {now}\n"
             f"متن: {text}"
         )
         core.send_message(token, chat_id, config.get(
             "texts", {}
-        ).get("ticket_sent", "تیکت شما ارسال شد. با تشکر 🙏") + f"\nشناسه شما: {chat_id}" )
+        ).get("ticket_sent", "تیکت شما ارسال شد. با تشکر 🙏"))
         return True
 
     if text == "/ticket":
@@ -342,21 +310,19 @@ def post_mod_and_maybe_video(token, channel, state, also_video):
     summary = []
     guid = channel["guid"]
 
-    # used-list فقط بعد از موفقیت ارسال تغییر می‌کند؛ در صورت خطا، اجرای cron بعدی
-    # همان آیتم را دوباره امتحان می‌کند.
     used = state["used_mods_per_channel"].setdefault(guid, [])
-    item, proposed_used = core.pick_item(state["mods"], used)
+    item, used = core.pick_item(state["mods"], used)
+    state["used_mods_per_channel"][guid] = used
     if item is not None:
         core.send_mod(token, channel, item, state)
-        state["used_mods_per_channel"][guid] = proposed_used
         summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
 
     if also_video:
         used_v = state["used_videos_per_channel"].setdefault(guid, [])
-        vitem, proposed_used_v = core.pick_item(state["videos"], used_v)
+        vitem, used_v = core.pick_item(state["videos"], used_v)
+        state["used_videos_per_channel"][guid] = used_v
         if vitem is not None:
             core.send_video(token, channel, vitem)
-            state["used_videos_per_channel"][guid] = proposed_used_v
             summary.append(f"🎬 {channel['name']}: ویدیو «{vitem['title']}»")
 
     return summary
@@ -375,47 +341,26 @@ def run_posting_schedule(token, config, state):
     start = config["schedule"]["start_hour_tehran"]
     end = config["schedule"]["end_hour_tehran"]
     video_every_n = config["schedule"].get("video_every_n_hours", 4)
-    if not (start <= hour <= end):
+
+    if not (start <= hour <= end) or hour in posted["hours"]:
         return
 
     also_video = (hour - start) % video_every_n == 0
-    channel_hours = state.setdefault("posted_channel_hours", {})
     posted_summary = []
-    failures = []
 
     for channel in config["destination_channels"]:
         if not channel.get("enabled", True):
             continue
-        guid = channel["guid"]
-        done = channel_hours.setdefault(guid, {"date": today, "hours": []})
-        if done.get("date") != today:
-            done["date"] = today
-            done["hours"] = []
-        if hour in done["hours"]:
-            continue
         try:
-            result = post_mod_and_maybe_video(token, channel, state, also_video)
-            if result:
-                posted_summary += result
-            done["hours"].append(hour)
+            posted_summary += post_mod_and_maybe_video(token, channel, state, also_video)
         except Exception as e:
-            failures.append(f"{channel.get('name', guid)}: {e}")
             core.log_error(state, f"ارسال به {channel['name']}", e)
 
-    # سازگاری با state قدیمی: فقط وقتی همه کانال‌های فعال این ساعت موفق شده‌اند،
-    # ساعت کلی را هم ثبت می‌کنیم. موفقیت هر کانال جداگانه در posted_channel_hours
-    # ذخیره شده تا retry باعث ارسال دوباره به کانال موفق نشود.
-    active_guids = [c["guid"] for c in config["destination_channels"] if c.get("enabled", True)]
-    if active_guids and all(hour in channel_hours[g]["hours"] for g in active_guids):
-        if hour not in posted["hours"]:
-            posted["hours"].append(hour)
+    posted["hours"].append(hour)
 
-    if failures:
-        core.notify_owner(token, config, f"⚠️ پست ساعت {hour}:00 کامل نشد؛ در اجرای بعدی فقط کانال‌های ناموفق دوباره تلاش می‌شوند.\n" + "\n".join(failures))
-        return
     if posted_summary:
         core.notify_owner(token, config, f"📤 گزارش پست ساعت {hour}:00\n" + "\n".join(posted_summary))
-    elif active_guids and all(hour in channel_hours[g]["hours"] for g in active_guids):
+    else:
         core.notify_owner(token, config, f"ℹ️ ساعت {hour}:00 چیزی برای پست‌کردن (مود/ویدیوی تکراری‌نشده) موجود نبود.")
 
 
@@ -451,17 +396,17 @@ def run_force_post_typed(token, config, state, target, kind):
         try:
             if kind == "mod":
                 used = state["used_mods_per_channel"].setdefault(guid, [])
-                item, proposed_used = core.pick_item(state["mods"], used)
+                item, used = core.pick_item(state["mods"], used)
+                state["used_mods_per_channel"][guid] = used
                 if item is not None:
                     core.send_mod(token, channel, item, state)
-                    state["used_mods_per_channel"][guid] = proposed_used
                     summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
             else:
                 used = state["used_videos_per_channel"].setdefault(guid, [])
-                item, proposed_used = core.pick_item(state["videos"], used)
+                item, used = core.pick_item(state["videos"], used)
+                state["used_videos_per_channel"][guid] = used
                 if item is not None:
                     core.send_video(token, channel, item)
-                    state["used_videos_per_channel"][guid] = proposed_used
                     summary.append(f"🎬 {channel['name']}: ویدیو «{item['title']}»")
         except Exception as e:
             core.log_error(state, f"پست فوری {kind_fa} برای {channel['name']}", e)
@@ -566,8 +511,7 @@ def main():
             continue
         chat_id = msg.get("chat_id") or update.get("chat_id")
         text = (msg.get("text") or "").strip()
-        user_guid = msg.get("sender_id") or chat_id
-        print(f"DEBUG: پیام -> chat_id={chat_id} | sender_id={user_guid} | text={text!r}")
+        print(f"DEBUG: پیام -> chat_id={chat_id} | text={text!r}")
 
         try:
             # ۱) اگه مسدوده (و مالک نیست)، فقط پیام مسدودی رو بده و رد شو
@@ -576,16 +520,6 @@ def main():
                 if block_info:
                     core.send_message(token, chat_id, core.build_blocked_message(block_info))
                     continue
-
-                spam = core.record_user_activity(state, user_guid, text)
-                if spam:
-                    core.notify_owner(
-                        token, config,
-                        f"🚨 هشدار ضداسپم\n"
-                        f"کاربر: {spam['user_guid']}\n"
-                        f"پیام در ۲ دقیقه: {spam['message_count']}\n"
-                        f"کامند/درخواست: {spam['command_count']}"
-                    )
 
             is_new_user = core.track_known_user(state, config, chat_id)
             owner_needs_keypad = (
@@ -604,24 +538,12 @@ def main():
 
             if text == "/myid" and chat_id:
                 core.send_message(token, chat_id, f"GUID این چت:\n{chat_id}")
-            elif text == "/start" and chat_id:
-                try:
-                    joined, missing = core.check_force_join(token, config, chat_id)
-                except Exception as exc:
-                    core.log_error(state, "بررسی عضویت /start", exc)
-                    core.notify_owner(token, config, f"⚠️ بررسی عضویت /start برای {chat_id} شکست خورد.\n{exc}")
-                    core.send_message(token, chat_id, "⚠️ فعلاً امکان بررسی عضویت وجود ندارد؛ چند لحظه بعد دوباره /start را بفرستید.")
-                else:
-                    if joined:
-                        core.send_message(token, chat_id, config.get("texts", {}).get("start_ok", "✅ عضویت شما تأیید شد. حالا می‌توانید شماره فایل را با # یا / ارسال کنید."))
-                    else:
-                        core.send_message(token, chat_id, core.force_join_message(missing))
             elif text == "/help" and chat_id:
                 help_text = config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1).")
                 core.send_message(token, chat_id, help_text)
             elif chat_id and handle_ticket_flow(token, config, state, chat_id, text):
                 pass
-            elif not msg.get("file") and handle_number_request(token, config, state, chat_id, text):
+            elif not msg.get("file") and handle_number_request(token, state, chat_id, text):
                 pass
             elif chat_id and msg.get("file") and chat_id in (
                 config.get("source_channel_guid"), config.get("owner_guid")
@@ -648,8 +570,6 @@ def main():
         core.maybe_notify_new_errors(token, config, state)
     except Exception:
         pass
-
-    core.cleanup_delivery_log(state)
 
     print(f"DEBUG: وضعیت قبل از ذخیره -> last_offset_id={state.get('last_offset_id')!r} "
           f"mods={len(state.get('mods', []))} videos={len(state.get('videos', []))} "
