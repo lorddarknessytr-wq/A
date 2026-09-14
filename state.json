@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa74c6716ab16ae60bc51b5",
+  "last_offset_id": "6aa74cc3e9a87f7011f705c5",
   "mods": [
     {
       "id": "b82a819f",
@@ -37,7 +37,9 @@
     }
   },
   "used_mods_per_channel": {
-    "c0DBT990e47b63fa688bba87d5736cc2": []
+    "c0DBT990e47b63fa688bba87d5736cc2": [
+      "b82a819f"
+    ]
   },
   "used_videos_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [
