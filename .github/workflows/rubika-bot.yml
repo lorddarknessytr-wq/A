@@ -1,6 +1,10 @@
 name: Rubika Mod Bot
 
 on:
+  schedule:
+    # GitHub Actions زمان دقیق را تضمین نمی‌کند؛ برنامهٔ داخلی ربات هر ساعت
+    # فقط یک‌بار پست می‌گذارد و از اجرای تکراری جلوگیری می‌کند.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       force_post_channel:
