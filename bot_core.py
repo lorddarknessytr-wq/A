@@ -81,69 +81,8 @@ def send_message(token, chat_id, text):
     return api_call(token, "sendMessage", {"chat_id": chat_id, "text": text})
 
 
-def get_file(token, file_id):
-    return api_call(token, "getFile", {"file_id": file_id})
-
-
-def request_send_file(token, file_type):
-    return api_call(token, "requestSendFile", {"type": file_type})
-
-
-def reupload_file(token, file_id, file_type, file_name="file"):
-    """
-    دانلود فایل با file_id قدیمی و آپلود دوباره‌اش، تا یک file_id تازه و
-    معتبر برای ارسال به یک چتِ دیگه بگیریم. لازمه چون file_id که در یک
-    مکالمه (مثلاً کانال منبع یا پیوی خودِ مالک) گرفته شده، همیشه برای
-    ارسال به یک چتِ کاملاً متفاوت (یک کانال مقصد) معتبر نیست.
-    """
-    file_info = get_file(token, file_id)
-    download_url = (file_info or {}).get("download_url")
-    if not download_url:
-        raise RuntimeError("گرفتن آدرس دانلود فایل (getFile) ناموفق بود.")
-
-    r = requests.get(download_url, timeout=120)
-    r.raise_for_status()
-    content = r.content
-
-    upload_req = request_send_file(token, file_type or "File")
-    upload_url = (upload_req or {}).get("upload_url")
-    if not upload_url:
-        raise RuntimeError("گرفتن آدرس آپلود (requestSendFile) ناموفق بود.")
-
-    up = requests.post(upload_url, files={"file": (file_name, content)}, timeout=120)
-    up.raise_for_status()
-    result = up.json()
-    new_file_id = result.get("file_id") or (result.get("data") or {}).get("file_id")
-    if not new_file_id:
-        raise RuntimeError(f"آپلود مجدد فایل جواب معتبر نداد: {result}")
-    return new_file_id
-
-
-def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"):
-    """
-    ارسال فایل به یک چت. اول با همون file_id امتحان می‌کنه؛ اگه خطا بده،
-    یا پاسخ روبیکا message_id نداشته باشه (یعنی موفقیت قلابی — روبیکا
-    OK گفته ولی واقعاً چیزی تحویل نداده، معمولاً چون file_id مال یک چتِ
-    دیگه بوده یا بات دسترسی پست در چت مقصد رو نداره)، یک بار با
-    آپلود مجدد تلاش می‌کنه.
-    """
-    def _try(fid):
-        result = api_call(token, "sendFile", {"chat_id": chat_id, "file_id": fid, "text": text})
-        msg_id = (result or {}).get("message_id") or (result or {}).get("new_message", {}).get("message_id")
-        if not msg_id:
-            raise RuntimeError(f"روبیکا پاسخ OK داد ولی message_id برنگردوند (احتمال: file_id مال چت دیگه‌ست یا بات ادمین این چت نیست). پاسخ خام: {result}")
-        return result, msg_id
-
-    try:
-        result, msg_id = _try(file_id)
-        print(f"DEBUG: sendFile موفق -> chat_id={chat_id} message_id={msg_id}")
-        return result
-    except Exception as first_err:
-        print(f"DEBUG: sendFile مستقیم ناموفق ({first_err})، در حال آپلود مجدد فایل...")
-        new_file_id = reupload_file(token, file_id, file_type, file_name)
-        result, msg_id = _try(new_file_id)
-        print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id} message_id={msg_id}")
-        return result
+def send_file(token, chat_id, file_id, text=""):
+    return api_call(token, "sendFile", {"chat_id": chat_id, "file_id": file_id, "text": text})
 
 
 def get_updates(token, offset_id=None, limit=50):
@@ -298,28 +237,19 @@ def send_mod(token, channel, mod, state):
     if channel.get("mod_photo_extra_text"):
         lines.append(channel["mod_photo_extra_text"])
 
-    send_file(
-        token, channel["guid"], mod["photo_file_id"], "\n".join(lines),
-        file_type=mod.get("photo_file_type") or "Image", file_name="cover.jpg",
-    )
+    send_file(token, channel["guid"], mod["photo_file_id"], "\n".join(lines))
 
     if direct and mod.get("number"):
         entry = state.get("files_by_number", {}).get(mod["number"])
         if entry and entry.get("file_id"):
-            send_file(
-                token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""),
-                file_type=entry.get("file_type") or "File", file_name=entry.get("title", "mod_file"),
-            )
+            send_file(token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""))
 
 
 def send_video(token, channel, video):
     lines = [video.get("title", "ویدیو جدید")]
     if channel.get("video_extra_text"):
         lines.append(channel["video_extra_text"])
-    send_file(
-        token, channel["guid"], video["video_file_id"], "\n".join(lines),
-        file_type=video.get("file_type") or "Video", file_name="video.mp4",
-    )
+    send_file(token, channel["guid"], video["video_file_id"], "\n".join(lines))
 
 
 def pick_item(items, used_ids):
