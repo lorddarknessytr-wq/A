@@ -1,9 +1,19 @@
 {
-  "last_offset_id": "6aa85f406d4a4f729d366d65",
+  "last_offset_id": "6aa85f5f8bc6ae3133599cd3",
   "mods": [
     {
       "id": "ee83d5e9",
       "photo_file_id": "dxhicajB02977172815350718523267813807242026091318",
+      "title": "ا",
+      "description": "توضیح",
+      "version": "1.21",
+      "number": "9"
+    },
+    {
+      "id": "52f205c1",
+      "photo_file_id": "dxhicajB02977172815350718523267813807242026091318",
+      "source_chat_id": "b0IahsF0BEAo0c667263fa750539d1d2",
+      "source_message_id": "1908129919114329284",
       "title": "ا",
       "description": "توضیح",
       "version": "1.21",
@@ -15,12 +25,21 @@
       "id": "8e1fbaba",
       "video_file_id": "dxNGSHXT00668497306914071013083283623332026091310",
       "title": "ویدیو جدید"
+    },
+    {
+      "id": "36a4b0ad",
+      "video_file_id": "dxNGSHXT00668497306914071013083283623332026091310",
+      "source_chat_id": "b0IahsF0BEAo0c667263fa750539d1d2",
+      "source_message_id": "1908129919112329284",
+      "title": "ویدیو جدید"
     }
   ],
   "pending_photo": null,
   "files_by_number": {
     "9": {
       "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
+      "source_chat_id": "b0IahsF0BEAo0c667263fa750539d1d2",
+      "source_message_id": "1908129919115329284",
       "title": "ا"
     }
   },
@@ -42,13 +61,11 @@
   "awaiting_newguid": false,
   "awaiting_panel_selection": false,
   "posted_hours_today": {
-    "date": "2026-09-14",
-    "hours": [
-      18
-    ]
+    "date": "2026-09-15",
+    "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-14 18:12"
+    "heartbeat": "2026-09-15 00:26"
   },
   "errors": [
     {
@@ -56,10 +73,17 @@
       "time": "2026-09-15 00:25",
       "category": "پاک‌سازی انبار",
       "message": "502 Server Error: Bad Gateway for url: https://botapi.rubika.ir/v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates",
-      "notified": false
+      "notified": true
     }
   ],
-  "last_error_notify_time": null,
+  "last_error_notify_time": "2026-09-15 00:26",
   "bug_page_offset": 0,
-  "owner_keypad_set": true
+  "owner_keypad_set": true,
+  "user_message_history": {
+    "u0IahsF05003ed26a32d073c66c1388d": [
+      1789431991.838985,
+      1789431991.839059,
+      1789431991.839194
+    ]
+  }
 }
