@@ -3,7 +3,7 @@
 
   "source_channel_guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
 
-  "owner_guid": "b0IahsF0BEAo0c667263fa750539d1d2",
+  "owner_guid": "PUT_YOUR_OWNER_GUID_HERE",
 
   "panel_keyword": "پنل",
   "broadcast_secret": "بگو-رمز-خودتو-اینجا-عوض-کن",
@@ -22,13 +22,14 @@
   },
 
   "forced_join": {
-    "enabled": true,
+    "enabled": false,
     "membership_method": "getChatMember",
+    "membership_user_id_key": "user_id",
     "channels": [
       {
-        "guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
+        "guid": "PUT_REQUIRED_CHANNEL_GUID_HERE",
         "name": "کانال عضویت اجباری",
-        "link": "https://rubika.ir/Addonmine"
+        "link": "https://rubika.ir/your_required_channel"
       }
     ]
   },
@@ -41,7 +42,7 @@
 
   "destination_channels": [
     {
-      "guid": "c0DBT990e47b63fa688bba87d5736cc2",
+      "guid": "c0xCHANNEL_ONE_GUID",
       "name": "کانال یک",
       "enabled": true,
       "send_file_directly": false,

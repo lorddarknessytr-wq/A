@@ -105,6 +105,35 @@ def send_file(token, chat_id, file_id, text=""):
     return api_call(token, "sendFile", {"chat_id": chat_id, "file_id": file_id, "text": text})
 
 
+def forward_message(token, chat_id, from_chat_id, message_id):
+    """Forward the original media message; received file IDs are not reusable."""
+    return api_call(token, "forwardMessage", {
+        "chat_id": chat_id,
+        "from_chat_id": from_chat_id,
+        "message_id": message_id,
+    })
+
+
+def deliver_media(token, chat_id, entry, fallback_file_id=None, caption=""):
+    """Deliver media without falsely assuming a received ``file_id`` is uploadable.
+
+    Rubika rejects those IDs with ``INVALID_ACCESS/file_id is not valid``. A
+    forward uses the message stored in the source channel and is therefore the
+    supported path for newly collected content. The fallback keeps old state
+    entries usable only where the API happens to allow their file IDs.
+    """
+    source_chat_id = entry.get("source_chat_id") if isinstance(entry, dict) else None
+    source_message_id = entry.get("source_message_id") if isinstance(entry, dict) else None
+    if source_chat_id and source_message_id:
+        result = forward_message(token, chat_id, source_chat_id, source_message_id)
+        if caption:
+            send_message(token, chat_id, caption)
+        return result
+    if fallback_file_id:
+        return send_file(token, chat_id, fallback_file_id, caption)
+    raise RubikaAPIError("فایل فاقد message_id کانال منبع است؛ آن را دوباره در کانال منبع ارسال کنید.")
+
+
 def get_updates(token, offset_id=None, limit=50):
     payload = {"limit": limit}
     if offset_id:
@@ -112,24 +141,25 @@ def get_updates(token, offset_id=None, limit=50):
     return api_call(token, "getUpdates", payload)
 
 
-def get_chat_member(token, channel_guid, user_guid, method="getChatMember"):
+def get_chat_member(token, channel_guid, user_guid, method="getChatMember", user_id_key="user_id"):
     """Query a configured membership endpoint.
 
     Rubika deployments do not all expose this method.  Callers must treat a
     failure as *not verified*, never as a successful membership check.
     """
-    return api_call(token, method, {"chat_id": channel_guid, "user_id": user_guid})
+    return api_call(token, method, {"chat_id": channel_guid, user_id_key: user_guid})
 
 
 def member_is_active(response):
     """Accept common Bot API member shapes, but reject unknown responses."""
     if not isinstance(response, dict):
         return False
-    member = response.get("member") if isinstance(response.get("member"), dict) else response
-    status = str(member.get("status") or member.get("member_status") or "").lower()
+    member = next((response[key] for key in ("member", "chat_member", "chatMember")
+                   if isinstance(response.get(key), dict)), response)
+    status = str(member.get("status") or member.get("member_status") or member.get("state") or "").lower()
     if status:
         return status not in {"left", "kicked", "banned", "removed", "not_member"}
-    return member.get("is_member") is True
+    return member.get("is_member") is True or member.get("in_chat") is True
 
 
 def required_memberships(token, config, user_guid):
@@ -142,6 +172,7 @@ def required_memberships(token, config, user_guid):
         # A misconfigured enabled gate must never accidentally open access.
         return False, []
     method = settings.get("membership_method", "getChatMember")
+    user_id_key = settings.get("membership_user_id_key", "user_id")
     missing = []
     for channel in channels:
         guid = channel.get("guid")
@@ -149,7 +180,7 @@ def required_memberships(token, config, user_guid):
             missing.append(channel)
             continue
         try:
-            if not member_is_active(get_chat_member(token, guid, user_guid, method)):
+            if not member_is_active(get_chat_member(token, guid, user_guid, method, user_id_key)):
                 missing.append(channel)
         except Exception as exc:
             print(f"DEBUG: membership check failed for {guid}: {exc}")
@@ -312,19 +343,19 @@ def send_mod(token, channel, mod, state):
     if channel.get("mod_photo_extra_text"):
         lines.append(channel["mod_photo_extra_text"])
 
-    send_file(token, channel["guid"], mod["photo_file_id"], "\n".join(lines))
+    deliver_media(token, channel["guid"], mod, mod.get("photo_file_id"), "\n".join(lines))
 
     if direct and mod.get("number"):
         entry = state.get("files_by_number", {}).get(mod["number"])
         if entry and entry.get("file_id"):
-            send_file(token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""))
+            deliver_media(token, channel["guid"], entry, entry.get("file_id"), channel.get("mod_file_caption", ""))
 
 
 def send_video(token, channel, video):
     lines = [video.get("title", "ویدیو جدید")]
     if channel.get("video_extra_text"):
         lines.append(channel["video_extra_text"])
-    send_file(token, channel["guid"], video["video_file_id"], "\n".join(lines))
+    deliver_media(token, channel["guid"], video, video.get("video_file_id"), "\n".join(lines))
 
 
 def pick_item(items, used_ids):
