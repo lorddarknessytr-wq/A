@@ -1,5 +1,5 @@
 {
-  "last_offset_id": null,
+  "last_offset_id": "6aa7fa65689219c99c71e7d4",
   "mods": [],
   "videos": [],
   "pending_photo": null,
@@ -7,7 +7,9 @@
   "recent_files": {},
   "used_mods_per_channel": {},
   "used_videos_per_channel": {},
-  "channel_activated": {},
+  "channel_activated": {
+    "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-14 17:57"
+  },
   "known_users": [],
   "blocked_users": {},
   "awaiting_ticket": [],
