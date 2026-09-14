@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa85b1102f16a898c220bb2",
+  "last_offset_id": "6aa85b92692cc83067c4d05c",
   "mods": [
     {
       "id": "ee83d5e9",
@@ -88,23 +88,22 @@
       "time": "2026-09-15 00:06",
       "category": "پست فوری مود برای کانال یک",
       "message": "sendFile: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
-      "notified": false
+      "notified": true
     },
     {
       "id": "e80585",
       "time": "2026-09-15 00:06",
       "category": "پست فوری ویدیو برای کانال یک",
       "message": "sendFile: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
-      "notified": false
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-15 00:00",
-  "bug_page_offset": 5,
+  "last_error_notify_time": "2026-09-15 00:10",
+  "bug_page_offset": 0,
   "owner_keypad_set": true,
   "user_message_history": {
     "u0IahsF05003ed26a32d073c66c1388d": [
-      1789430939.819321,
-      1789430952.630249
+      1789431020.785735
     ],
     "u0KZR3M01835df70ed5360ccd648f712": [
       1789430917.051598
