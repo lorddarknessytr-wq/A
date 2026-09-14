@@ -1,73 +1,23 @@
 {
-  "last_offset_id": "6aa7a268fc78cdd4366efe0b",
-  "mods": [
-    {
-      "id": "b82a819f",
-      "photo_file_id": "dxhicajB02977172815350718523267813807242026091318",
-      "title": "ا",
-      "description": "توضیح",
-      "version": "1.21",
-      "number": "9"
-    }
-  ],
-  "videos": [
-    {
-      "id": "83620262",
-      "video_file_id": "dxNGSHXT00668497306914071013083283623332026091310",
-      "title": "ویدیو جدید"
-    }
-  ],
+  "last_offset_id": null,
+  "mods": [],
+  "videos": [],
   "pending_photo": null,
-  "files_by_number": {
-    "1": {
-      "file_id": "dxeKOlfI08587458952584011011883836457742026091316",
-      "title": "فایل شماره 1"
-    },
-    "5": {
-      "file_id": "dxeKOlfI08587458952584011011883836457742026091316",
-      "title": "فایل شماره 5"
-    },
-    "7": {
-      "file_id": "dxhicajB02977172815350718523267813807242026091318",
-      "title": "فایل شماره 7"
-    },
-    "9": {
-      "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
-      "title": "ا"
-    }
-  },
-  "used_mods_per_channel": {
-    "c0DBT990e47b63fa688bba87d5736cc2": [
-      "b82a819f"
-    ]
-  },
-  "used_videos_per_channel": {
-    "c0DBT990e47b63fa688bba87d5736cc2": [
-      "83620262"
-    ]
-  },
-  "channel_activated": {
-    "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-13 10:46"
-  },
-  "known_users": [
-    "b0KZR3M0BEAo077d2f10db168ddb361e"
-  ],
+  "files_by_number": {},
+  "recent_files": {},
+  "used_mods_per_channel": {},
+  "used_videos_per_channel": {},
+  "channel_activated": {},
+  "known_users": [],
+  "blocked_users": {},
+  "awaiting_ticket": [],
   "awaiting_broadcast": false,
+  "awaiting_channelcast": false,
+  "awaiting_newguid": false,
   "awaiting_panel_selection": false,
-  "posted_hours_today": {
-    "date": "2026-09-14",
-    "hours": [
-      11
-    ]
-  },
-  "sent_log": {
-    "heartbeat": "2026-09-14 10:55"
-  },
+  "posted_hours_today": {"date": null, "hours": []},
+  "sent_log": {},
   "errors": [],
   "last_error_notify_time": null,
-  "bug_page_offset": 0,
-  "awaiting_ticket": [],
-  "awaiting_newguid": false,
-  "awaiting_channelcast": false,
-  "owner_keypad_set": true
+  "bug_page_offset": 0
 }

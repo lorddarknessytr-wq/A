@@ -56,13 +56,18 @@ def handle_source_channel_message(state, msg):
     video_parsed = core.parse_video_caption(caption)
 
     if mod_parsed is not None:
-        state["pending_photo"] = {"file_id": file_info.get("file_id"), **mod_parsed}
+        state["pending_photo"] = {
+            "file_id": file_info.get("file_id"),
+            "file_type": file_info.get("file_type"),
+            **mod_parsed,
+        }
 
     elif video_parsed is not None or file_type == "Video":
         title = (video_parsed or {}).get("title") or caption.strip() or "ویدیو جدید"
         state["videos"].append({
             "id": uuid_short(),
             "video_file_id": file_info.get("file_id"),
+            "file_type": file_info.get("file_type") or "Video",
             "title": title,
         })
 
@@ -80,6 +85,7 @@ def handle_source_channel_message(state, msg):
 
         state["files_by_number"][file_number] = {
             "file_id": file_info.get("file_id"),
+            "file_type": file_info.get("file_type"),
             "title": (pending.get("title") if pending else None) or f"فایل شماره {file_number}",
         }
 
@@ -87,6 +93,7 @@ def handle_source_channel_message(state, msg):
             state["mods"].append({
                 "id": uuid_short(),
                 "photo_file_id": pending["file_id"],
+                "photo_file_type": pending.get("file_type"),
                 "title": pending["title"],
                 "description": pending["description"],
                 "version": pending["version"],
@@ -112,7 +119,10 @@ def handle_number_request(token, state, chat_id, text):
     if not entry:
         core.send_message(token, chat_id, f"فایلی با شمارهٔ {number} پیدا نشد.")
     else:
-        core.send_file(token, chat_id, entry["file_id"], entry.get("title", ""))
+        core.send_file(
+            token, chat_id, entry["file_id"], entry.get("title", ""),
+            file_type=entry.get("file_type") or "File", file_name=entry.get("title", "mod_file"),
+        )
     return True
 
 
