@@ -31,14 +31,14 @@
     "enabled": true,
     "channels": [
       {
-        "guid": "c0xCHANNEL_GUID_1",
+        "guid": "c0DBT990e47b63fa688bba87d5736cc2",
         "name": "کانال اجباری ۱",
-        "link": "https://rubika.ir/CHANNEL_1"
+        "link": "https://rubika.ir/Addonmine"
       },
       {
-        "guid": "c0xCHANNEL_GUID_2",
+        "guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
         "name": "کانال اجباری ۲",
-        "link": "https://rubika.ir/CHANNEL_2"
+        "link": "https://rubika.ir/gjshdih"
       }
     ]
   }
