@@ -10,22 +10,22 @@
    "broadcast_secret": "بگو-رمز-خودتو-اینجا-عوض-کن",
    "help_text": "سلام! برای دریافت فایل مود، شمارهٔ نوشته‌شده زیر پستش رو با # یا / برام بفرستید (مثلاً #1 یا /1).",
  
-+  "required_channels": [
-+    {
-+      "guid": "GUID-کانال-اجباری-را-اینجا-بگذارید",
-+      "name": "نام کانال اجباری",
-+      "link": "https://rubika.ir/your_channel",
-+      "enabled": false
-+    }
-+  ],
-+
-+  "anti_spam": {
-+    "window_seconds": 60,
-+    "duplicate_seconds": 20,
-+    "report_after_messages": 8,
-+    "report_cooldown_minutes": 30
-+  },
-+
+  "required_channels": [
+    {
+      "guid": "GUID-کانال-اجباری-را-اینجا-بگذارید",
+      "name": "نام کانال اجباری",
+      "link": "https://rubika.ir/your_channel",
+      "enabled": false
+    }
+  ],
+
+  "anti_spam": {
+    "window_seconds": 60,
+    "duplicate_seconds": 20,
+    "report_after_messages": 8,
+    "report_cooldown_minutes": 30
+  },
+
    "texts": {
      "ticket_prompt": "لطفاً متن تیکت خودتون رو بنویسید.",
      "ticket_sent": "تیکت شما ارسال شد. با تشکر 🙏"
