@@ -1,6 +1,15 @@
 {
-  "last_offset_id": "6aa6c4dc5ad9d2dc381c52e7",
-  "mods": [],
+  "last_offset_id": "6aa749fa83d2b106b557d76a",
+  "mods": [
+    {
+      "id": "b82a819f",
+      "photo_file_id": "dxhicajB02977172815350718523267813807242026091318",
+      "title": "ا",
+      "description": "توضیح",
+      "version": "1.21",
+      "number": "9"
+    }
+  ],
   "videos": [
     {
       "id": "83620262",
@@ -21,6 +30,10 @@
     "7": {
       "file_id": "dxhicajB02977172815350718523267813807242026091318",
       "title": "فایل شماره 7"
+    },
+    "9": {
+      "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
+      "title": "ا"
     }
   },
   "used_mods_per_channel": {
@@ -44,9 +57,10 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-14 00:00"
+    "heartbeat": "2026-09-14 04:42"
   },
   "errors": [],
   "last_error_notify_time": null,
-  "bug_page_offset": 0
+  "bug_page_offset": 0,
+  "awaiting_ticket": []
 }
