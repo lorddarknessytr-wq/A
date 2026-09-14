@@ -56,13 +56,18 @@ def handle_source_channel_message(state, msg):
     video_parsed = core.parse_video_caption(caption)
 
     if mod_parsed is not None:
-        state["pending_photo"] = {"file_id": file_info.get("file_id"), **mod_parsed}
+        state["pending_photo"] = {
+            "file_id": file_info.get("file_id"),
+            "source_chat_id": msg.get("chat_id"), "source_message_id": message_id,
+            **mod_parsed,
+        }
 
     elif video_parsed is not None or file_type == "Video":
         title = (video_parsed or {}).get("title") or caption.strip() or "ویدیو جدید"
         state["videos"].append({
             "id": uuid_short(),
             "video_file_id": file_info.get("file_id"),
+            "source_chat_id": msg.get("chat_id"), "source_message_id": message_id,
             "title": title,
         })
 
@@ -80,6 +85,7 @@ def handle_source_channel_message(state, msg):
 
         state["files_by_number"][file_number] = {
             "file_id": file_info.get("file_id"),
+            "source_chat_id": msg.get("chat_id"), "source_message_id": message_id,
             "title": (pending.get("title") if pending else None) or f"فایل شماره {file_number}",
         }
 
@@ -87,6 +93,8 @@ def handle_source_channel_message(state, msg):
             state["mods"].append({
                 "id": uuid_short(),
                 "photo_file_id": pending["file_id"],
+                "source_chat_id": pending.get("source_chat_id"),
+                "source_message_id": pending.get("source_message_id"),
                 "title": pending["title"],
                 "description": pending["description"],
                 "version": pending["version"],
@@ -116,7 +124,7 @@ def handle_number_request(token, config, state, chat_id, user_guid, text):
     if not entry:
         core.send_message(token, chat_id, f"فایلی با شمارهٔ {number} پیدا نشد.")
     else:
-        core.send_file(token, chat_id, entry["file_id"], entry.get("title", ""))
+        core.deliver_media(token, chat_id, entry, entry.get("file_id"), entry.get("title", ""))
     return True
 
 
@@ -185,6 +193,8 @@ def run_resync(token, config, state):
             if not isinstance(msg, dict):
                 continue
             chat_id = msg.get("chat_id") or update.get("chat_id")
+            if chat_id and not msg.get("chat_id"):
+                msg["chat_id"] = chat_id
             if chat_id == config.get("source_channel_guid") or (msg.get("file") is not None):
                 print(f"DEBUG: RAW (در /update) update کامل: {update}")
             if chat_id == config.get("source_channel_guid"):
@@ -214,7 +224,7 @@ def handle_ticket_flow(token, config, state, chat_id, user_guid, text):
         core.notify_owner(
             token, config,
             f"🎫 تیکت جدید\n"
-            f"شناسهٔ کاربر: {user_guid or chat_id}\n"
+            f"ID کاربر (sender_id): {user_guid or chat_id}\n"
             f"GUID چت: {chat_id}\n"
             f"زمان: {now}\n"
             f"متن: {text}"
@@ -556,7 +566,11 @@ def main():
         if not isinstance(msg, dict):
             continue
         chat_id = msg.get("chat_id") or update.get("chat_id")
-        user_guid = msg.get("sender_id") or chat_id
+        # Rubika commonly puts chat_id on the outer update, whereas the media
+        # message is nested. Keep it with the message for future forwarding.
+        if chat_id and not msg.get("chat_id"):
+            msg["chat_id"] = chat_id
+        user_guid = msg.get("sender_id") or msg.get("author_object_guid") or chat_id
         text = (msg.get("text") or "").strip()
         print(f"DEBUG: پیام -> chat_id={chat_id} | text={text!r}")
 

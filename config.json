@@ -24,6 +24,7 @@
   "forced_join": {
     "enabled": false,
     "membership_method": "getChatMember",
+    "membership_user_id_key": "user_id",
     "channels": [
       {
         "guid": "PUT_REQUIRED_CHANNEL_GUID_HERE",

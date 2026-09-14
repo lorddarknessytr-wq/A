@@ -30,6 +30,16 @@ class BotCoreTests(unittest.TestCase):
         self.assertFalse(allowed)
         self.assertEqual(missing[0]["guid"], "c1")
 
+    def test_membership_accepts_rubika_chat_member_shape(self):
+        self.assertTrue(core.member_is_active({"chat_member": {"status": "Member"}}))
+
+    def test_new_media_is_forwarded_not_reuploaded(self):
+        entry = {"source_chat_id": "source", "source_message_id": "42", "file_id": "invalid"}
+        with patch("bot_core.forward_message") as forward, patch("bot_core.send_file") as send_file:
+            core.deliver_media("t", "destination", entry, entry["file_id"])
+        forward.assert_called_once_with("t", "destination", "source", "42")
+        send_file.assert_not_called()
+
     def test_duplicate_request_is_suppressed(self):
         state = {}
         with patch("run_bot.core.tehran_now") as now:
