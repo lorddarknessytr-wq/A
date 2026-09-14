@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa74e047ec2ccbec9cc7a11",
+  "last_offset_id": "6aa74e447ec2ccbec9cc7a49",
   "mods": [
     {
       "id": "b82a819f",
@@ -66,5 +66,5 @@
   "bug_page_offset": 0,
   "awaiting_ticket": [],
   "awaiting_newguid": false,
-  "awaiting_channelcast": true
+  "awaiting_channelcast": false
 }
