@@ -103,7 +103,7 @@ def handle_source_channel_message(state, msg):
 NUMBER_REQUEST_RE = re.compile(r"^[#/](\d+)$")
 
 
-def handle_number_request(token, state, chat_id, text):
+def handle_number_request(token, config, state, chat_id, text, user_guid=None):
     m = NUMBER_REQUEST_RE.match(text)
     if not m:
         return False
@@ -112,7 +112,11 @@ def handle_number_request(token, state, chat_id, text):
     if not entry:
         core.send_message(token, chat_id, f"فایلی با شمارهٔ {number} پیدا نشد.")
     else:
-        core.send_file(token, chat_id, entry["file_id"], entry.get("title", ""))
+        allowed, missing = core.is_member_of_required_channels(token, config, user_guid or chat_id)
+        if not allowed:
+            core.send_message(token, chat_id, core.build_join_required_message(missing))
+        else:
+            core.send_file(token, chat_id, entry["file_id"], entry.get("title", ""))
     return True
 
 
@@ -159,7 +163,7 @@ def run_resync(token, config, state):
     return total_updates, len(state.get("mods", [])) - mods_before, len(state.get("videos", [])) - videos_before
 
 
-def handle_ticket_flow(token, config, state, chat_id, text):
+def handle_ticket_flow(token, config, state, chat_id, text, sender_guid=None):
     """True برمی‌گردونه اگه این پیام بخشی از فرایند تیکت بوده (پردازش شده)."""
     awaiting = state.setdefault("awaiting_ticket", [])
 
@@ -169,7 +173,8 @@ def handle_ticket_flow(token, config, state, chat_id, text):
         core.notify_owner(
             token, config,
             f"🎫 تیکت جدید\n"
-            f"از: {chat_id}\n"
+            f"شناسهٔ کاربر: {sender_guid or chat_id}\n"
+            f"GUID چت: {chat_id}\n"
             f"زمان: {now}\n"
             f"متن: {text}"
         )
@@ -312,17 +317,18 @@ def post_mod_and_maybe_video(token, channel, state, also_video):
 
     used = state["used_mods_per_channel"].setdefault(guid, [])
     item, used = core.pick_item(state["mods"], used)
-    state["used_mods_per_channel"][guid] = used
     if item is not None:
         core.send_mod(token, channel, item, state)
+        # Record an item only after Rubika confirms the send succeeded.
+        state["used_mods_per_channel"][guid] = used
         summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
 
     if also_video:
         used_v = state["used_videos_per_channel"].setdefault(guid, [])
         vitem, used_v = core.pick_item(state["videos"], used_v)
-        state["used_videos_per_channel"][guid] = used_v
         if vitem is not None:
             core.send_video(token, channel, vitem)
+            state["used_videos_per_channel"][guid] = used_v
             summary.append(f"🎬 {channel['name']}: ویدیو «{vitem['title']}»")
 
     return summary
@@ -348,15 +354,20 @@ def run_posting_schedule(token, config, state):
     also_video = (hour - start) % video_every_n == 0
     posted_summary = []
 
+    failures = 0
     for channel in config["destination_channels"]:
         if not channel.get("enabled", True):
             continue
         try:
             posted_summary += post_mod_and_maybe_video(token, channel, state, also_video)
         except Exception as e:
+            failures += 1
             core.log_error(state, f"ارسال به {channel['name']}", e)
 
-    posted["hours"].append(hour)
+    # A failed API call must be retried on the next scheduled Actions run;
+    # the old implementation marked the hour as posted even when every send failed.
+    if failures == 0:
+        posted["hours"].append(hour)
 
     if posted_summary:
         core.notify_owner(token, config, f"📤 گزارش پست ساعت {hour}:00\n" + "\n".join(posted_summary))
@@ -397,16 +408,16 @@ def run_force_post_typed(token, config, state, target, kind):
             if kind == "mod":
                 used = state["used_mods_per_channel"].setdefault(guid, [])
                 item, used = core.pick_item(state["mods"], used)
-                state["used_mods_per_channel"][guid] = used
                 if item is not None:
                     core.send_mod(token, channel, item, state)
+                    state["used_mods_per_channel"][guid] = used
                     summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
             else:
                 used = state["used_videos_per_channel"].setdefault(guid, [])
                 item, used = core.pick_item(state["videos"], used)
-                state["used_videos_per_channel"][guid] = used
                 if item is not None:
                     core.send_video(token, channel, item)
+                    state["used_videos_per_channel"][guid] = used
                     summary.append(f"🎬 {channel['name']}: ویدیو «{item['title']}»")
         except Exception as e:
             core.log_error(state, f"پست فوری {kind_fa} برای {channel['name']}", e)
@@ -510,6 +521,7 @@ def main():
         if not isinstance(msg, dict):
             continue
         chat_id = msg.get("chat_id") or update.get("chat_id")
+        sender_guid = msg.get("author_object_guid") or msg.get("sender_id") or chat_id
         text = (msg.get("text") or "").strip()
         print(f"DEBUG: پیام -> chat_id={chat_id} | text={text!r}")
 
@@ -536,14 +548,31 @@ def main():
             if chat_id and chat_id == config.get("source_channel_guid"):
                 print(f"DEBUG: RAW پیام کانال منبع (کامل): {msg}")
 
+            # Messages from ordinary users are deduplicated before a response,
+            # and excessive command/message bursts are reported to the owner.
+            if chat_id and chat_id not in (config.get("owner_guid"), config.get("source_channel_guid")):
+                duplicate, report_spam, count = core.record_user_message(state, chat_id, text, config)
+                if report_spam:
+                    core.notify_owner(token, config,
+                        f"⚠️ هشدار اسپم/استفادهٔ زیاد از دستورها\n"
+                        f"شناسهٔ کاربر: {sender_guid}\nGUID چت: {chat_id}\nتعداد پیام در بازه: {count}")
+                if duplicate:
+                    continue
+                if text == "/start":
+                    allowed, missing = core.is_member_of_required_channels(token, config, sender_guid)
+                    core.send_message(token, chat_id,
+                        config.get("help_text", "برای دریافت فایل، شمارهٔ آن را بفرستید.")
+                        if allowed else core.build_join_required_message(missing))
+                    continue
+
             if text == "/myid" and chat_id:
                 core.send_message(token, chat_id, f"GUID این چت:\n{chat_id}")
             elif text == "/help" and chat_id:
                 help_text = config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1).")
                 core.send_message(token, chat_id, help_text)
-            elif chat_id and handle_ticket_flow(token, config, state, chat_id, text):
+            elif chat_id and handle_ticket_flow(token, config, state, chat_id, text, sender_guid):
                 pass
-            elif not msg.get("file") and handle_number_request(token, state, chat_id, text):
+            elif not msg.get("file") and handle_number_request(token, config, state, chat_id, text, sender_guid):
                 pass
             elif chat_id and msg.get("file") and chat_id in (
                 config.get("source_channel_guid"), config.get("owner_guid")

@@ -1,6 +1,10 @@
 name: Rubika Mod Bot
 
 on:
+  # GitHub cron is UTC. Running every 5 minutes lets the Python scheduler use
+  # Tehran time accurately and also keeps getUpdates responsive.
+  schedule:
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       force_post_channel:

@@ -31,6 +31,7 @@ MAX_ERRORS_STORED = 200
 ERRORS_PER_PAGE = 5
 ERROR_NOTIFY_COOLDOWN_MINUTES = 10
 REQUEST_TIMEOUT = 20
+MEMBER_STATUSES = {"member", "administrator", "creator", "owner", "admin"}
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +71,17 @@ def api_call(token, method, payload=None):
     resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     body = resp.json()
-    return body.get("data", body) if isinstance(body, dict) else body
+    if not isinstance(body, dict):
+        raise RuntimeError(f"پاسخ نامعتبر از {method}: {body!r}")
+    # Rubika may return HTTP 200 even when the API operation itself failed.
+    # Do not report a post as successful until that API-level result is OK.
+    status = body.get("status")
+    if status is not None and str(status).upper() not in {"OK", "SUCCESS"}:
+        detail = body.get("status_det") or body.get("message") or body
+        raise RuntimeError(f"{method} ناموفق بود: {detail}")
+    if body.get("ok") is False:
+        raise RuntimeError(f"{method} ناموفق بود: {body.get('description') or body}")
+    return body.get("data", body)
 
 
 def get_me(token):
@@ -90,6 +101,85 @@ def get_updates(token, offset_id=None, limit=50):
     if offset_id:
         payload["offset_id"] = offset_id
     return api_call(token, "getUpdates", payload)
+
+
+def get_chat_member(token, channel_guid, user_guid):
+    """Membership check supported by Rubika's Bot API-compatible endpoint."""
+    return api_call(token, "getChatMember", {"chat_id": channel_guid, "user_id": user_guid})
+
+
+def is_member_of_required_channels(token, config, user_guid):
+    """Return (allowed, unchecked_channels).
+
+    A failed lookup is deliberately treated as *not allowed*: force-join must
+    never accidentally leak a file when the membership check is unavailable.
+    """
+    channels = [c for c in config.get("required_channels", []) if c.get("enabled", True)]
+    missing = []
+    for channel in channels:
+        try:
+            result = get_chat_member(token, channel["guid"], user_guid)
+            member = result.get("member", result) if isinstance(result, dict) else {}
+            status = str(member.get("status", "")).lower() if isinstance(member, dict) else ""
+            if status not in MEMBER_STATUSES:
+                missing.append(channel)
+        except Exception as exc:
+            print(f"DEBUG: membership check failed for {channel.get('guid')}: {exc}")
+            missing.append(channel)
+    return not missing, missing
+
+
+def build_join_required_message(channels):
+    lines = ["🔒 برای دریافت فایل ابتدا باید در کانال‌های زیر عضو شوید:"]
+    for channel in channels:
+        name = channel.get("name") or "کانال"
+        link = channel.get("link") or channel.get("channel_link")
+        lines.append(f"• {name}: {link}" if link else f"• {name}")
+    lines.append("\nبعد از عضویت، دوباره /start یا شمارهٔ فایل را بفرستید.")
+    return "\n".join(lines)
+
+
+def record_user_message(state, chat_id, text, config):
+    """Deduplicate repeated input and identify command/message flooding."""
+    spam = config.get("anti_spam", {})
+    window = int(spam.get("window_seconds", 60))
+    report_at = int(spam.get("report_after_messages", 8))
+    cooldown = int(spam.get("report_cooldown_minutes", 30))
+    now = tehran_now().replace(tzinfo=None)
+    users = state.setdefault("user_activity", {})
+    activity = users.setdefault(chat_id, {"messages": [], "last_text": None, "last_response_at": None})
+    messages = activity.setdefault("messages", [])
+    cutoff = now - timedelta(seconds=window)
+    valid = []
+    for stamp in messages:
+        try:
+            if datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S") >= cutoff:
+                valid.append(stamp)
+        except (TypeError, ValueError):
+            continue
+    valid.append(now.strftime("%Y-%m-%d %H:%M:%S"))
+    activity["messages"] = valid
+    duplicate = activity.get("last_text") == text and activity.get("last_response_at") == now.strftime("%Y-%m-%d %H:%M:%S")
+    # Actions polls updates in batches; same-text messages should get one reply
+    # in a short window, while later legitimate requests remain possible.
+    if activity.get("last_text") == text and activity.get("last_response_at"):
+        try:
+            duplicate = (now - datetime.strptime(activity["last_response_at"], "%Y-%m-%d %H:%M:%S")) < timedelta(seconds=int(spam.get("duplicate_seconds", 20)))
+        except ValueError:
+            duplicate = False
+    activity["last_text"] = text
+    activity["last_response_at"] = now.strftime("%Y-%m-%d %H:%M:%S")
+    should_report = len(valid) > report_at
+    if should_report:
+        last_report = activity.get("last_report_at")
+        if last_report:
+            try:
+                should_report = (now - datetime.strptime(last_report, "%Y-%m-%d %H:%M:%S")) >= timedelta(minutes=cooldown)
+            except ValueError:
+                pass
+        if should_report:
+            activity["last_report_at"] = now.strftime("%Y-%m-%d %H:%M:%S")
+    return duplicate, should_report, len(valid)
 
 
 # ---------------------------------------------------------------------------
