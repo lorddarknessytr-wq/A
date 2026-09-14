@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa74e447ec2ccbec9cc7a49",
+  "last_offset_id": "6aa7a1342206181c63c1ad17",
   "mods": [
     {
       "id": "b82a819f",
@@ -59,12 +59,13 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-14 05:00"
+    "heartbeat": "2026-09-14 10:55"
   },
   "errors": [],
   "last_error_notify_time": null,
   "bug_page_offset": 0,
   "awaiting_ticket": [],
   "awaiting_newguid": false,
-  "awaiting_channelcast": false
+  "awaiting_channelcast": false,
+  "owner_keypad_set": true
 }
