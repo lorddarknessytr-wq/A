@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa807d0468051937a11106d",
+  "last_offset_id": "6aa85600658a4969e54015ae",
   "mods": [
     {
       "id": "ee83d5e9",
@@ -34,7 +34,9 @@
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-14 18:09"
   },
-  "known_users": [],
+  "known_users": [
+    "b0KZR3M0BEAo077d2f10db168ddb361e"
+  ],
   "blocked_users": {},
   "awaiting_ticket": [],
   "awaiting_broadcast": false,
@@ -62,5 +64,16 @@
   ],
   "last_error_notify_time": "2026-09-14 23:45",
   "bug_page_offset": 0,
-  "owner_keypad_set": true
+  "owner_keypad_set": true,
+  "user_message_history": {
+    "u0IahsF05003ed26a32d073c66c1388d": [
+      1789429595.934834
+    ],
+    "u0KZR3M01835df70ed5360ccd648f712": [
+      1789429617.498042
+    ]
+  },
+  "recent_user_requests": {
+    "u0KZR3M01835df70ed5360ccd648f712:/1": 1789429618.999468
+  }
 }
