@@ -50,19 +50,20 @@ def handle_source_channel_message(state, msg):
     file_type = file_info.get("file_type")
     print(f"DEBUG: پیام کانال منبع -> file_type={file_type!r} caption={caption[:60]!r}")
 
-    if file_type == "Image":
-        parsed = core.parse_mod_caption(caption)
-        if parsed is None:
-            print("DEBUG: عکس بدون تگ #مود، نادیده گرفته شد")
-            return
-        state["pending_photo"] = {"file_id": file_info.get("file_id"), **parsed}
+    # تشخیص بر اساس تگِ متن، نه رشتهٔ دقیق file_type — چون معلوم شد مقدار
+    # file_type برای عکس‌ها همیشه "Image" نیست (برخلاف ویدیو که "Video" بود)
+    mod_parsed = core.parse_mod_caption(caption)
+    video_parsed = core.parse_video_caption(caption)
 
-    elif file_type == "Video" or "#ویدئو" in caption or "#ویدیو" in caption:
-        parsed = core.parse_video_caption(caption) or {"title": caption.strip() or "ویدیو جدید"}
+    if mod_parsed is not None:
+        state["pending_photo"] = {"file_id": file_info.get("file_id"), **mod_parsed}
+
+    elif video_parsed is not None or file_type == "Video":
+        title = (video_parsed or {}).get("title") or caption.strip() or "ویدیو جدید"
         state["videos"].append({
             "id": uuid_short(),
             "video_file_id": file_info.get("file_id"),
-            "title": parsed["title"],
+            "title": title,
         })
 
     else:
@@ -139,6 +140,8 @@ def run_resync(token, config, state):
             if not isinstance(msg, dict):
                 continue
             chat_id = msg.get("chat_id") or update.get("chat_id")
+            if chat_id == config.get("source_channel_guid") or (msg.get("file") is not None):
+                print(f"DEBUG: RAW (در /update) update کامل: {update}")
             if chat_id == config.get("source_channel_guid"):
                 try:
                     handle_source_channel_message(state, msg)
@@ -156,7 +159,52 @@ def run_resync(token, config, state):
     return total_updates, len(state.get("mods", [])) - mods_before, len(state.get("videos", [])) - videos_before
 
 
-def handle_owner_message(token, config, state, text):
+FORWARD_ORIGIN_KEYS = ["forwarded_from", "forward_from", "forward_chat_id", "forwarded_chat_id", "original_chat_id"]
+
+
+def extract_forward_origin(msg):
+    """تلاش می‌کنه GUID مبدأ یه پیام فوروادشده رو پیدا کنه. چون مستندات
+    رسمی دقیقاً این ساختار رو مشخص نکرده، چند کلید محتمل رو امتحان می‌کنیم."""
+    for key in FORWARD_ORIGIN_KEYS:
+        val = msg.get(key)
+        if val:
+            if isinstance(val, dict):
+                return val.get("chat_id") or val.get("id")
+            return val
+    return None
+
+
+def handle_ticket_flow(token, config, state, chat_id, text):
+    """True برمی‌گردونه اگه این پیام بخشی از فرایند تیکت بوده (پردازش شده)."""
+    awaiting = state.setdefault("awaiting_ticket", [])
+
+    if chat_id in awaiting:
+        awaiting.remove(chat_id)
+        now = core.tehran_now().strftime("%Y-%m-%d %H:%M")
+        core.notify_owner(
+            token, config,
+            f"🎫 تیکت جدید\n"
+            f"از: {chat_id}\n"
+            f"زمان: {now}\n"
+            f"متن: {text}"
+        )
+        core.send_message(token, chat_id, config.get(
+            "texts", {}
+        ).get("ticket_sent", "تیکت شما ارسال شد. با تشکر 🙏"))
+        return True
+
+    if text == "/ticket":
+        if chat_id not in awaiting:
+            awaiting.append(chat_id)
+        core.send_message(token, chat_id, config.get(
+            "texts", {}
+        ).get("ticket_prompt", "لطفاً متن تیکت خودتون رو بنویسید."))
+        return True
+
+    return False
+
+
+def handle_owner_message(token, config, state, text, msg=None):
     panel_keyword = config.get("panel_keyword", "پنل")
     broadcast_secret = config.get("broadcast_secret", "")
 
@@ -171,6 +219,35 @@ def handle_owner_message(token, config, state, text):
         core.send_message(token, config["owner_guid"], "پیام خودت رو بفرست تا برای همهٔ کاربرها ارسالش کنم.")
         return
 
+    if state.get("awaiting_channelcast"):
+        state["awaiting_channelcast"] = False
+        sent, failed = core.broadcast_to_channels(token, config, text)
+        core.send_message(token, config["owner_guid"], f"📡 پیام در {sent} کانال پست شد. (ناموفق: {failed})")
+        return
+
+    if text == "/channelcast":
+        state["awaiting_channelcast"] = True
+        core.send_message(token, config["owner_guid"], "پیام خودت رو بفرست تا توی همهٔ کانال‌های فعال پست کنم.")
+        return
+
+    if state.get("awaiting_newguid"):
+        state["awaiting_newguid"] = False
+        origin = extract_forward_origin(msg or {})
+        if origin:
+            core.send_message(token, config["owner_guid"], f"GUID این چت:\n{origin}")
+        else:
+            core.send_message(
+                token, config["owner_guid"],
+                "متأسفانه نتونستم GUID مبدأ رو از این فوروارد تشخیص بدم.\n"
+                "راه مطمئن‌تر: مستقیم داخل همون چت/کانال بنویس /myid."
+            )
+        return
+
+    if text == "/newguid":
+        state["awaiting_newguid"] = True
+        core.send_message(token, config["owner_guid"], "یک پیام از چتی که GUIDش رو می‌خوای، اینجا فوروارد کن.")
+        return
+
     if text == panel_keyword:
         state["awaiting_panel_selection"] = True
         core.send_message(token, config["owner_guid"], core.build_panel_list(config))
@@ -179,6 +256,44 @@ def handle_owner_message(token, config, state, text):
     if state.get("awaiting_panel_selection") and text.isdigit():
         state["awaiting_panel_selection"] = False
         core.send_message(token, config["owner_guid"], core.build_channel_detail(config, state, int(text)))
+        return
+
+    if text.startswith("/post"):
+        parts = text.split(maxsplit=1)
+        target = parts[1].strip() if len(parts) > 1 else ""
+        if not target:
+            core.send_message(token, config["owner_guid"], "فرمت درست: /post <شماره کانال یا all>")
+        else:
+            run_force_post(token, config, state, target)
+        return
+
+    if text.startswith("/block"):
+        parts = text.split(maxsplit=3)
+        if len(parts) < 3:
+            core.send_message(token, config["owner_guid"], "فرمت درست: /block <chat_id> <روز یا permanent> <دلیل>")
+        else:
+            target_id = parts[1]
+            days_part = parts[2]
+            reason = parts[3] if len(parts) > 3 else ""
+            days = None if days_part.lower() == "permanent" else days_part
+            try:
+                info = core.block_user(state, target_id, reason, days)
+                core.send_message(token, config["owner_guid"], f"⛔ {target_id} مسدود شد.\nتا: {info['until'] or 'دائمی'}")
+            except Exception as e:
+                core.send_message(token, config["owner_guid"], f"خطا در مسدودسازی: {e}")
+        return
+
+    if text.startswith("/unblock"):
+        parts = text.split(maxsplit=1)
+        if len(parts) < 2:
+            core.send_message(token, config["owner_guid"], "فرمت درست: /unblock <chat_id>")
+        else:
+            ok = core.unblock_user(state, parts[1])
+            core.send_message(token, config["owner_guid"], "✅ رفع مسدودیت شد." if ok else "این آیدی مسدود نبود.")
+        return
+
+    if text == "/blocked":
+        core.send_message(token, config["owner_guid"], core.build_blocked_list(state))
         return
 
     if text == "/update":
@@ -209,7 +324,8 @@ def handle_owner_message(token, config, state, text):
         f"🎬 ویدیوهای ذخیره‌شده: {n_videos}\n"
         f"🐞 تعداد کل باگ‌های ثبت‌شده: {n_errors}\n"
         f"برای دیدن گزارش باگ‌ها: /bugs\n"
-        f"برای پنل کانال‌ها: {panel_keyword}"
+        f"برای پنل کانال‌ها: {panel_keyword}\n"
+        f"برای راهنما: /help"
     )
     core.send_message(token, config["owner_guid"], status)
 
@@ -390,7 +506,19 @@ def main():
         print(f"DEBUG: پیام -> chat_id={chat_id} | text={text!r}")
 
         try:
-            core.track_known_user(state, config, chat_id)
+            # ۱) اگه مسدوده (و مالک نیست)، فقط پیام مسدودی رو بده و رد شو
+            if chat_id and chat_id != config.get("owner_guid"):
+                block_info = core.is_blocked(state, chat_id)
+                if block_info:
+                    core.send_message(token, chat_id, core.build_blocked_message(block_info))
+                    continue
+
+            is_new_user = core.track_known_user(state, config, chat_id)
+            if is_new_user:
+                try:
+                    core.set_chat_keypad(token, chat_id, ["/help", "/ticket"])
+                except Exception as e:
+                    core.log_error(state, "تنظیم کیبورد کاربر جدید", e)
 
             if chat_id and chat_id == config.get("source_channel_guid"):
                 print(f"DEBUG: RAW پیام کانال منبع (کامل): {msg}")
@@ -400,6 +528,8 @@ def main():
             elif text == "/help" and chat_id:
                 help_text = config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1).")
                 core.send_message(token, chat_id, help_text)
+            elif chat_id and handle_ticket_flow(token, config, state, chat_id, text):
+                pass
             elif not msg.get("file") and handle_number_request(token, state, chat_id, text):
                 pass
             elif chat_id and msg.get("file") and chat_id in (
@@ -409,7 +539,7 @@ def main():
                 # پیوی خودِ ربات فرستاده شده — هر دو با یک منطق پردازش می‌شن
                 handle_source_channel_message(state, msg)
             elif chat_id and chat_id == config.get("owner_guid"):
-                handle_owner_message(token, config, state, text)
+                handle_owner_message(token, config, state, text, msg)
         except Exception as e:
             core.log_error(state, "پردازش پیام", e)
 

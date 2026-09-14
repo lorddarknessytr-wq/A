@@ -105,12 +105,14 @@ def known_channel_guids(config):
 
 def track_known_user(state, config, chat_id):
     if not chat_id or chat_id in known_channel_guids(config):
-        return
+        return False
     if chat_id == config.get("owner_guid"):
-        return
+        return False
     users = state.setdefault("known_users", [])
     if chat_id not in users:
         users.append(chat_id)
+        return True
+    return False
 
 
 def prune_known_users(state, config):
@@ -172,15 +174,20 @@ def _strip_label(line: str) -> str:
     return _LABEL_RE.sub("", line).strip()
 
 
+_MOD_TAG_RE = re.compile(r"(?:^|\s)#مود(?:\s|$)")
+_VIDEO_TAG_RE = re.compile(r"(?:^|\s)#(?:ویدئو|ویدیو)(?:\s|$)")
+
+
 def parse_mod_caption(caption: str):
     """فرمت مورد انتظار (هر خط جدا):
     عنوان
     توضیحات
     ورژن
     #مود #<شماره>
-    اگر تگ #مود در کپشن نباشد، None برمی‌گردد (یعنی این عکس، عکسِ مود نیست)."""
+    اگر تگ دقیق #مود در کپشن نباشد (نه به‌عنوان بخشی از هشتگ دیگه مثل
+    #مود_فایل)، None برمی‌گردد."""
     caption = caption or ""
-    if "#مود" not in caption:
+    if not _MOD_TAG_RE.search(caption):
         return None
     lines = _content_lines(caption)
     title = _strip_label(lines[0]) if len(lines) > 0 else ""
@@ -195,9 +202,9 @@ def parse_video_caption(caption: str):
     """فرمت مورد انتظار:
     عنوان
     #ویدئو
-    اگر تگ #ویدئو/#ویدیو نباشد، None برمی‌گردد."""
+    اگر تگ دقیق #ویدئو/#ویدیو نباشد، None برمی‌گردد."""
     caption = caption or ""
-    if "#ویدئو" not in caption and "#ویدیو" not in caption:
+    if not _VIDEO_TAG_RE.search(caption):
         return None
     lines = _content_lines(caption)
     title = _strip_label(lines[0]) if lines else "ویدیو جدید"
@@ -293,6 +300,98 @@ def should_send_now(state, key, min_interval_minutes):
 # ---------------------------------------------------------------------------
 # پیام به مالک ربات
 # ---------------------------------------------------------------------------
+def get_chat(token, chat_id):
+    return api_call(token, "getChat", {"chat_id": chat_id})
+
+
+def set_chat_keypad(token, chat_id, buttons):
+    """کیبورد ثابت پایین صفحه رو تنظیم می‌کنه. buttons یه لیست از متن دکمه‌هاست."""
+    rows = [{"buttons": [{"id": str(i), "type": "Simple", "button_text": t}]} for i, t in enumerate(buttons)]
+    payload = {
+        "chat_id": chat_id,
+        "chat_keypad_type": "New",
+        "chat_keypad": {"rows": rows, "resize_keyboard": True, "one_time_keyboard": False},
+    }
+    return api_call(token, "editChatKeypad", payload)
+
+
+# ---------------------------------------------------------------------------
+# پخش پیام به همهٔ کانال‌های مقصد
+# ---------------------------------------------------------------------------
+def broadcast_to_channels(token, config, text):
+    sent, failed = 0, 0
+    for ch in config.get("destination_channels", []):
+        if not ch.get("enabled", True):
+            continue
+        try:
+            send_message(token, ch["guid"], text)
+            sent += 1
+        except Exception as e:
+            failed += 1
+            print(f"DEBUG: channelcast failed for {ch.get('name')}: {e}")
+    return sent, failed
+
+
+# ---------------------------------------------------------------------------
+# مسدودسازی کاربران
+# ---------------------------------------------------------------------------
+def is_blocked(state, chat_id):
+    """اگه کاربر مسدوده، دیکشنری اطلاعات مسدودی رو برمی‌گردونه؛ وگرنه None.
+    اگه تاریخ انقضا گذشته باشه، خودکار از لیست حذف می‌شه."""
+    blocked = state.get("blocked_users", {})
+    info = blocked.get(chat_id)
+    if not info:
+        return None
+    until = info.get("until")
+    if until:
+        try:
+            until_dt = datetime.strptime(until, "%Y-%m-%d %H:%M")
+            if tehran_now().replace(tzinfo=None) >= until_dt:
+                del blocked[chat_id]
+                return None
+        except Exception:
+            pass
+    return info
+
+
+def block_user(state, chat_id, reason, days=None):
+    blocked_at = tehran_now().strftime("%Y-%m-%d %H:%M")
+    until = None
+    if days:
+        until = (tehran_now().replace(tzinfo=None) + timedelta(days=float(days))).strftime("%Y-%m-%d %H:%M")
+    state.setdefault("blocked_users", {})[chat_id] = {
+        "reason": reason or "بدون دلیل ذکرشده",
+        "blocked_at": blocked_at,
+        "until": until,
+    }
+    return state["blocked_users"][chat_id]
+
+
+def unblock_user(state, chat_id):
+    return state.get("blocked_users", {}).pop(chat_id, None) is not None
+
+
+def build_blocked_list(state):
+    blocked = state.get("blocked_users", {})
+    if not blocked:
+        return "🚫 هیچ کاربری مسدود نیست."
+    lines = [f"🚫 کاربران مسدود ({len(blocked)}):", ""]
+    for chat_id, info in blocked.items():
+        until = info.get("until") or "دائمی"
+        lines.append(f"• {chat_id}\n  دلیل: {info.get('reason')}\n  از: {info.get('blocked_at')} — تا: {until}")
+    return "\n".join(lines)
+
+
+def build_blocked_message(info):
+    until = info.get("until") or "دائمی (تا اطلاع ثانوی)"
+    return (
+        f"⛔ شما توسط مالک ربات مسدود شده‌اید.\n"
+        f"دلیل: {info.get('reason')}\n"
+        f"تاریخ مسدودیت: {info.get('blocked_at')}\n"
+        f"پایان مسدودیت: {until}"
+    )
+
+
 def notify_owner(token, config, text):
     owner = config.get("owner_guid")
     if not owner or owner.startswith("PUT_YOUR"):
