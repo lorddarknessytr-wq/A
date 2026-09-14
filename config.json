@@ -1,8 +1,4 @@
-diff --git a/config.json b/config.json
-index afa37370716d24c220e79c3f7db7cbc6171ecccc..c3e8220b29e725996e53a9ef00564f776e0d463d 100644
---- a/config.json
-+++ b/config.json
-@@ -1,35 +1,51 @@
+
  {
    "_comment_token": "توکن ربات را اینجا نگذارید! در GitHub Secrets با نام RUBIKA_BOT_TOKEN ذخیره کنید.",
  
