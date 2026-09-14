@@ -31,6 +31,13 @@ MAX_ERRORS_STORED = 200
 ERRORS_PER_PAGE = 5
 ERROR_NOTIFY_COOLDOWN_MINUTES = 10
 REQUEST_TIMEOUT = 20
+API_RETRIES = 2
+
+
+class RubikaAPIError(RuntimeError):
+    """خطای واقعی API روبیکا؛ نباید با موفقیت اشتباه گرفته شود."""
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -65,12 +72,34 @@ def tehran_now():
 # ---------------------------------------------------------------------------
 # ارتباط خام با Rubika Bot API
 # ---------------------------------------------------------------------------
-def api_call(token, method, payload=None):
+def api_call(token, method, payload=None, retries=API_RETRIES):
+    """تماس امن با Bot API v3.
+
+    نسخه قبلی فقط HTTP 200 را موفقیت فرض می‌کرد؛ اگر خود API با status خطا
+    پاسخ می‌داد، کد ادامه می‌داد و ممکن بود به مالک بگوید «ارسال شد».
+    این نسخه status پاسخ روبیکا را هم بررسی می‌کند.
+    """
     url = f"https://botapi.rubika.ir/v3/{token}/{method}"
-    resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
-    resp.raise_for_status()
-    body = resp.json()
-    return body.get("data", body) if isinstance(body, dict) else body
+    last_error = None
+    for attempt in range(retries + 1):
+        try:
+            resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            body = resp.json()
+            if not isinstance(body, dict):
+                return body
+            status = body.get("status")
+            if status is not None and str(status).lower() not in {"ok", "success"}:
+                raise RubikaAPIError(f"{method}: status={status!r}, response={body}")
+            return body.get("data", body)
+        except (requests.RequestException, ValueError, RubikaAPIError) as exc:
+            last_error = exc
+            # برای درخواست‌های خواندنی retry منطقی است؛ برای ارسال‌ها retry خودکار
+            # نمی‌کنیم تا در timeout مبهم، فایل/پیام دوبار ارسال نشود.
+            if method.startswith("get") and attempt < retries:
+                continue
+            raise
+    raise last_error
 
 
 def get_me(token):
@@ -90,6 +119,70 @@ def get_updates(token, offset_id=None, limit=50):
     if offset_id:
         payload["offset_id"] = offset_id
     return api_call(token, "getUpdates", payload)
+
+
+# ---------------------------------------------------------------------------
+# عضویت اجباری
+# ---------------------------------------------------------------------------
+_FORCE_JOIN_ROBOT = None
+
+def force_join_channels(config):
+    fj = config.get("force_join", {}) or {}
+    if not fj.get("enabled", True):
+        return []
+    result = []
+    for ch in fj.get("channels", []) or []:
+        guid = str(ch.get("guid") or "").strip()
+        link = str(ch.get("link") or "").strip()
+        if guid and not guid.startswith(("PUT_", "c0xCHANNEL_GUID")):
+            result.append({"guid": guid, "link": link, "name": ch.get("name") or guid})
+    return result
+
+
+def check_force_join(token, config, user_guid):
+    """همه کانال‌های Force Join را بررسی می‌کند.
+
+    Rubika Bot API v3 متد رسمی مشابه Telegram getChatMember ندارد؛ کتابخانه
+    Rubka متد check_join را برای همین کار ارائه می‌کند. بنابراین آن را فقط
+    برای این قابلیت lazy-load می‌کنیم و بقیه ربات همچنان با API v3 کار می‌کند.
+
+    نتیجه: (True, []) یا (False, کانال‌های ناقص). در خطای بررسی، fail-closed
+    عمل می‌کنیم تا فایل بدون تأیید عضویت ارسال نشود.
+    """
+    channels = force_join_channels(config)
+    if not channels:
+        return True, []
+    if not user_guid:
+        return False, channels
+
+    global _FORCE_JOIN_ROBOT
+    try:
+        if _FORCE_JOIN_ROBOT is None:
+            from rubka import Robot
+            _FORCE_JOIN_ROBOT = Robot(token=token)
+        missing = []
+        for ch in channels:
+            try:
+                joined = bool(_FORCE_JOIN_ROBOT.check_join(ch["guid"], user_guid))
+            except Exception as exc:
+                raise RubikaAPIError(f"force_join check failed for {ch['guid']}: {exc}") from exc
+            if not joined:
+                missing.append(ch)
+        return not missing, missing
+    except Exception:
+        raise
+
+
+def force_join_message(missing):
+    lines = ["🔒 برای دریافت فایل باید ابتدا در همهٔ کانال‌های زیر عضو شوید:", ""]
+    for ch in missing:
+        if ch.get("link"):
+            lines.append(f"• {ch.get('name', ch['guid'])}: {ch['link']}")
+        else:
+            lines.append(f"• {ch.get('name', ch['guid'])} — GUID: {ch['guid']}")
+    lines.append("")
+    lines.append("بعد از عضویت، دوباره /start را بفرستید؛ سپس قبل از هر دریافت، عضویت دوباره بررسی می‌شود.")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -330,6 +423,71 @@ def broadcast_to_channels(token, config, text):
             failed += 1
             print(f"DEBUG: channelcast failed for {ch.get('name')}: {e}")
     return sent, failed
+
+
+# ---------------------------------------------------------------------------
+# ضدتکرار فایل و ضداسپم
+# ---------------------------------------------------------------------------
+SPAM_WINDOW_SECONDS = 120
+SPAM_MESSAGE_THRESHOLD = 12
+SPAM_COMMAND_THRESHOLD = 6
+SPAM_ALERT_COOLDOWN_MINUTES = 30
+
+def _parse_iso_time(value):
+    try:
+        return datetime.fromisoformat(value)
+    except Exception:
+        return None
+
+def record_user_activity(state, user_guid, text):
+    """فعالیت کاربر را ثبت و در صورت سیل پیام/کامند هشدار می‌دهد."""
+    if not user_guid:
+        return None
+    now = tehran_now()
+    users = state.setdefault("activity", {})
+    item = users.setdefault(user_guid, {"messages": [], "commands": [], "last_alert": None})
+    cutoff = now - timedelta(seconds=SPAM_WINDOW_SECONDS)
+    item["messages"] = [x for x in item.get("messages", []) if (_parse_iso_time(x) or now) >= cutoff]
+    item["commands"] = [x for x in item.get("commands", []) if (_parse_iso_time(x) or now) >= cutoff]
+    stamp = now.isoformat()
+    item["messages"].append(stamp)
+    if (text or "").startswith(("/", "#")):
+        item["commands"].append(stamp)
+    last_alert = _parse_iso_time(item.get("last_alert")) if item.get("last_alert") else None
+    should_alert = (
+        len(item["messages"]) >= SPAM_MESSAGE_THRESHOLD
+        or len(item["commands"]) >= SPAM_COMMAND_THRESHOLD
+    ) and (last_alert is None or now - last_alert >= timedelta(minutes=SPAM_ALERT_COOLDOWN_MINUTES))
+    if should_alert:
+        item["last_alert"] = stamp
+        return {"user_guid": user_guid, "message_count": len(item["messages"]), "command_count": len(item["commands"]), "window_seconds": SPAM_WINDOW_SECONDS}
+    return None
+
+
+def already_delivered(state, user_guid, number):
+    return str(number) in state.get("delivered_files", {}).get(user_guid, {})
+
+
+def mark_delivered(state, user_guid, number):
+    if not user_guid or not number:
+        return
+    delivered = state.setdefault("delivered_files", {})
+    delivered.setdefault(user_guid, {})[str(number)] = tehran_now().strftime("%Y-%m-%d %H:%M")
+
+
+def cleanup_delivery_log(state, max_users=5000, max_files_per_user=300):
+    delivered = state.setdefault("delivered_files", {})
+    for uid in list(delivered.keys()):
+        entries = delivered[uid]
+        if not isinstance(entries, dict):
+            del delivered[uid]
+            continue
+        if len(entries) > max_files_per_user:
+            ordered = sorted(entries.items(), key=lambda kv: kv[1])[-max_files_per_user:]
+            delivered[uid] = dict(ordered)
+    if len(delivered) > max_users:
+        ordered = sorted(delivered.items(), key=lambda kv: max(kv[1].values()) if kv[1] else "")[-max_users:]
+        state["delivered_files"] = dict(ordered)
 
 
 # ---------------------------------------------------------------------------
