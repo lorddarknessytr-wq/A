@@ -1,11 +1,33 @@
 {
-  "last_offset_id": "6aa7fa65689219c99c71e7d4",
-  "mods": [],
-  "videos": [],
+  "last_offset_id": "6aa804cd50f37675f6dc36be",
+  "mods": [
+    {
+      "id": "b2895eec",
+      "photo_file_id": "dxhicajB02977172815350718523267813807242026091318",
+      "title": "ا",
+      "description": "توضیح",
+      "version": "1.21",
+      "number": "9"
+    }
+  ],
+  "videos": [
+    {
+      "id": "db463502",
+      "video_file_id": "dxNGSHXT00668497306914071013083283623332026091310",
+      "title": "ویدیو جدید"
+    }
+  ],
   "pending_photo": null,
-  "files_by_number": {},
+  "files_by_number": {
+    "9": {
+      "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
+      "title": "ا"
+    }
+  },
   "recent_files": {},
-  "used_mods_per_channel": {},
+  "used_mods_per_channel": {
+    "c0DBT990e47b63fa688bba87d5736cc2": []
+  },
   "used_videos_per_channel": {},
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-14 17:57"
@@ -18,14 +40,30 @@
   "awaiting_newguid": false,
   "awaiting_panel_selection": false,
   "posted_hours_today": {
-    "date": null,
+    "date": "2026-09-14",
     "hours": []
   },
-  "sent_log": {},
-  "errors": [],
-  "last_error_notify_time": null,
+  "sent_log": {
+    "heartbeat": "2026-09-14 18:01"
+  },
+  "errors": [
+    {
+      "id": "a7b6f1",
+      "time": "2026-09-14 18:01",
+      "category": "ارسال به کانال یک",
+      "message": "sendFile: status='INVALID_ACCESS', response={'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
+      "notified": true
+    }
+  ],
+  "last_error_notify_time": "2026-09-14 18:01",
   "bug_page_offset": 0,
   "delivered_files": {},
   "activity": {},
-  "posted_channel_hours": {}
+  "posted_channel_hours": {
+    "c0DBT990e47b63fa688bba87d5736cc2": {
+      "date": "2026-09-14",
+      "hours": []
+    }
+  },
+  "owner_keypad_set": true
 }
