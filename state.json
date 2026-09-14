@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa807d0468051937a11106d",
+  "last_offset_id": "6aa85f406d4a4f729d366d65",
   "mods": [
     {
       "id": "ee83d5e9",
@@ -50,7 +50,15 @@
   "sent_log": {
     "heartbeat": "2026-09-14 18:12"
   },
-  "errors": [],
+  "errors": [
+    {
+      "id": "dfa7e4",
+      "time": "2026-09-15 00:25",
+      "category": "پاک‌سازی انبار",
+      "message": "502 Server Error: Bad Gateway for url: https://botapi.rubika.ir/v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates",
+      "notified": false
+    }
+  ],
   "last_error_notify_time": null,
   "bug_page_offset": 0,
   "owner_keypad_set": true
