@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import bot_core as core
@@ -41,6 +42,34 @@ class BotCoreTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 run_bot.post_mod_and_maybe_video("token", channel, state, False)
         self.assertEqual(state["used_mods_per_channel"]["c1"], [])
+
+    def test_old_state_is_upgraded_before_use(self):
+        state = core.ensure_state_defaults({"mods": None, "errors": None})
+        self.assertEqual(state["mods"], [])
+        self.assertEqual(state["errors"], [])
+        self.assertEqual(state["files_by_number"], {})
+        self.assertEqual(state["posted_hours_today"], {"date": "", "hours": []})
+
+    def test_schedule_does_not_consume_hour_without_content(self):
+        state = core.ensure_state_defaults({})
+        config = {
+            "schedule": {"start_hour_tehran": 11, "end_hour_tehran": 23, "video_every_n_hours": 4},
+            "destination_channels": [{"guid": "c1", "name": "channel", "enabled": True}],
+        }
+        now = datetime(2026, 9, 14, 11, 0, tzinfo=timezone.utc) + timedelta(hours=3, minutes=30)
+        with patch("run_bot.core.tehran_now", return_value=now), \
+             patch("run_bot.core.notify_owner"):
+            run_bot.run_posting_schedule("token", config, state)
+        self.assertEqual(state["posted_hours_today"]["hours"], [])
+
+    def test_source_video_requires_video_tag(self):
+        state = core.ensure_state_defaults({})
+        run_bot.handle_source_channel_message(state, {
+            "message_id": "m1",
+            "text": "یک فایل معمولی بدون تگ",
+            "file": {"file_type": "Video", "file_id": "v1"},
+        })
+        self.assertEqual(state["videos"], [])
 
 
 if __name__ == "__main__":

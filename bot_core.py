@@ -34,6 +34,80 @@ REQUEST_TIMEOUT = 20
 MEMBER_STATUSES = {"member", "administrator", "creator", "owner", "admin"}
 
 
+def _ensure_mapping(container, key):
+    """Return a dictionary at ``container[key]``, repairing old state files."""
+    value = container.get(key)
+    if not isinstance(value, dict):
+        value = {}
+        container[key] = value
+    return value
+
+
+def _ensure_list(container, key):
+    """Return a list at ``container[key]``, repairing old state files."""
+    value = container.get(key)
+    if not isinstance(value, list):
+        value = []
+        container[key] = value
+    return value
+
+
+def ensure_state_defaults(state):
+    """Make a state.json produced by older bot versions safe to use.
+
+    State is persisted between GitHub Actions runs.  New code must therefore
+    never assume that a newly introduced key already exists in an older state
+    file (or that a manually edited value still has the expected type).
+    """
+    if not isinstance(state, dict):
+        raise ValueError("state.json باید یک شیء JSON باشد.")
+    for key in ("mods", "videos", "known_users", "awaiting_ticket", "errors"):
+        _ensure_list(state, key)
+    for key in (
+        "files_by_number", "recent_files", "used_mods_per_channel",
+        "used_videos_per_channel", "channel_activated", "sent_log",
+        "blocked_users", "user_activity",
+    ):
+        _ensure_mapping(state, key)
+    state.setdefault("pending_photo", None)
+    state.setdefault("awaiting_broadcast", False)
+    state.setdefault("awaiting_channelcast", False)
+    state.setdefault("awaiting_panel_selection", False)
+    posted = state.get("posted_hours_today")
+    if not isinstance(posted, dict) or not isinstance(posted.get("hours", []), list):
+        state["posted_hours_today"] = {"date": "", "hours": []}
+    return state
+
+
+def validate_config(config):
+    """Validate only the fields that would otherwise fail during a run."""
+    if not isinstance(config, dict):
+        raise ValueError("config.json باید یک شیء JSON باشد.")
+    if not isinstance(config.get("destination_channels", []), list):
+        raise ValueError("destination_channels باید یک لیست باشد.")
+    for index, channel in enumerate(config.get("destination_channels", []), start=1):
+        if not isinstance(channel, dict):
+            raise ValueError(f"کانال مقصد شمارهٔ {index} معتبر نیست.")
+        if channel.get("enabled", True) and not channel.get("guid"):
+            raise ValueError(f"GUID کانال مقصد شمارهٔ {index} وارد نشده است.")
+    for index, channel in enumerate(config.get("required_channels", []), start=1):
+        if not isinstance(channel, dict):
+            raise ValueError(f"کانال اجباری شمارهٔ {index} معتبر نیست.")
+        guid = str(channel.get("guid", "")).strip()
+        if channel.get("enabled", False) and (not guid or guid.startswith("GUID-")):
+            raise ValueError(f"GUID کانال اجباری شمارهٔ {index} وارد نشده است.")
+    schedule = config.get("schedule", {})
+    if not isinstance(schedule, dict):
+        raise ValueError("schedule باید یک شیء باشد.")
+    schedule.setdefault("start_hour_tehran", 11)
+    schedule.setdefault("end_hour_tehran", 23)
+    schedule.setdefault("video_every_n_hours", 4)
+    every = schedule.get("video_every_n_hours", 4)
+    if not isinstance(every, int) or every <= 0:
+        raise ValueError("schedule.video_every_n_hours باید یک عدد صحیح بزرگ‌تر از صفر باشد.")
+    return config
+
+
 # ---------------------------------------------------------------------------
 # فایل‌های JSON
 # ---------------------------------------------------------------------------
@@ -323,7 +397,9 @@ def send_mod(token, channel, mod, state):
     if not direct and mod.get("number"):
         lines.append(f"📥 برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو به ربات در پیوی بفرستید.")
 
-    lines.append(f"🔗 کانال: {channel['channel_link']}")
+    channel_link = channel.get("channel_link")
+    if channel_link:
+        lines.append(f"🔗 کانال: {channel_link}")
     if channel.get("mod_photo_extra_text"):
         lines.append(channel["mod_photo_extra_text"])
 

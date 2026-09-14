@@ -47,6 +47,8 @@ jobs:
         run: python run_bot.py
 
       - name: Save updated state.json back to the repo
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
           git config user.name "rubika-mod-bot"
           git config user.email "actions@users.noreply.github.com"
@@ -57,8 +59,10 @@ jobs:
               break
             fi
             git commit -m "update state [skip ci]"
-            git pull --rebase origin main
-            if git push origin main; then
+            # Do not assume that the repository default branch is named main.
+            # github.ref_name is the branch checked out by this workflow.
+            git pull --rebase origin "$BRANCH_NAME"
+            if git push origin "HEAD:$BRANCH_NAME"; then
               echo "push موفق بود."
               break
             fi

@@ -58,8 +58,8 @@ def handle_source_channel_message(state, msg):
     if mod_parsed is not None:
         state["pending_photo"] = {"file_id": file_info.get("file_id"), **mod_parsed}
 
-    elif video_parsed is not None or file_type == "Video":
-        title = (video_parsed or {}).get("title") or caption.strip() or "ویدیو جدید"
+    elif video_parsed is not None:
+        title = video_parsed.get("title") or caption.strip() or "ویدیو جدید"
         state["videos"].append({
             "id": uuid_short(),
             "video_file_id": file_info.get("file_id"),
@@ -321,7 +321,7 @@ def post_mod_and_maybe_video(token, channel, state, also_video):
         core.send_mod(token, channel, item, state)
         # Record an item only after Rubika confirms the send succeeded.
         state["used_mods_per_channel"][guid] = used
-        summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
+        summary.append(f"🎮 {channel.get('name', guid)}: مود «{item.get('title')}»")
 
     if also_video:
         used_v = state["used_videos_per_channel"].setdefault(guid, [])
@@ -329,7 +329,7 @@ def post_mod_and_maybe_video(token, channel, state, also_video):
         if vitem is not None:
             core.send_video(token, channel, vitem)
             state["used_videos_per_channel"][guid] = used_v
-            summary.append(f"🎬 {channel['name']}: ویدیو «{vitem['title']}»")
+            summary.append(f"🎬 {channel.get('name', guid)}: ویدیو «{vitem['title']}»")
 
     return summary
 
@@ -362,11 +362,14 @@ def run_posting_schedule(token, config, state):
             posted_summary += post_mod_and_maybe_video(token, channel, state, also_video)
         except Exception as e:
             failures += 1
-            core.log_error(state, f"ارسال به {channel['name']}", e)
+            core.log_error(state, f"ارسال به {channel.get('name', channel.get('guid', 'کانال'))}", e)
 
-    # A failed API call must be retried on the next scheduled Actions run;
-    # the old implementation marked the hour as posted even when every send failed.
-    if failures == 0:
+    # Don't consume the hour when there was no content yet.  This matters when
+    # Actions runs at e.g. 11:00 before the source-channel update is collected
+    # at 11:05.  Conversely, once at least one item is successfully posted,
+    # don't repeat it in the same hour.
+    # A failed API call is also deliberately retried on the next Actions run.
+    if posted_summary and failures == 0:
         posted["hours"].append(hour)
 
     if posted_summary:
@@ -411,16 +414,16 @@ def run_force_post_typed(token, config, state, target, kind):
                 if item is not None:
                     core.send_mod(token, channel, item, state)
                     state["used_mods_per_channel"][guid] = used
-                    summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
+                    summary.append(f"🎮 {channel.get('name', guid)}: مود «{item.get('title')}»")
             else:
                 used = state["used_videos_per_channel"].setdefault(guid, [])
                 item, used = core.pick_item(state["videos"], used)
                 if item is not None:
                     core.send_video(token, channel, item)
                     state["used_videos_per_channel"][guid] = used
-                    summary.append(f"🎬 {channel['name']}: ویدیو «{item['title']}»")
+                    summary.append(f"🎬 {channel.get('name', guid)}: ویدیو «{item['title']}»")
         except Exception as e:
-            core.log_error(state, f"پست فوری {kind_fa} برای {channel['name']}", e)
+            core.log_error(state, f"پست فوری {kind_fa} برای {channel.get('name', guid)}", e)
 
     if summary:
         core.notify_owner(token, config, "🚀 پست فوری انجام شد:\n" + "\n".join(summary))
@@ -440,8 +443,8 @@ def run_force_post(token, config, state, target):
 
 
 def main():
-    config = core.load_config()
-    state = core.load_state()
+    config = core.validate_config(core.load_config())
+    state = core.ensure_state_defaults(core.load_state())
     token = os.environ.get("RUBIKA_BOT_TOKEN") or config.get("bot_token")
     if not token:
         print("DEBUG: توکن پیدا نشد")
