@@ -14,6 +14,25 @@
     "ticket_sent": "تیکت شما ارسال شد. با تشکر 🙏"
   },
 
+  "anti_spam": {
+    "enabled": true,
+    "window_seconds": 60,
+    "max_messages_in_window": 8,
+    "report_cooldown_seconds": 900
+  },
+
+  "forced_join": {
+    "enabled": false,
+    "membership_method": "getChatMember",
+    "channels": [
+      {
+        "guid": "PUT_REQUIRED_CHANNEL_GUID_HERE",
+        "name": "کانال عضویت اجباری",
+        "link": "https://rubika.ir/your_required_channel"
+      }
+    ]
+  },
+
   "schedule": {
     "start_hour_tehran": 11,
     "end_hour_tehran": 23,

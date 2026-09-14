@@ -33,6 +33,10 @@ ERROR_NOTIFY_COOLDOWN_MINUTES = 10
 REQUEST_TIMEOUT = 20
 
 
+class RubikaAPIError(RuntimeError):
+    """An error response returned by Rubika (HTTP 200 is not enough)."""
+
+
 # ---------------------------------------------------------------------------
 # فایل‌های JSON
 # ---------------------------------------------------------------------------
@@ -69,8 +73,24 @@ def api_call(token, method, payload=None):
     url = f"https://botapi.rubika.ir/v3/{token}/{method}"
     resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
-    body = resp.json()
-    return body.get("data", body) if isinstance(body, dict) else body
+    try:
+        body = resp.json()
+    except ValueError as exc:
+        raise RubikaAPIError(f"{method}: پاسخ JSON معتبر نیست") from exc
+
+    # The API can return an error envelope with HTTP 200.  The old code
+    # discarded that envelope and consequently reported a post as successful
+    # although Rubika had rejected it (for example, when the bot is not an
+    # admin of the destination channel).
+    if isinstance(body, dict):
+        status = body.get("status")
+        if status is not None and str(status).upper() not in {"OK", "SUCCESS"}:
+            detail = body.get("status_det") or body.get("message") or body.get("error") or body
+            raise RubikaAPIError(f"{method}: {detail}")
+        if body.get("error") and "data" not in body:
+            raise RubikaAPIError(f"{method}: {body['error']}")
+        return body.get("data", body)
+    return body
 
 
 def get_me(token):
@@ -90,6 +110,61 @@ def get_updates(token, offset_id=None, limit=50):
     if offset_id:
         payload["offset_id"] = offset_id
     return api_call(token, "getUpdates", payload)
+
+
+def get_chat_member(token, channel_guid, user_guid, method="getChatMember"):
+    """Query a configured membership endpoint.
+
+    Rubika deployments do not all expose this method.  Callers must treat a
+    failure as *not verified*, never as a successful membership check.
+    """
+    return api_call(token, method, {"chat_id": channel_guid, "user_id": user_guid})
+
+
+def member_is_active(response):
+    """Accept common Bot API member shapes, but reject unknown responses."""
+    if not isinstance(response, dict):
+        return False
+    member = response.get("member") if isinstance(response.get("member"), dict) else response
+    status = str(member.get("status") or member.get("member_status") or "").lower()
+    if status:
+        return status not in {"left", "kicked", "banned", "removed", "not_member"}
+    return member.get("is_member") is True
+
+
+def required_memberships(token, config, user_guid):
+    """Return (allowed, missing_channels). Disabled means no restriction."""
+    settings = config.get("forced_join", {})
+    if not settings.get("enabled", False):
+        return True, []
+    channels = settings.get("channels", [])
+    if not channels:
+        # A misconfigured enabled gate must never accidentally open access.
+        return False, []
+    method = settings.get("membership_method", "getChatMember")
+    missing = []
+    for channel in channels:
+        guid = channel.get("guid")
+        if not guid:
+            missing.append(channel)
+            continue
+        try:
+            if not member_is_active(get_chat_member(token, guid, user_guid, method)):
+                missing.append(channel)
+        except Exception as exc:
+            print(f"DEBUG: membership check failed for {guid}: {exc}")
+            missing.append(channel)
+    return not missing, missing
+
+
+def build_join_required_message(channels):
+    lines = ["🔒 برای دریافت فایل، ابتدا در کانال‌های زیر عضو شوید:"]
+    for channel in channels:
+        link = channel.get("link") or channel.get("channel_link")
+        name = channel.get("name") or channel.get("guid", "کانال")
+        lines.append(f"• {name}" + (f": {link}" if link else ""))
+    lines.append("پس از عضویت، دوباره /start یا شمارهٔ فایل را بفرستید.")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
