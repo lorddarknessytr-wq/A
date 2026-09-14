@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa74cc3e9a87f7011f705c5",
+  "last_offset_id": "6aa74d4958b2e4de8bdb41ba",
   "mods": [
     {
       "id": "b82a819f",
@@ -64,6 +64,8 @@
   "errors": [],
   "last_error_notify_time": null,
   "bug_page_offset": 0,
-  "awaiting_ticket": [],
+  "awaiting_ticket": [
+    "b0KZR3M0BEAo077d2f10db168ddb361e"
+  ],
   "awaiting_newguid": false
 }
