@@ -1,8 +1,8 @@
-diff --git a/bot_core.py b/bot_core.py
-index de20f29d59ab05492b5ed383e085d7851cf40c83..0eec142b5c9038fb766a0c279ec60007cff8c874 100644
+ (cd "$(git rev-parse --show-toplevel)" && printf '%s' 'diff --git a/bot_core.py b/bot_core.py
+index de20f29d59ab05492b5ed383e085d7851cf40c83..43631dae68428e1503cb67b0a036daa207174cb1 100644
 --- a/bot_core.py
 +++ b/bot_core.py
-@@ -9,111 +9,201 @@ bot_core.py
+@@ -9,111 +9,275 @@ bot_core.py
    جایی در کپشن باشد.
  - جلوگیری از سیل پیام با یک «دفترچهٔ ارسال» سبک (sent_log): قبل از هر
    پیام دوره‌ای (مثل پیام راه‌اندازی)، چک می‌شود که در N دقیقهٔ اخیر
@@ -29,6 +29,80 @@ index de20f29d59ab05492b5ed383e085d7851cf40c83..0eec142b5c9038fb766a0c279ec60007
  ERROR_NOTIFY_COOLDOWN_MINUTES = 10
  REQUEST_TIMEOUT = 20
 +MEMBER_STATUSES = {"member", "administrator", "creator", "owner", "admin"}
++
++
++def _ensure_mapping(container, key):
++    """Return a dictionary at ``container[key]``, repairing old state files."""
++    value = container.get(key)
++    if not isinstance(value, dict):
++        value = {}
++        container[key] = value
++    return value
++
++
++def _ensure_list(container, key):
++    """Return a list at ``container[key]``, repairing old state files."""
++    value = container.get(key)
++    if not isinstance(value, list):
++        value = []
++        container[key] = value
++    return value
++
++
++def ensure_state_defaults(state):
++    """Make a state.json produced by older bot versions safe to use.
++
++    State is persisted between GitHub Actions runs.  New code must therefore
++    never assume that a newly introduced key already exists in an older state
++    file (or that a manually edited value still has the expected type).
++    """
++    if not isinstance(state, dict):
++        raise ValueError("state.json باید یک شیء JSON باشد.")
++    for key in ("mods", "videos", "known_users", "awaiting_ticket", "errors"):
++        _ensure_list(state, key)
++    for key in (
++        "files_by_number", "recent_files", "used_mods_per_channel",
++        "used_videos_per_channel", "channel_activated", "sent_log",
++        "blocked_users", "user_activity",
++    ):
++        _ensure_mapping(state, key)
++    state.setdefault("pending_photo", None)
++    state.setdefault("awaiting_broadcast", False)
++    state.setdefault("awaiting_channelcast", False)
++    state.setdefault("awaiting_panel_selection", False)
++    posted = state.get("posted_hours_today")
++    if not isinstance(posted, dict) or not isinstance(posted.get("hours", []), list):
++        state["posted_hours_today"] = {"date": "", "hours": []}
++    return state
++
++
++def validate_config(config):
++    """Validate only the fields that would otherwise fail during a run."""
++    if not isinstance(config, dict):
++        raise ValueError("config.json باید یک شیء JSON باشد.")
++    if not isinstance(config.get("destination_channels", []), list):
++        raise ValueError("destination_channels باید یک لیست باشد.")
++    for index, channel in enumerate(config.get("destination_channels", []), start=1):
++        if not isinstance(channel, dict):
++            raise ValueError(f"کانال مقصد شمارهٔ {index} معتبر نیست.")
++        if channel.get("enabled", True) and not channel.get("guid"):
++            raise ValueError(f"GUID کانال مقصد شمارهٔ {index} وارد نشده است.")
++    for index, channel in enumerate(config.get("required_channels", []), start=1):
++        if not isinstance(channel, dict):
++            raise ValueError(f"کانال اجباری شمارهٔ {index} معتبر نیست.")
++        guid = str(channel.get("guid", "")).strip()
++        if channel.get("enabled", False) and (not guid or guid.startswith("GUID-")):
++            raise ValueError(f"GUID کانال اجباری شمارهٔ {index} وارد نشده است.")
++    schedule = config.get("schedule", {})
++    if not isinstance(schedule, dict):
++        raise ValueError("schedule باید یک شیء باشد.")
++    schedule.setdefault("start_hour_tehran", 11)
++    schedule.setdefault("end_hour_tehran", 23)
++    schedule.setdefault("video_every_n_hours", 4)
++    every = schedule.get("video_every_n_hours", 4)
++    if not isinstance(every, int) or every <= 0:
++        raise ValueError("schedule.video_every_n_hours باید یک عدد صحیح بزرگ‌تر از صفر باشد.")
++    return config
  
  
  # ---------------------------------------------------------------------------
@@ -78,7 +152,7 @@ index de20f29d59ab05492b5ed383e085d7851cf40c83..0eec142b5c9038fb766a0c279ec60007
 +        detail = body.get("status_det") or body.get("message") or body
 +        raise RuntimeError(f"{method} ناموفق بود: {detail}")
 +    if body.get("ok") is False:
-+        raise RuntimeError(f"{method} ناموفق بود: {body.get('description') or body}")
++        raise RuntimeError(f"{method} ناموفق بود: {body.get('\''description'\'') or body}")
 +    return body.get("data", body)
  
  
@@ -102,7 +176,7 @@ index de20f29d59ab05492b5ed383e085d7851cf40c83..0eec142b5c9038fb766a0c279ec60007
  
  
 +def get_chat_member(token, channel_guid, user_guid):
-+    """Membership check supported by Rubika's Bot API-compatible endpoint."""
++    """Membership check supported by Rubika'\''s Bot API-compatible endpoint."""
 +    return api_call(token, "getChatMember", {"chat_id": channel_guid, "user_id": user_guid})
 +
 +
@@ -122,7 +196,7 @@ index de20f29d59ab05492b5ed383e085d7851cf40c83..0eec142b5c9038fb766a0c279ec60007
 +            if status not in MEMBER_STATUSES:
 +                missing.append(channel)
 +        except Exception as exc:
-+            print(f"DEBUG: membership check failed for {channel.get('guid')}: {exc}")
++            print(f"DEBUG: membership check failed for {channel.get('\''guid'\'')}: {exc}")
 +            missing.append(channel)
 +    return not missing, missing
 +
@@ -205,3 +279,59 @@ index de20f29d59ab05492b5ed383e085d7851cf40c83..0eec142b5c9038fb766a0c279ec60007
  
  def prune_known_users(state, config):
      """ورودی‌هایی که در واقع کانال هستن (مثلاً چون قبلاً GUID اشتباه بوده)
+@@ -211,51 +375,53 @@ def parse_video_caption(caption: str):
+     return {"title": title}
+ 
+ 
+ def extract_number(caption: str):
+     """شمارهٔ بعد از # را از هر کپشنی (عکس یا فایل) استخراج می‌کند."""
+     m = re.search(r"#(\d+)\b", caption or "")
+     return m.group(1) if m else None
+ 
+ 
+ # ---------------------------------------------------------------------------
+ # ارسال مود / ویدیو به یک کانال مقصد
+ # ---------------------------------------------------------------------------
+ def send_mod(token, channel, mod, state):
+     lines = []
+     if mod.get("title"):
+         lines.append(mod["title"])
+     if mod.get("description"):
+         lines.append(f"📝 {mod['\''description'\'']}")
+     if mod.get("version"):
+         lines.append(f"🔢 ورژن: {mod['\''version'\'']}")
+ 
+     direct = channel.get("send_file_directly", False)
+     if not direct and mod.get("number"):
+         lines.append(f"📥 برای دریافت فایل، عدد {mod['\''number'\'']} یا #{mod['\''number'\'']} رو به ربات در پیوی بفرستید.")
+ 
+-    lines.append(f"🔗 کانال: {channel['\''channel_link'\'']}")
++    channel_link = channel.get("channel_link")
++    if channel_link:
++        lines.append(f"🔗 کانال: {channel_link}")
+     if channel.get("mod_photo_extra_text"):
+         lines.append(channel["mod_photo_extra_text"])
+ 
+     send_file(token, channel["guid"], mod["photo_file_id"], "\n".join(lines))
+ 
+     if direct and mod.get("number"):
+         entry = state.get("files_by_number", {}).get(mod["number"])
+         if entry and entry.get("file_id"):
+             send_file(token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""))
+ 
+ 
+ def send_video(token, channel, video):
+     lines = [video.get("title", "ویدیو جدید")]
+     if channel.get("video_extra_text"):
+         lines.append(channel["video_extra_text"])
+     send_file(token, channel["guid"], video["video_file_id"], "\n".join(lines))
+ 
+ 
+ def pick_item(items, used_ids):
+     if not items:
+         return None, used_ids
+     available = [i for i in items if i["id"] not in used_ids]
+     if not available:
+         used_ids = []
+         available = items
+' | git apply --3way)
