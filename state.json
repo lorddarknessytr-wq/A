@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa85f5f8bc6ae3133599cd3",
+  "last_offset_id": "6aa85fa4f47dbfb29945acac",
   "mods": [
     {
       "id": "ee83d5e9",
@@ -46,14 +46,21 @@
   "recent_files": {},
   "used_mods_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [
-      "ee83d5e9"
+      "ee83d5e9",
+      "52f205c1"
     ]
   },
-  "used_videos_per_channel": {},
+  "used_videos_per_channel": {
+    "c0DBT990e47b63fa688bba87d5736cc2": [
+      "36a4b0ad"
+    ]
+  },
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-14 18:09"
   },
-  "known_users": [],
+  "known_users": [
+    "b0KZR3M0BEAo077d2f10db168ddb361e"
+  ],
   "blocked_users": {},
   "awaiting_ticket": [],
   "awaiting_broadcast": false,
@@ -74,6 +81,20 @@
       "category": "پاک‌سازی انبار",
       "message": "502 Server Error: Bad Gateway for url: https://botapi.rubika.ir/v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates",
       "notified": true
+    },
+    {
+      "id": "c6501b",
+      "time": "2026-09-15 00:27",
+      "category": "پست فوری ویدیو برای کانال یک",
+      "message": "forwardMessage: {'status': 'INVALID_INPUT'}",
+      "notified": false
+    },
+    {
+      "id": "be9ae1",
+      "time": "2026-09-15 00:28",
+      "category": "پست فوری مود برای کانال یک",
+      "message": "forwardMessage: {'status': 'INVALID_INPUT'}",
+      "notified": false
     }
   ],
   "last_error_notify_time": "2026-09-15 00:26",
@@ -81,9 +102,16 @@
   "owner_keypad_set": true,
   "user_message_history": {
     "u0IahsF05003ed26a32d073c66c1388d": [
-      1789431991.838985,
-      1789431991.839059,
-      1789431991.839194
+      1789432054.293653,
+      1789432058.954979,
+      1789432082.842278
+    ],
+    "u0KZR3M01835df70ed5360ccd648f712": [
+      1789432084.373303,
+      1789432085.848716
     ]
+  },
+  "recent_user_requests": {
+    "u0KZR3M01835df70ed5360ccd648f712:/9": 1789432085.848745
   }
 }
