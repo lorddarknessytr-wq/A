@@ -159,21 +159,6 @@ def run_resync(token, config, state):
     return total_updates, len(state.get("mods", [])) - mods_before, len(state.get("videos", [])) - videos_before
 
 
-FORWARD_ORIGIN_KEYS = ["forwarded_from", "forward_from", "forward_chat_id", "forwarded_chat_id", "original_chat_id"]
-
-
-def extract_forward_origin(msg):
-    """تلاش می‌کنه GUID مبدأ یه پیام فوروادشده رو پیدا کنه. چون مستندات
-    رسمی دقیقاً این ساختار رو مشخص نکرده، چند کلید محتمل رو امتحان می‌کنیم."""
-    for key in FORWARD_ORIGIN_KEYS:
-        val = msg.get(key)
-        if val:
-            if isinstance(val, dict):
-                return val.get("chat_id") or val.get("id")
-            return val
-    return None
-
-
 def handle_ticket_flow(token, config, state, chat_id, text):
     """True برمی‌گردونه اگه این پیام بخشی از فرایند تیکت بوده (پردازش شده)."""
     awaiting = state.setdefault("awaiting_ticket", [])
@@ -230,24 +215,6 @@ def handle_owner_message(token, config, state, text, msg=None):
         core.send_message(token, config["owner_guid"], "پیام خودت رو بفرست تا توی همهٔ کانال‌های فعال پست کنم.")
         return
 
-    if state.get("awaiting_newguid"):
-        state["awaiting_newguid"] = False
-        origin = extract_forward_origin(msg or {})
-        if origin:
-            core.send_message(token, config["owner_guid"], f"GUID این چت:\n{origin}")
-        else:
-            core.send_message(
-                token, config["owner_guid"],
-                "متأسفانه نتونستم GUID مبدأ رو از این فوروارد تشخیص بدم.\n"
-                "راه مطمئن‌تر: مستقیم داخل همون چت/کانال بنویس /myid."
-            )
-        return
-
-    if text == "/newguid":
-        state["awaiting_newguid"] = True
-        core.send_message(token, config["owner_guid"], "یک پیام از چتی که GUIDش رو می‌خوای، اینجا فوروارد کن.")
-        return
-
     if text == panel_keyword:
         state["awaiting_panel_selection"] = True
         core.send_message(token, config["owner_guid"], core.build_panel_list(config))
@@ -258,13 +225,22 @@ def handle_owner_message(token, config, state, text, msg=None):
         core.send_message(token, config["owner_guid"], core.build_channel_detail(config, state, int(text)))
         return
 
-    if text.startswith("/post"):
+    if text.startswith("/postmod"):
         parts = text.split(maxsplit=1)
         target = parts[1].strip() if len(parts) > 1 else ""
-        if not target:
-            core.send_message(token, config["owner_guid"], "فرمت درست: /post <شماره کانال یا all>")
-        else:
-            run_force_post(token, config, state, target)
+        run_force_post_typed(token, config, state, target, "mod")
+        return
+
+    if text.startswith("/postvideo"):
+        parts = text.split(maxsplit=1)
+        target = parts[1].strip() if len(parts) > 1 else ""
+        run_force_post_typed(token, config, state, target, "video")
+        return
+
+    if text.startswith("/post "):
+        parts = text.split(maxsplit=1)
+        target = parts[1].strip() if len(parts) > 1 else ""
+        run_force_post_typed(token, config, state, target, "mod")
         return
 
     if text.startswith("/block"):
@@ -388,36 +364,68 @@ def run_posting_schedule(token, config, state):
         core.notify_owner(token, config, f"ℹ️ ساعت {hour}:00 چیزی برای پست‌کردن (مود/ویدیوی تکراری‌نشده) موجود نبود.")
 
 
-def run_force_post(token, config, state, target):
+def resolve_post_targets(config, target):
+    """target رشتهٔ 'all' یا شمارهٔ کانال (۱-پایه) هست. یه tuple
+    (لیست کانال‌ها, پیام خطا یا None) برمی‌گردونه."""
     target = (target or "").strip()
-    if not target:
-        return
-
     all_channels = config["destination_channels"]
+    if not target:
+        return None, "فرمت درست: <شماره کانال یا all>"
     if target.lower() == "all":
-        targets = [c for c in all_channels if c.get("enabled", True)]
-    elif target.isdigit():
+        return [c for c in all_channels if c.get("enabled", True)], None
+    if target.isdigit():
         idx = int(target) - 1
         if 0 <= idx < len(all_channels):
-            targets = [all_channels[idx]]
-        else:
-            core.notify_owner(token, config, f"⚠️ پست فوری: شمارهٔ کانال {target} معتبر نیست.")
-            return
-    else:
-        core.notify_owner(token, config, "⚠️ پست فوری: مقدار force_post_channel باید عدد یا all باشد.")
+            return [all_channels[idx]], None
+        return None, f"شمارهٔ کانال {target} معتبر نیست."
+    return None, "مقدار باید عدد یا all باشه."
+
+
+def run_force_post_typed(token, config, state, target, kind):
+    """kind: 'mod' یا 'video' — فقط همون نوعِ محتوا رو فوری پست می‌کنه،
+    بدون توجه به ساعت برنامه."""
+    targets, err = resolve_post_targets(config, target)
+    if err:
+        core.notify_owner(token, config, f"⚠️ پست فوری: {err}")
         return
 
+    kind_fa = "مود" if kind == "mod" else "ویدیو"
     summary = []
     for channel in targets:
+        guid = channel["guid"]
         try:
-            summary += post_mod_and_maybe_video(token, channel, state, also_video=False)
+            if kind == "mod":
+                used = state["used_mods_per_channel"].setdefault(guid, [])
+                item, used = core.pick_item(state["mods"], used)
+                state["used_mods_per_channel"][guid] = used
+                if item is not None:
+                    core.send_mod(token, channel, item, state)
+                    summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
+            else:
+                used = state["used_videos_per_channel"].setdefault(guid, [])
+                item, used = core.pick_item(state["videos"], used)
+                state["used_videos_per_channel"][guid] = used
+                if item is not None:
+                    core.send_video(token, channel, item)
+                    summary.append(f"🎬 {channel['name']}: ویدیو «{item['title']}»")
         except Exception as e:
-            core.log_error(state, f"پست فوری برای {channel['name']}", e)
+            core.log_error(state, f"پست فوری {kind_fa} برای {channel['name']}", e)
 
     if summary:
         core.notify_owner(token, config, "🚀 پست فوری انجام شد:\n" + "\n".join(summary))
     else:
-        core.notify_owner(token, config, "ℹ️ پست فوری: مودی برای پست‌کردن (تکراری‌نشده) موجود نبود.")
+        core.notify_owner(
+            token, config,
+            f"ℹ️ پست فوری: هیچ {kind_fa}یِ تکراری‌نشده‌ای برای این کانال(ها) موجود نبود.\n"
+            f"(مطمئن شو حداقل یک {kind_fa} در state.json ثبت شده — با /bugs یا پیام وضعیت چک کن.)"
+        )
+
+
+def run_force_post(token, config, state, target):
+    """برای سازگاری با ورودی force_post_channel در Actions (فقط مود)."""
+    if not (target or "").strip():
+        return
+    run_force_post_typed(token, config, state, target, "mod")
 
 
 def main():
@@ -514,11 +522,16 @@ def main():
                     continue
 
             is_new_user = core.track_known_user(state, config, chat_id)
-            if is_new_user:
+            owner_needs_keypad = (
+                chat_id == config.get("owner_guid") and not state.get("owner_keypad_set")
+            )
+            if is_new_user or owner_needs_keypad:
                 try:
                     core.set_chat_keypad(token, chat_id, ["/help", "/ticket"])
+                    if owner_needs_keypad:
+                        state["owner_keypad_set"] = True
                 except Exception as e:
-                    core.log_error(state, "تنظیم کیبورد کاربر جدید", e)
+                    core.log_error(state, "تنظیم کیبورد ثابت", e)
 
             if chat_id and chat_id == config.get("source_channel_guid"):
                 print(f"DEBUG: RAW پیام کانال منبع (کامل): {msg}")
