@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa856e06556175479175432",
+  "last_offset_id": "6aa85aa3fa356498b0ba3798",
   "mods": [
     {
       "id": "ee83d5e9",
@@ -82,6 +82,20 @@
       "category": "پست فوری مود برای کانال یک",
       "message": "sendFile: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
       "notified": true
+    },
+    {
+      "id": "87516a",
+      "time": "2026-09-15 00:06",
+      "category": "پست فوری مود برای کانال یک",
+      "message": "sendFile: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
+      "notified": false
+    },
+    {
+      "id": "e80585",
+      "time": "2026-09-15 00:06",
+      "category": "پست فوری ویدیو برای کانال یک",
+      "message": "sendFile: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
+      "notified": false
     }
   ],
   "last_error_notify_time": "2026-09-15 00:00",
@@ -89,19 +103,17 @@
   "owner_keypad_set": true,
   "user_message_history": {
     "u0IahsF05003ed26a32d073c66c1388d": [
-      1789429811.335223,
-      1789429812.154427,
-      1789429815.241762,
-      1789429817.914986
+      1789430771.010663,
+      1789430773.327006
     ],
     "u0KZR3M01835df70ed5360ccd648f712": [
-      1789429808.564886,
-      1789429821.071902,
-      1789429822.296059,
-      1789429823.919688
+      1789430775.699705,
+      1789430778.138208,
+      1789430779.225284
     ]
   },
   "recent_user_requests": {
-    "u0KZR3M01835df70ed5360ccd648f712:/1": 1789429823.91973
+    "u0KZR3M01835df70ed5360ccd648f712:/1": 1789429823.91973,
+    "u0KZR3M01835df70ed5360ccd648f712:/9": 1789430775.699935
   }
 }
