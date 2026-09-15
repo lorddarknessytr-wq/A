@@ -3,7 +3,7 @@
 
   "source_channel_guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
 
-  "owner_guid": "PUT_YOUR_OWNER_GUID_HERE",
+  "owner_guid": "b0IahsF0BEAo0c667263fa750539d1d2",
 
   "panel_keyword": "پنل",
   "broadcast_secret": "بگو-رمز-خودتو-اینجا-عوض-کن",
@@ -11,7 +11,7 @@
 
   "_comment_join": "کانال‌هایی که عضویت توشون برای گرفتن فایل مود اجباریه. guid رو از GUID این چت (پیام /myid به بات در پیوی همون کانال، یا فوروارد یه پیام از کانال به بات) پیدا کن.",
   "required_join_channels": [
-    {"guid": "c0PUT_REQUIRED_CHANNEL_GUID_HERE", "name": "کانال ۱", "link": "https://rubika.ir/your_channel"}
+    {"guid": "c0DBT990e47b63fa688bba87d5736cc2", "name": "کانال ۱", "link": "@Addonmine"}
   ],
 
   "texts": {
@@ -33,12 +33,12 @@
 
   "destination_channels": [
     {
-      "guid": "c0xCHANNEL_ONE_GUID",
+      "guid": "c0DBT990e47b63fa688bba87d5736cc2",
       "name": "کانال یک",
       "enabled": true,
       "plan": 1,
       "send_file_directly": false,
-      "channel_link": "https://rubika.ir/your_channel_one",
+      "channel_link": "@Addonmine",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",
       "mod_file_caption": "دانلود کنید و لذت ببرید 🎮",
       "video_extra_text": "🎬 ویدیوی امروز رو از دست ندید!"
