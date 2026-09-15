@@ -1,16 +1,55 @@
 {
-  "last_offset_id": "6aa91575d9bd6cb3265ff2e1",
-  "mods": [],
-  "videos": [],
+  "last_offset_id": "6aa91e9db1942211fb44dd3a",
+  "mods": [
+    {
+      "id": "49942f4f",
+      "photo_file_id": "dxhicajB02977172815350718523267813807242026091318",
+      "photo_file_type": null,
+      "photo_message_id": "1908511134983329284",
+      "source_channel_guid": null,
+      "title": "ا",
+      "description": "توضیح",
+      "version": "1.21",
+      "number": "9"
+    }
+  ],
+  "videos": [
+    {
+      "id": "0cfb0779",
+      "video_file_id": "dxNGSHXT00668497306914071013083283623332026091310",
+      "file_type": "Video",
+      "message_id": "1908511134981329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    }
+  ],
   "pending_photo": null,
-  "files_by_number": {},
+  "files_by_number": {
+    "9": {
+      "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
+      "file_type": null,
+      "message_id": "1908511134985329284",
+      "source_channel_guid": null,
+      "title": "ا"
+    }
+  },
   "recent_files": {},
-  "used_mods_per_channel": {},
-  "used_videos_per_channel": {},
+  "used_mods_per_channel": {
+    "c0DBT990e47b63fa688bba87d5736cc2": [
+      "49942f4f"
+    ]
+  },
+  "used_videos_per_channel": {
+    "c0DBT990e47b63fa688bba87d5736cc2": [
+      "0cfb0779"
+    ]
+  },
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-15 13:17"
   },
-  "known_users": [],
+  "known_users": [
+    "b0KZR3M0BEAo077d2f10db168ddb361e"
+  ],
   "blocked_users": {},
   "awaiting_ticket": [],
   "awaiting_broadcast": false,
@@ -22,7 +61,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-15 13:23"
+    "heartbeat": "2026-09-15 14:25"
   },
   "errors": [],
   "last_error_notify_time": null,
@@ -32,5 +71,14 @@
     "date": "2026-09-15",
     "mod": {},
     "video": {}
+  },
+  "activity_log": {
+    "b0KZR3M0BEAo077d2f10db168ddb361e": [
+      "2026-09-15 14:25:50",
+      "2026-09-15 14:26:12",
+      "2026-09-15 14:26:15",
+      "2026-09-15 14:26:16",
+      "2026-09-15 14:26:17"
+    ]
   }
 }
