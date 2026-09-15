@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa8f79dff92cd843d047913",
+  "last_offset_id": "6aa8f8346529ae680b4e22bf",
   "mods": [
     {
       "id": "ee83d5e9",
@@ -131,9 +131,9 @@
   "user_requests": {
     "b0IahsF0BEAo0c667263fa750539d1d2": {
       "last_text": "/bugs",
-      "last_time": "2026-09-15 11:16",
+      "last_time": "2026-09-15 11:18",
       "window_start": "2026-09-15 11:16",
-      "count": 3
+      "count": 7
     }
   }
 }
