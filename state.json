@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa8f8346529ae680b4e22bf",
+  "last_offset_id": "6aa8f9c2ac5e03d26cf8e197",
   "mods": [
     {
       "id": "ee83d5e9",
@@ -46,7 +46,6 @@
   "recent_files": {},
   "used_mods_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [
-      "ee83d5e9",
       "52f205c1"
     ],
     "c0xCHANNEL_ONE_GUID": [
@@ -55,7 +54,8 @@
   },
   "used_videos_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [
-      "36a4b0ad"
+      "36a4b0ad",
+      "8e1fbaba"
     ]
   },
   "channel_activated": {
@@ -78,7 +78,7 @@
     ]
   },
   "sent_log": {
-    "heartbeat": "2026-09-15 11:16"
+    "heartbeat": "2026-09-15 11:25"
   },
   "errors": [
     {
@@ -108,10 +108,31 @@
       "category": "ارسال به کانال یک",
       "message": "Rubika API sendFile خطا داد: {'status': 'INVALID_INPUT'}",
       "notified": true
+    },
+    {
+      "id": "b9484e",
+      "time": "2026-09-15 11:25",
+      "category": "پست فوری مود برای کانال یک",
+      "message": "Rubika API sendFile خطا داد: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
+      "notified": false
+    },
+    {
+      "id": "5fdcff",
+      "time": "2026-09-15 11:25",
+      "category": "پست فوری ویدیو برای کانال یک",
+      "message": "Rubika API sendFile خطا داد: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
+      "notified": false
+    },
+    {
+      "id": "b3c74c",
+      "time": "2026-09-15 11:25",
+      "category": "پردازش پیام",
+      "message": "Rubika API sendFile خطا داد: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
+      "notified": false
     }
   ],
   "last_error_notify_time": "2026-09-15 11:16",
-  "bug_page_offset": 0,
+  "bug_page_offset": 5,
   "owner_keypad_set": true,
   "user_message_history": {
     "u0IahsF05003ed26a32d073c66c1388d": [
@@ -133,6 +154,12 @@
       "last_time": "2026-09-15 11:18",
       "window_start": "2026-09-15 11:16",
       "count": 7
+    },
+    "b0KZR3M0BEAo077d2f10db168ddb361e": {
+      "last_text": "/9",
+      "last_time": "2026-09-15 11:25",
+      "window_start": "2026-09-15 11:25",
+      "count": 1
     }
   }
 }
