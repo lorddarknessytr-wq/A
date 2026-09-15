@@ -33,6 +33,8 @@ ERROR_NOTIFY_COOLDOWN_MINUTES = 10
 REQUEST_TIMEOUT = 15
 UPLOAD_TIMEOUT = 90
 MAX_PROCESSED_IDS = 1000
+MAX_STORED_MODS = 800
+MAX_STORED_VIDEOS = 800
 
 
 # ---------------------------------------------------------------------------
@@ -67,12 +69,30 @@ def tehran_now():
 # ---------------------------------------------------------------------------
 # ارتباط خام با Rubika Bot API
 # ---------------------------------------------------------------------------
-def api_call(token, method, payload=None):
+def api_call(token, method, payload=None, retries=3, backoff_seconds=2):
+    """
+    فراخوانی متد API روبیکا. خطاهای موقتِ خودِ سرور روبیکا (502/503/504،
+    یعنی سرور لحظه‌ای شلوغ/داون بوده، نه اشکال ما) تا ۳ بار با فاصله
+    دوباره امتحان می‌شن؛ فقط بعد از شکستِ همهٔ تلاش‌ها خطا بالا می‌ره.
+    """
+    import time as _time
     url = f"https://botapi.rubika.ir/v3/{token}/{method}"
-    resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
-    resp.raise_for_status()
-    body = resp.json()
-    return body.get("data", body) if isinstance(body, dict) else body
+    last_exc = None
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
+            if resp.status_code in (502, 503, 504):
+                last_exc = RuntimeError(f"{resp.status_code} موقت از سرور روبیکا (تلاش {attempt}/{retries})")
+                _time.sleep(backoff_seconds * attempt)
+                continue
+            resp.raise_for_status()
+            body = resp.json()
+            return body.get("data", body) if isinstance(body, dict) else body
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            last_exc = e
+            _time.sleep(backoff_seconds * attempt)
+            continue
+    raise last_exc or RuntimeError(f"فراخوانی {method} بدون دلیل مشخص شکست خورد")
 
 
 def get_me(token):
@@ -133,6 +153,18 @@ def safe_file_name(file_name, fallback="file"):
     if not name:
         return fallback
     return name.replace("/", "_").replace("\\", "_")[:180]
+
+
+def file_extension(file_name):
+    """پسوند فایل اصلی را با نقطه برمی‌گرداند (مثلاً '.apk')؛ اگر
+    نداشت یا نامعتبر بود، رشتهٔ خالی برمی‌گرداند."""
+    name = str(file_name or "").strip()
+    if "." not in name:
+        return ""
+    ext = "." + name.rsplit(".", 1)[-1]
+    if len(ext) > 10 or " " in ext:
+        return ""
+    return ext
 
 
 def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file",
@@ -398,7 +430,8 @@ def send_mod(token, channel, mod, state):
         if entry and entry.get("file_id"):
             send_file(
                 token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""),
-                file_type=entry.get("file_type") or "File", file_name=entry.get("title", "mod_file"),
+                file_type=entry.get("file_type") or "File",
+                file_name=f"{mod['number']}{file_extension(entry.get('file_name'))}",
                 source_chat_id=source_guid, source_message_id=entry.get("message_id"),
             )
 
@@ -659,6 +692,18 @@ def build_channel_detail(config, state, index):
         f"تعداد پست‌های ارسالی: {posts_count}\n"
         f"فعال از: {activated}"
     )
+
+
+# ---------------------------------------------------------------------------
+# جلوگیری از سنگین‌شدن state.json: مودها/ویدیوهای خیلی قدیمی رو نگه
+# نمی‌داریم (فایل‌های واقعی در خودِ روبیکا می‌مونن، فقط از رده‌خارج‌ترین
+# ورودی‌های آرشیو داخلی رو کم می‌کنیم).
+# ---------------------------------------------------------------------------
+def trim_stored_content(state):
+    for key, limit in (("mods", MAX_STORED_MODS), ("videos", MAX_STORED_VIDEOS)):
+        items = state.get(key, [])
+        if len(items) > limit:
+            state[key] = items[-limit:]
 
 
 def track_channel_activation(state, config):

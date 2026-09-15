@@ -48,7 +48,7 @@ def handle_source_channel_message(state, msg):
         return
 
     file_type = file_info.get("file_type")
-    print(f"DEBUG: پیام کانال منبع -> file_type={file_type!r} caption={caption[:60]!r}")
+    print(f"DEBUG: پیام کانال منبع -> file_type={file_type!r} caption={caption[:60]!r} | file_info خام کامل: {file_info}")
 
     # تشخیص بر اساس تگِ متن، نه رشتهٔ دقیق file_type — چون معلوم شد مقدار
     # file_type برای عکس‌ها همیشه "Image" نیست (برخلاف ویدیو که "Video" بود)
@@ -86,10 +86,14 @@ def handle_source_channel_message(state, msg):
             print("DEBUG: فایل بدون هشتگ شماره (#عدد) و بدون عکس در انتظار، نادیده گرفته شد")
             return
 
+        original_name = (
+            file_info.get("file_name") or file_info.get("name")
+            or file_info.get("original_name") or file_info.get("title")
+        )
         state["files_by_number"][file_number] = {
             "file_id": file_info.get("file_id"),
             "file_type": core.normalize_send_file_type(file_info.get("file_type")),
-            "file_name": file_info.get("file_name") or file_info.get("name"),
+            "file_name": original_name,
             "message_id": message_id,
             "source_channel_guid": msg.get("chat_id"),
             "title": (pending.get("title") if pending else None) or f"فایل شماره {file_number}",
@@ -177,9 +181,9 @@ def handle_file_command(token, config, state, chat_id):
         token,
         chat_id,
         entry["file_id"],
-        entry.get("title", f"مود {number}"),
+        f"#{number}",
         file_type=entry.get("file_type") or "File",
-        file_name=entry.get("file_name") or entry.get("title") or f"mod_{number}",
+        file_name=f"{number}{core.file_extension(entry.get('file_name'))}",
         source_chat_id=entry.get("source_channel_guid"),
         source_message_id=entry.get("message_id"),
     )
@@ -670,6 +674,8 @@ def main():
         core.maybe_notify_new_errors(token, config, state)
     except Exception:
         pass
+
+    core.trim_stored_content(state)
 
     print(f"DEBUG: وضعیت قبل از ذخیره -> last_offset_id={state.get('last_offset_id')!r} "
           f"mods={len(state.get('mods', []))} videos={len(state.get('videos', []))} "
