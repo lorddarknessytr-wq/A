@@ -56,13 +56,18 @@ def handle_source_channel_message(state, msg):
     video_parsed = core.parse_video_caption(caption)
 
     if mod_parsed is not None:
-        state["pending_photo"] = {"file_id": file_info.get("file_id"), **mod_parsed}
+        state["pending_photo"] = {
+            "file_id": file_info.get("file_id"),
+            "source_chat_id": msg.get("chat_id"), "source_message_id": message_id,
+            **mod_parsed,
+        }
 
     elif video_parsed is not None or file_type == "Video":
         title = (video_parsed or {}).get("title") or caption.strip() or "ویدیو جدید"
         state["videos"].append({
             "id": uuid_short(),
             "video_file_id": file_info.get("file_id"),
+            "source_chat_id": msg.get("chat_id"), "source_message_id": message_id,
             "title": title,
         })
 
@@ -80,6 +85,7 @@ def handle_source_channel_message(state, msg):
 
         state["files_by_number"][file_number] = {
             "file_id": file_info.get("file_id"),
+            "source_chat_id": msg.get("chat_id"), "source_message_id": message_id,
             "title": (pending.get("title") if pending else None) or f"فایل شماره {file_number}",
         }
 
@@ -87,6 +93,8 @@ def handle_source_channel_message(state, msg):
             state["mods"].append({
                 "id": uuid_short(),
                 "photo_file_id": pending["file_id"],
+                "source_chat_id": pending.get("source_chat_id"),
+                "source_message_id": pending.get("source_message_id"),
                 "title": pending["title"],
                 "description": pending["description"],
                 "version": pending["version"],
@@ -103,23 +111,62 @@ def handle_source_channel_message(state, msg):
 NUMBER_REQUEST_RE = re.compile(r"^[#/](\d+)$")
 
 
-def handle_number_request(token, config, state, chat_id, text):
+def handle_number_request(token, config, state, chat_id, user_guid, text):
     m = NUMBER_REQUEST_RE.match(text)
     if not m:
         return False
-
-    required = config.get("required_join_channels", [])
-    if required and chat_id not in state.get("join_confirmed", []):
-        core.send_message(token, chat_id, core.build_join_gate_message(config))
-        return True
-
     number = m.group(1)
+    allowed, missing = core.required_memberships(token, config, user_guid or chat_id)
+    if not allowed:
+        core.send_message(token, chat_id, core.build_join_required_message(missing))
+        return True
     entry = state.get("files_by_number", {}).get(number)
     if not entry:
         core.send_message(token, chat_id, f"فایلی با شمارهٔ {number} پیدا نشد.")
     else:
-        core.send_file(token, chat_id, entry["file_id"], entry.get("title", ""))
+        core.deliver_media(token, chat_id, entry, entry.get("file_id"), entry.get("title", ""))
     return True
+
+
+def should_reply_to_duplicate(state, user_guid, text, cooldown_seconds=45):
+    """Suppress repeated identical requests without suppressing other input."""
+    now = core.tehran_now().timestamp()
+    seen = state.setdefault("recent_user_requests", {})
+    key = f"{user_guid}:{text}"
+    previous = seen.get(key, 0)
+    seen[key] = now
+    cutoff = now - 3600
+    for old_key, old_time in list(seen.items()):
+        if not isinstance(old_time, (int, float)) or old_time < cutoff:
+            del seen[old_key]
+    return now - previous >= cooldown_seconds
+
+
+def track_abuse(token, config, state, chat_id, user_guid, text):
+    """Report command/message floods once per cooldown, with both GUIDs."""
+    policy = config.get("anti_spam", {})
+    if not policy.get("enabled", True) or not user_guid:
+        return
+    now = core.tehran_now().timestamp()
+    window = int(policy.get("window_seconds", 60))
+    threshold = int(policy.get("max_messages_in_window", 8))
+    history = state.setdefault("user_message_history", {}).setdefault(user_guid, [])
+    history[:] = [t for t in history if isinstance(t, (int, float)) and t >= now - window]
+    history.append(now)
+    if len(history) <= threshold:
+        return
+    alerts = state.setdefault("abuse_last_alert", {})
+    cooldown = int(policy.get("report_cooldown_seconds", 900))
+    if now - alerts.get(user_guid, 0) < cooldown:
+        return
+    alerts[user_guid] = now
+    core.notify_owner(token, config, (
+        "🚨 گزارش اسپم/استفادهٔ بیش‌ازحد\n"
+        f"شناسهٔ کاربر: {user_guid}\n"
+        f"GUID چت: {chat_id}\n"
+        f"تعداد پیام در {window} ثانیه: {len(history)}\n"
+        f"آخرین پیام: {text[:120]}"
+    ))
 
 
 def run_resync(token, config, state):
@@ -146,6 +193,8 @@ def run_resync(token, config, state):
             if not isinstance(msg, dict):
                 continue
             chat_id = msg.get("chat_id") or update.get("chat_id")
+            if chat_id and not msg.get("chat_id"):
+                msg["chat_id"] = chat_id
             if chat_id == config.get("source_channel_guid") or (msg.get("file") is not None):
                 print(f"DEBUG: RAW (در /update) update کامل: {update}")
             if chat_id == config.get("source_channel_guid"):
@@ -165,7 +214,7 @@ def run_resync(token, config, state):
     return total_updates, len(state.get("mods", [])) - mods_before, len(state.get("videos", [])) - videos_before
 
 
-def handle_ticket_flow(token, config, state, chat_id, text):
+def handle_ticket_flow(token, config, state, chat_id, user_guid, text):
     """True برمی‌گردونه اگه این پیام بخشی از فرایند تیکت بوده (پردازش شده)."""
     awaiting = state.setdefault("awaiting_ticket", [])
 
@@ -175,7 +224,8 @@ def handle_ticket_flow(token, config, state, chat_id, text):
         core.notify_owner(
             token, config,
             f"🎫 تیکت جدید\n"
-            f"آیدی فرد: {chat_id}\n"
+            f"ID کاربر (sender_id): {user_guid or chat_id}\n"
+            f"GUID چت: {chat_id}\n"
             f"زمان: {now}\n"
             f"متن: {text}"
         )
@@ -335,39 +385,39 @@ def post_mod_and_maybe_video(token, channel, state, also_video):
 
 
 def run_posting_schedule(token, config, state):
+    """Run each channel by its elapsed-time plan, even after a late runner."""
     now = core.tehran_now()
-    today = now.strftime("%Y-%m-%d")
-    hour = now.hour
-
-    posted = state.setdefault("posted_hours_today", {"date": today, "hours": []})
-    if posted.get("date") != today:
-        posted["date"] = today
-        posted["hours"] = []
-
-    start = config["schedule"]["start_hour_tehran"]
-    end = config["schedule"]["end_hour_tehran"]
-    video_every_n = config["schedule"].get("video_every_n_hours", 4)
-
-    if not (start <= hour <= end) or hour in posted["hours"]:
-        return
-
-    also_video = (hour - start) % video_every_n == 0
+    last_posts = state.setdefault("last_scheduled_posts", {})
     posted_summary = []
 
     for channel in config["destination_channels"]:
-        if not channel.get("enabled", True):
+        if not channel.get("enabled", True) or not core.is_channel_active_now(channel, now):
             continue
+        guid = channel["guid"]
+        plan = core.channel_plan(channel)
+        channel_last = last_posts.setdefault(guid, {})
         try:
-            posted_summary += post_mod_and_maybe_video(token, channel, state, also_video)
+            if core.is_due(channel_last.get("mod"), plan["mod_interval_minutes"], now):
+                used = state["used_mods_per_channel"].setdefault(guid, [])
+                item, used = core.pick_item(state["mods"], used)
+                state["used_mods_per_channel"][guid] = used
+                if item:
+                    core.send_mod(token, channel, item, state)
+                    channel_last["mod"] = now.strftime("%Y-%m-%d %H:%M")
+                    posted_summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
+            if core.is_due(channel_last.get("video"), plan["video_interval_minutes"], now):
+                used = state["used_videos_per_channel"].setdefault(guid, [])
+                item, used = core.pick_item(state["videos"], used)
+                state["used_videos_per_channel"][guid] = used
+                if item:
+                    core.send_video(token, channel, item)
+                    channel_last["video"] = now.strftime("%Y-%m-%d %H:%M")
+                    posted_summary.append(f"🎬 {channel['name']}: ویدیو «{item['title']}»")
         except Exception as e:
-            core.log_error(state, f"ارسال به {channel['name']}", e)
-
-    posted["hours"].append(hour)
+            core.log_error(state, f"زمان‌بندی ارسال به {channel['name']}", e)
 
     if posted_summary:
-        core.notify_owner(token, config, f"📤 گزارش پست ساعت {hour}:00\n" + "\n".join(posted_summary))
-    else:
-        core.notify_owner(token, config, f"ℹ️ ساعت {hour}:00 چیزی برای پست‌کردن (مود/ویدیوی تکراری‌نشده) موجود نبود.")
+        core.notify_owner(token, config, "📤 گزارش ارسال زمان‌بندی‌شده\n" + "\n".join(posted_summary))
 
 
 def resolve_post_targets(config, target):
@@ -516,6 +566,11 @@ def main():
         if not isinstance(msg, dict):
             continue
         chat_id = msg.get("chat_id") or update.get("chat_id")
+        # Rubika commonly puts chat_id on the outer update, whereas the media
+        # message is nested. Keep it with the message for future forwarding.
+        if chat_id and not msg.get("chat_id"):
+            msg["chat_id"] = chat_id
+        user_guid = msg.get("sender_id") or msg.get("author_object_guid") or chat_id
         text = (msg.get("text") or "").strip()
         print(f"DEBUG: پیام -> chat_id={chat_id} | text={text!r}")
 
@@ -527,18 +582,8 @@ def main():
                     core.send_message(token, chat_id, core.build_blocked_message(block_info))
                     continue
 
-            # ۲) جلوگیری از پاسخ تکراری + گزارش سیل‌پیام (فقط برای غیرمالک)
-            if chat_id and chat_id != config.get("owner_guid"):
-                is_dup, is_flood = core.check_duplicate_and_flood(state, chat_id, text)
-                if is_flood and core.should_send_now(state, f"flood_{chat_id}", 15):
-                    core.notify_owner(
-                        token, config,
-                        f"🚨 هشدار سیل‌پیام: کاربر {chat_id} بیش از "
-                        f"{core.FLOOD_THRESHOLD} پیام در {core.FLOOD_WINDOW_MINUTES} دقیقهٔ اخیر فرستاده."
-                    )
-                if is_dup:
-                    print(f"DEBUG: درخواست تکراری از {chat_id} نادیده گرفته شد: {text!r}")
-                    continue
+            if chat_id and chat_id != config.get("source_channel_guid"):
+                track_abuse(token, config, state, chat_id, user_guid, text)
 
             is_new_user = core.track_known_user(state, config, chat_id)
             owner_needs_keypad = (
@@ -546,7 +591,7 @@ def main():
             )
             if is_new_user or owner_needs_keypad:
                 try:
-                    core.set_chat_keypad(token, chat_id, ["/help", "/ticket"])
+                    core.set_chat_keypad(token, chat_id, ["/help", "/ticket", "✅ بررسی عضویت"])
                     if owner_needs_keypad:
                         state["owner_keypad_set"] = True
                 except Exception as e:
@@ -557,18 +602,22 @@ def main():
 
             if text == "/myid" and chat_id:
                 core.send_message(token, chat_id, f"GUID این چت:\n{chat_id}")
-            elif text == "/joined" and chat_id:
-                confirmed = state.setdefault("join_confirmed", [])
-                if chat_id not in confirmed:
-                    confirmed.append(chat_id)
-                core.send_message(token, chat_id, "✅ ثبت شد. حالا می‌تونید فایل مود رو با شمارهٔ همون پست دریافت کنید.")
+            elif text in ("/start", "✅ بررسی عضویت") and chat_id:
+                allowed, missing = core.required_memberships(token, config, user_guid or chat_id)
+                if allowed:
+                    core.send_message(token, chat_id, config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1)."))
+                else:
+                    core.send_message(token, chat_id, core.build_join_required_message(missing))
             elif text == "/help" and chat_id:
                 help_text = config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1).")
                 core.send_message(token, chat_id, help_text)
-            elif chat_id and handle_ticket_flow(token, config, state, chat_id, text):
+            elif chat_id and handle_ticket_flow(token, config, state, chat_id, user_guid, text):
                 pass
-            elif not msg.get("file") and handle_number_request(token, config, state, chat_id, text):
-                pass
+            elif not msg.get("file") and NUMBER_REQUEST_RE.match(text):
+                # The same number sent repeatedly is answered only once; this
+                # protects both the user and the bot API from message floods.
+                if should_reply_to_duplicate(state, user_guid or chat_id, text):
+                    handle_number_request(token, config, state, chat_id, user_guid, text)
             elif chat_id and msg.get("file") and chat_id in (
                 config.get("source_channel_guid"), config.get("owner_guid")
             ):

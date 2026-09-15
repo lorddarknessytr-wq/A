@@ -3,7 +3,7 @@
 
   "source_channel_guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
 
-  "owner_guid": "b0IahsF0BEAo0c667263fa750539d1d2",
+  "owner_guid": "PUT_YOUR_OWNER_GUID_HERE",
 
   "panel_keyword": "پنل",
   "broadcast_secret": "بگو-رمز-خودتو-اینجا-عوض-کن",
@@ -14,22 +14,44 @@
     "ticket_sent": "تیکت شما ارسال شد. با تشکر 🙏"
   },
 
-  "required_join_channels": [],
-  "_comment_join": "برای فعال کردن عضویت اجباری (افتخاری، نه چک واقعی)، اینجا اضافه کنید: [{\"name\": \"کانال ما\", \"link\": \"https://rubika.ir/xxx\"}]",
+  "anti_spam": {
+    "enabled": true,
+    "window_seconds": 60,
+    "max_messages_in_window": 8,
+    "report_cooldown_seconds": 900
+  },
+
+  "forced_join": {
+    "enabled": false,
+    "membership_method": "getChatMember",
+    "membership_user_id_key": "user_id",
+    "channels": [
+      {
+        "guid": "PUT_REQUIRED_CHANNEL_GUID_HERE",
+        "name": "کانال عضویت اجباری",
+        "link": "https://rubika.ir/your_required_channel"
+      }
+    ]
+  },
 
   "schedule": {
-    "start_hour_tehran": 11,
-    "end_hour_tehran": 23,
-    "video_every_n_hours": 4
+    "_comment": "هر کانال posting_plan خودش را دارد: 0=مود120دقیقه/ویدیو270دقیقه، 1=60/180، 2=30/120.",
+    "start_hour_tehran": 9,
+    "end_hour_tehran": 23
   },
 
   "destination_channels": [
     {
-      "guid": "c0DBT990e47b63fa688bba87d5736cc2",
+      "guid": "c0xCHANNEL_ONE_GUID",
       "name": "کانال یک",
       "enabled": true,
+      "posting_plan": 1,
+      "posting_schedule": {
+        "start_hour_tehran": 9,
+        "end_hour_tehran": 23
+      },
       "send_file_directly": false,
-      "channel_link": "https://rubika.ir/Addonmine",
+      "channel_link": "https://rubika.ir/your_channel_one",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",
       "mod_file_caption": "دانلود کنید و لذت ببرید 🎮",
       "video_extra_text": "🎬 ویدیوی امروز رو از دست ندید!"
