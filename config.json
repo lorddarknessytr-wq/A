@@ -3,7 +3,7 @@
 
   "source_channel_guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
 
-  "owner_guid": "PUT_YOUR_OWNER_GUID_HERE",
+  "owner_guid": "b0IahsF0BEAo0c667263fa750539d1d2",
 
   "panel_keyword": "پنل",
   "broadcast_secret": "بگو-رمز-خودتو-اینجا-عوض-کن",
@@ -27,9 +27,9 @@
     "membership_user_id_key": "user_id",
     "channels": [
       {
-        "guid": "PUT_REQUIRED_CHANNEL_GUID_HERE",
+        "guid": "c0DBT990e47b63fa688bba87d5736cc2",
         "name": "کانال عضویت اجباری",
-        "link": "https://rubika.ir/your_required_channel"
+        "link": "@Addonmine"
       }
     ]
   },
@@ -42,7 +42,7 @@
 
   "destination_channels": [
     {
-      "guid": "c0xCHANNEL_ONE_GUID",
+      "guid": "c0DBT990e47b63fa688bba87d5736cc2",
       "name": "کانال یک",
       "enabled": true,
       "posting_plan": 1,
@@ -51,7 +51,7 @@
         "end_hour_tehran": 23
       },
       "send_file_directly": false,
-      "channel_link": "https://rubika.ir/your_channel_one",
+      "channel_link": "@Addonmine",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",
       "mod_file_caption": "دانلود کنید و لذت ببرید 🎮",
       "video_extra_text": "🎬 ویدیوی امروز رو از دست ندید!"
