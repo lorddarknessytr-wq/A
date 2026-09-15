@@ -37,7 +37,7 @@
       "name": "کانال یک",
       "enabled": true,
       "plan": 1,
-      "send_file_directly": false,
+      "send_file_directly": true,
       "channel_link": "@Addonmine",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",
       "mod_file_caption": "دانلود کنید و لذت ببرید 🎮",
