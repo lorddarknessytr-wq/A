@@ -33,10 +33,6 @@ ERROR_NOTIFY_COOLDOWN_MINUTES = 10
 REQUEST_TIMEOUT = 20
 
 
-class RubikaAPIError(RuntimeError):
-    """An error response returned by Rubika (HTTP 200 is not enough)."""
-
-
 # ---------------------------------------------------------------------------
 # فایل‌های JSON
 # ---------------------------------------------------------------------------
@@ -73,24 +69,13 @@ def api_call(token, method, payload=None):
     url = f"https://botapi.rubika.ir/v3/{token}/{method}"
     resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
-    try:
-        body = resp.json()
-    except ValueError as exc:
-        raise RubikaAPIError(f"{method}: پاسخ JSON معتبر نیست") from exc
-
-    # The API can return an error envelope with HTTP 200.  The old code
-    # discarded that envelope and consequently reported a post as successful
-    # although Rubika had rejected it (for example, when the bot is not an
-    # admin of the destination channel).
+    body = resp.json()
+    print(f"DEBUG API [{method}]: {str(body)[:350]}")
     if isinstance(body, dict):
         status = body.get("status")
-        if status is not None and str(status).upper() not in {"OK", "SUCCESS"}:
-            detail = body.get("status_det") or body.get("message") or body.get("error") or body
-            raise RubikaAPIError(f"{method}: {detail}")
-        if body.get("error") and "data" not in body:
-            raise RubikaAPIError(f"{method}: {body['error']}")
-        return body.get("data", body)
-    return body
+        if status and str(status).upper() != "OK":
+            raise RuntimeError(f"Rubika API {method} خطا داد: {body}")
+    return body.get("data", body) if isinstance(body, dict) else body
 
 
 def get_me(token):
@@ -105,122 +90,11 @@ def send_file(token, chat_id, file_id, text=""):
     return api_call(token, "sendFile", {"chat_id": chat_id, "file_id": file_id, "text": text})
 
 
-def forward_message(token, chat_id, from_chat_id, message_id):
-    """Forward the original media message; support both Rubika API variants."""
-    try:
-        return api_call(token, "forwardMessage", {
-            "chat_id": chat_id,
-            "from_chat_id": from_chat_id,
-            "message_id": message_id,
-        })
-    except (requests.RequestException, RubikaAPIError) as first_error:
-        # Some Rubika Bot API releases expose the batch spelling instead.
-        try:
-            return api_call(token, "forwardMessages", {
-                "to_chat_id": chat_id,
-                "from_chat_id": from_chat_id,
-                "message_ids": [message_id],
-            })
-        except (requests.RequestException, RubikaAPIError):
-            raise first_error
-
-
-def deliver_media(token, chat_id, entry, fallback_file_id=None, caption=""):
-    """Deliver media without falsely assuming a received ``file_id`` is uploadable.
-
-    Rubika rejects those IDs with ``INVALID_ACCESS/file_id is not valid``. A
-    forward uses the message stored in the source channel and is therefore the
-    supported path for newly collected content. We intentionally never retry
-    old received IDs with sendFile: the API explicitly rejects them and a
-    retry only creates repeated INVALID_ACCESS errors.
-    """
-    source_chat_id = entry.get("source_chat_id") if isinstance(entry, dict) else None
-    source_message_id = entry.get("source_message_id") if isinstance(entry, dict) else None
-    if source_chat_id and source_message_id:
-        result = forward_message(token, chat_id, source_chat_id, source_message_id)
-        if caption:
-            send_message(token, chat_id, caption)
-        return result
-    raise RubikaAPIError(
-        "فایل قدیمی message_id کانال منبع ندارد و قابل فوروارد نیست؛ "
-        "آن را یک‌بار دوباره در کانال منبع ارسال کنید."
-    )
-
-
 def get_updates(token, offset_id=None, limit=50):
     payload = {"limit": limit}
     if offset_id:
         payload["offset_id"] = offset_id
     return api_call(token, "getUpdates", payload)
-
-
-def get_chat_member(token, channel_guid, user_guid, method="getChatMember", user_id_key="user_id"):
-    """Query a configured membership endpoint.
-
-    Rubika deployments do not all expose this method.  Callers must treat a
-    failure as *not verified*, never as a successful membership check.
-    """
-    return api_call(token, method, {"chat_id": channel_guid, user_id_key: user_guid})
-
-
-def member_is_active(response, user_guid=None):
-    """Accept common Bot API member shapes, but reject unknown responses."""
-    if not isinstance(response, dict):
-        return False
-    member = next((response[key] for key in ("member", "chat_member", "chatMember", "participant")
-                   if isinstance(response.get(key), dict)), response)
-    status = str(member.get("status") or member.get("member_status") or member.get("state") or "").lower()
-    if status:
-        return status not in {"left", "kicked", "banned", "removed", "not_member"}
-    if member.get("is_member") is True or member.get("in_chat") is True:
-        return True
-    # Several Rubika responses contain the member's object directly, without
-    # a status field. Accept it only when it is the exact requested user.
-    if user_guid:
-        for key in ("user_id", "user_guid", "object_guid", "member_id"):
-            if str(member.get(key, "")) == str(user_guid):
-                return True
-        user = member.get("user")
-        if isinstance(user, dict):
-            return any(str(user.get(key, "")) == str(user_guid)
-                       for key in ("user_id", "user_guid", "object_guid", "id"))
-    return False
-
-
-def required_memberships(token, config, user_guid):
-    """Return (allowed, missing_channels). Disabled means no restriction."""
-    settings = config.get("forced_join", {})
-    if not settings.get("enabled", False):
-        return True, []
-    channels = settings.get("channels", [])
-    if not channels:
-        # A misconfigured enabled gate must never accidentally open access.
-        return False, []
-    method = settings.get("membership_method", "getChatMember")
-    user_id_key = settings.get("membership_user_id_key", "user_id")
-    missing = []
-    for channel in channels:
-        guid = channel.get("guid")
-        if not guid:
-            missing.append(channel)
-            continue
-        try:
-            if not member_is_active(get_chat_member(token, guid, user_guid, method, user_id_key), user_guid):
-                missing.append(channel)
-        except Exception as exc:
-            print(f"DEBUG: membership check failed for {guid}: {exc}")
-            missing.append(channel)
-    return not missing, missing
-
-
-def build_join_required_message(channels):
-    lines = ["🔒 برای دریافت فایل، ابتدا در کانال‌های زیر عضو شوید:"]
-    for channel in channels:
-        link = channel.get("link") or channel.get("channel_link")
-        name = channel.get("name") or channel.get("guid", "کانال")
-        lines.append(f"• {name}" + (f": {link}" if link else ""))
-    lines.append("پس از عضویت، دوباره /start یا شمارهٔ فایل را بفرستید.")
-    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +106,68 @@ def known_channel_guids(config):
         guids.add(ch.get("guid"))
     guids.discard(None)
     return guids
+
+
+# ---------------------------------------------------------------------------
+# جلوگیری از پاسخ تکراری + گزارش سیل‌پیام (flood)
+# ---------------------------------------------------------------------------
+DUPLICATE_SUPPRESS_MINUTES = 2
+FLOOD_WINDOW_MINUTES = 5
+FLOOD_THRESHOLD = 8
+REQUEST_LOG_TTL_MINUTES = 60
+
+
+def check_duplicate_and_flood(state, chat_id, text):
+    """برمی‌گردونه (is_duplicate, is_flooding).
+    is_duplicate یعنی این دقیقاً همون درخواستیه که همین کاربر همین الان
+    (کمتر از DUPLICATE_SUPPRESS_MINUTES دقیقه پیش) فرستاده بود — پس
+    نباید دوباره پاسخ کامل بدیم.
+    is_flooding یعنی این کاربر بیش از FLOOD_THRESHOLD پیام در
+    FLOOD_WINDOW_MINUTES دقیقهٔ اخیر فرستاده."""
+    now = tehran_now().replace(tzinfo=None)
+    tracker = state.setdefault("user_requests", {})
+
+    # پاک‌سازی ورودی‌های قدیمی (کاربرهایی که مدتیه پیام نداده‌ن)
+    for uid in list(tracker.keys()):
+        try:
+            last_dt = datetime.strptime(tracker[uid]["last_time"], "%Y-%m-%d %H:%M")
+            if (now - last_dt) > timedelta(minutes=REQUEST_LOG_TTL_MINUTES):
+                del tracker[uid]
+        except Exception:
+            del tracker[uid]
+
+    info = tracker.setdefault(chat_id, {
+        "last_text": None, "last_time": None, "window_start": None, "count": 0,
+    })
+
+    is_duplicate = False
+    if info["last_text"] == text and info["last_time"]:
+        try:
+            last_dt = datetime.strptime(info["last_time"], "%Y-%m-%d %H:%M")
+            if (now - last_dt) < timedelta(minutes=DUPLICATE_SUPPRESS_MINUTES):
+                is_duplicate = True
+        except Exception:
+            pass
+
+    info["last_text"] = text
+    info["last_time"] = now.strftime("%Y-%m-%d %H:%M")
+
+    window_ok = False
+    if info["window_start"]:
+        try:
+            ws = datetime.strptime(info["window_start"], "%Y-%m-%d %H:%M")
+            if (now - ws) <= timedelta(minutes=FLOOD_WINDOW_MINUTES):
+                window_ok = True
+        except Exception:
+            pass
+    if not window_ok:
+        info["window_start"] = now.strftime("%Y-%m-%d %H:%M")
+        info["count"] = 0
+
+    info["count"] += 1
+    is_flooding = info["count"] > FLOOD_THRESHOLD
+
+    return is_duplicate, is_flooding
 
 
 def track_known_user(state, config, chat_id):
@@ -368,19 +304,19 @@ def send_mod(token, channel, mod, state):
     if channel.get("mod_photo_extra_text"):
         lines.append(channel["mod_photo_extra_text"])
 
-    deliver_media(token, channel["guid"], mod, mod.get("photo_file_id"), "\n".join(lines))
+    send_file(token, channel["guid"], mod["photo_file_id"], "\n".join(lines))
 
     if direct and mod.get("number"):
         entry = state.get("files_by_number", {}).get(mod["number"])
         if entry and entry.get("file_id"):
-            deliver_media(token, channel["guid"], entry, entry.get("file_id"), channel.get("mod_file_caption", ""))
+            send_file(token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""))
 
 
 def send_video(token, channel, video):
     lines = [video.get("title", "ویدیو جدید")]
     if channel.get("video_extra_text"):
         lines.append(channel["video_extra_text"])
-    deliver_media(token, channel["guid"], video, video.get("video_file_id"), "\n".join(lines))
+    send_file(token, channel["guid"], video["video_file_id"], "\n".join(lines))
 
 
 def pick_item(items, used_ids):
@@ -521,6 +457,17 @@ def build_blocked_message(info):
         f"تاریخ مسدودیت: {info.get('blocked_at')}\n"
         f"پایان مسدودیت: {until}"
     )
+
+
+def build_join_gate_message(config):
+    channels = config.get("required_join_channels", [])
+    if not channels:
+        return None
+    lines = ["📢 برای دریافت فایل، لطفاً اول عضو این کانال(ها) بشید:"]
+    for ch in channels:
+        lines.append(f"• {ch.get('name', '')}: {ch.get('link', '')}")
+    lines.append("\nبعد از عضویت، همین‌جا بنویسید: /joined")
+    return "\n".join(lines)
 
 
 def notify_owner(token, config, text):
