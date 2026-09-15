@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa9603b310318c4051cc0f7",
+  "last_offset_id": "6aa960807b34b2768d32f310",
   "mods": [
     {
       "id": "49942f4f",
@@ -61,32 +61,37 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-15 18:41",
-    "numreq:b0KZR3M0BEAo077d2f10db168ddb361e:9": "2026-09-15 18:42"
+    "heartbeat": "2026-09-15 22:08"
   },
-  "errors": [],
-  "last_error_notify_time": null,
+  "errors": [
+    {
+      "id": "420315",
+      "time": "2026-09-15 22:09",
+      "category": "پردازش پیام",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: 502 Server Error: Bad Gateway for url: https://botapi.rubika.ir/v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/requestSendFile",
+      "notified": true
+    }
+  ],
+  "last_error_notify_time": "2026-09-15 22:10",
   "bug_page_offset": 0,
   "owner_keypad_set": true,
   "posted_slots_today": {
     "date": "2026-09-15",
-    "mod": {},
+    "mod": {
+      "c0DBT990e47b63fa688bba87d5736cc2:13": true
+    },
     "video": {}
   },
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
-      "2026-09-15 18:42:55"
+      "2026-09-15 22:08:51"
     ]
   },
   "processed_updates": [
     "m:1908793273057329284",
     "m:1908793273058329284",
-    "m:1908793102583138801"
+    "m:1908793102583138801",
+    "m:1908794103095138801"
   ],
-  "pending_file_requests": {
-    "b0KZR3M0BEAo077d2f10db168ddb361e": {
-      "number": "9",
-      "requested_at": "2026-09-15 18:42:55"
-    }
-  }
+  "pending_file_requests": {}
 }
