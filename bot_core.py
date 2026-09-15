@@ -33,10 +33,6 @@ ERROR_NOTIFY_COOLDOWN_MINUTES = 10
 REQUEST_TIMEOUT = 20
 
 
-class RubikaAPIError(RuntimeError):
-    """An error response returned by Rubika (HTTP 200 is not enough)."""
-
-
 # ---------------------------------------------------------------------------
 # فایل‌های JSON
 # ---------------------------------------------------------------------------
@@ -73,24 +69,8 @@ def api_call(token, method, payload=None):
     url = f"https://botapi.rubika.ir/v3/{token}/{method}"
     resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
-    try:
-        body = resp.json()
-    except ValueError as exc:
-        raise RubikaAPIError(f"{method}: پاسخ JSON معتبر نیست") from exc
-
-    # The API can return an error envelope with HTTP 200.  The old code
-    # discarded that envelope and consequently reported a post as successful
-    # although Rubika had rejected it (for example, when the bot is not an
-    # admin of the destination channel).
-    if isinstance(body, dict):
-        status = body.get("status")
-        if status is not None and str(status).upper() not in {"OK", "SUCCESS"}:
-            detail = body.get("status_det") or body.get("message") or body.get("error") or body
-            raise RubikaAPIError(f"{method}: {detail}")
-        if body.get("error") and "data" not in body:
-            raise RubikaAPIError(f"{method}: {body['error']}")
-        return body.get("data", body)
-    return body
+    body = resp.json()
+    return body.get("data", body) if isinstance(body, dict) else body
 
 
 def get_me(token):
@@ -101,50 +81,85 @@ def send_message(token, chat_id, text):
     return api_call(token, "sendMessage", {"chat_id": chat_id, "text": text})
 
 
-def send_file(token, chat_id, file_id, text=""):
-    return api_call(token, "sendFile", {"chat_id": chat_id, "file_id": file_id, "text": text})
+def get_file(token, file_id):
+    return api_call(token, "getFile", {"file_id": file_id})
 
 
-def forward_message(token, chat_id, from_chat_id, message_id):
-    """Forward the original media message; support both Rubika API variants."""
-    try:
-        return api_call(token, "forwardMessage", {
-            "chat_id": chat_id,
-            "from_chat_id": from_chat_id,
-            "message_id": message_id,
-        })
-    except (requests.RequestException, RubikaAPIError) as first_error:
-        # Some Rubika Bot API releases expose the batch spelling instead.
-        try:
-            return api_call(token, "forwardMessages", {
-                "to_chat_id": chat_id,
-                "from_chat_id": from_chat_id,
-                "message_ids": [message_id],
-            })
-        except (requests.RequestException, RubikaAPIError):
-            raise first_error
+def request_send_file(token, file_type):
+    return api_call(token, "requestSendFile", {"type": file_type or "File"})
 
 
-def deliver_media(token, chat_id, entry, fallback_file_id=None, caption=""):
-    """Deliver media without falsely assuming a received ``file_id`` is uploadable.
+def forward_message(token, from_chat_id, message_id, to_chat_id):
+    return api_call(token, "forwardMessage", {
+        "from_chat_id": from_chat_id, "message_id": message_id, "to_chat_id": to_chat_id,
+    })
 
-    Rubika rejects those IDs with ``INVALID_ACCESS/file_id is not valid``. A
-    forward uses the message stored in the source channel and is therefore the
-    supported path for newly collected content. We intentionally never retry
-    old received IDs with sendFile: the API explicitly rejects them and a
-    retry only creates repeated INVALID_ACCESS errors.
+
+def reupload_file(token, file_id, file_type, file_name="file"):
+    """دانلود فایل با file_id قدیمی و آپلود دوباره‌اش تا file_id تازه و
+    معتبر برای چتِ مقصدِ جدید بگیریم (چون file_id یک چت همیشه برای چت
+    دیگه معتبر نیست)."""
+    file_info = get_file(token, file_id)
+    download_url = (file_info or {}).get("download_url")
+    if not download_url:
+        raise RuntimeError("getFile آدرس دانلود برنگردوند.")
+    r = requests.get(download_url, timeout=120)
+    r.raise_for_status()
+    upload_req = request_send_file(token, file_type)
+    upload_url = (upload_req or {}).get("upload_url")
+    if not upload_url:
+        raise RuntimeError("requestSendFile آدرس آپلود برنگردوند.")
+    up = requests.post(upload_url, files={"file": (file_name, r.content)}, timeout=120)
+    up.raise_for_status()
+    result = up.json()
+    new_file_id = result.get("file_id") or (result.get("data") or {}).get("file_id")
+    if not new_file_id:
+        raise RuntimeError(f"آپلود مجدد جواب معتبر نداد: {result}")
+    return new_file_id
+
+
+def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file",
+              source_chat_id=None, source_message_id=None):
     """
-    source_chat_id = entry.get("source_chat_id") if isinstance(entry, dict) else None
-    source_message_id = entry.get("source_message_id") if isinstance(entry, dict) else None
-    if source_chat_id and source_message_id:
-        result = forward_message(token, chat_id, source_chat_id, source_message_id)
-        if caption:
-            send_message(token, chat_id, caption)
+    ارسال فایل با ۳ سطح محافظت (به ترتیب):
+    ۱. مستقیم با file_id فعلی.
+    ۲. اگه جواب OK بود ولی message_id نداشت (= «موفقیتِ قلابی»، معمولاً
+       چون file_id مال یک چتِ دیگه بوده) یا خطا داد: دانلود و آپلود
+       مجدد فایل، و تلاش دوباره.
+    ۳. اگه بازم شکست خورد و مختصات پیامِ اصلی در کانال منبع رو داشتیم:
+       مستقیماً از کانال منبع فوروارد می‌کنیم (متنِ سفارشی در این حالت
+       از دست می‌ره، ولی تحویل تضمین‌شده‌تره).
+    """
+    def _try(fid):
+        result = api_call(token, "sendFile", {"chat_id": chat_id, "file_id": fid, "text": text})
+        msg_id = (result or {}).get("message_id")
+        if not msg_id:
+            raise RuntimeError(f"روبیکا OK داد ولی message_id نداد (احتمال: file_id مال چت دیگه‌ست یا بات ادمین این چت نیست). پاسخ خام: {result}")
         return result
-    raise RubikaAPIError(
-        "فایل قدیمی message_id کانال منبع ندارد و قابل فوروارد نیست؛ "
-        "آن را یک‌بار دوباره در کانال منبع ارسال کنید."
-    )
+
+    try:
+        result = _try(file_id)
+        print(f"DEBUG: sendFile موفق (مستقیم) -> chat_id={chat_id}")
+        return result
+    except Exception as e1:
+        print(f"DEBUG: sendFile مستقیم ناموفق ({e1})، در حال آپلود مجدد...")
+        try:
+            new_file_id = reupload_file(token, file_id, file_type, file_name)
+            result = _try(new_file_id)
+            print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id}")
+            return result
+        except Exception as e2:
+            print(f"DEBUG: آپلود مجدد هم ناموفق بود ({e2})")
+            if source_chat_id and source_message_id:
+                print(f"DEBUG: تلاش آخر — فوروارد مستقیم از کانال منبع به {chat_id}")
+                fwd = api_call(token, "forwardMessage", {
+                    "from_chat_id": source_chat_id, "message_id": source_message_id, "to_chat_id": chat_id,
+                })
+                if not (fwd or {}).get("new_message_id"):
+                    raise RuntimeError(f"فوروارد هم message_id نداد: {fwd}")
+                print(f"DEBUG: فوروارد موفق -> chat_id={chat_id}")
+                return fwd
+            raise
 
 
 def get_updates(token, offset_id=None, limit=50):
@@ -152,75 +167,6 @@ def get_updates(token, offset_id=None, limit=50):
     if offset_id:
         payload["offset_id"] = offset_id
     return api_call(token, "getUpdates", payload)
-
-
-def get_chat_member(token, channel_guid, user_guid, method="getChatMember", user_id_key="user_id"):
-    """Query a configured membership endpoint.
-
-    Rubika deployments do not all expose this method.  Callers must treat a
-    failure as *not verified*, never as a successful membership check.
-    """
-    return api_call(token, method, {"chat_id": channel_guid, user_id_key: user_guid})
-
-
-def member_is_active(response, user_guid=None):
-    """Accept common Bot API member shapes, but reject unknown responses."""
-    if not isinstance(response, dict):
-        return False
-    member = next((response[key] for key in ("member", "chat_member", "chatMember", "participant")
-                   if isinstance(response.get(key), dict)), response)
-    status = str(member.get("status") or member.get("member_status") or member.get("state") or "").lower()
-    if status:
-        return status not in {"left", "kicked", "banned", "removed", "not_member"}
-    if member.get("is_member") is True or member.get("in_chat") is True:
-        return True
-    # Several Rubika responses contain the member's object directly, without
-    # a status field. Accept it only when it is the exact requested user.
-    if user_guid:
-        for key in ("user_id", "user_guid", "object_guid", "member_id"):
-            if str(member.get(key, "")) == str(user_guid):
-                return True
-        user = member.get("user")
-        if isinstance(user, dict):
-            return any(str(user.get(key, "")) == str(user_guid)
-                       for key in ("user_id", "user_guid", "object_guid", "id"))
-    return False
-
-
-def required_memberships(token, config, user_guid):
-    """Return (allowed, missing_channels). Disabled means no restriction."""
-    settings = config.get("forced_join", {})
-    if not settings.get("enabled", False):
-        return True, []
-    channels = settings.get("channels", [])
-    if not channels:
-        # A misconfigured enabled gate must never accidentally open access.
-        return False, []
-    method = settings.get("membership_method", "getChatMember")
-    user_id_key = settings.get("membership_user_id_key", "user_id")
-    missing = []
-    for channel in channels:
-        guid = channel.get("guid")
-        if not guid:
-            missing.append(channel)
-            continue
-        try:
-            if not member_is_active(get_chat_member(token, guid, user_guid, method, user_id_key), user_guid):
-                missing.append(channel)
-        except Exception as exc:
-            print(f"DEBUG: membership check failed for {guid}: {exc}")
-            missing.append(channel)
-    return not missing, missing
-
-
-def build_join_required_message(channels):
-    lines = ["🔒 برای دریافت فایل، ابتدا در کانال‌های زیر عضو شوید:"]
-    for channel in channels:
-        link = channel.get("link") or channel.get("channel_link")
-        name = channel.get("name") or channel.get("guid", "کانال")
-        lines.append(f"• {name}" + (f": {link}" if link else ""))
-    lines.append("پس از عضویت، دوباره /start یا شمارهٔ فایل را بفرستید.")
-    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -368,19 +314,32 @@ def send_mod(token, channel, mod, state):
     if channel.get("mod_photo_extra_text"):
         lines.append(channel["mod_photo_extra_text"])
 
-    deliver_media(token, channel["guid"], mod, mod.get("photo_file_id"), "\n".join(lines))
+    source_guid = mod.get("source_channel_guid")
+    send_file(
+        token, channel["guid"], mod["photo_file_id"], "\n".join(lines),
+        file_type=mod.get("photo_file_type") or "Image", file_name="cover.jpg",
+        source_chat_id=source_guid, source_message_id=mod.get("photo_message_id"),
+    )
 
     if direct and mod.get("number"):
         entry = state.get("files_by_number", {}).get(mod["number"])
         if entry and entry.get("file_id"):
-            deliver_media(token, channel["guid"], entry, entry.get("file_id"), channel.get("mod_file_caption", ""))
+            send_file(
+                token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""),
+                file_type=entry.get("file_type") or "File", file_name=entry.get("title", "mod_file"),
+                source_chat_id=source_guid, source_message_id=entry.get("message_id"),
+            )
 
 
 def send_video(token, channel, video):
     lines = [video.get("title", "ویدیو جدید")]
     if channel.get("video_extra_text"):
         lines.append(channel["video_extra_text"])
-    deliver_media(token, channel["guid"], video, video.get("video_file_id"), "\n".join(lines))
+    send_file(
+        token, channel["guid"], video["video_file_id"], "\n".join(lines),
+        file_type=video.get("file_type") or "Video", file_name="video.mp4",
+        source_chat_id=video.get("source_channel_guid"), source_message_id=video.get("message_id"),
+    )
 
 
 def pick_item(items, used_ids):
@@ -444,34 +403,6 @@ def set_chat_keypad(token, chat_id, buttons):
         "chat_keypad": {"rows": rows, "resize_keyboard": True, "one_time_keyboard": False},
     }
     return api_call(token, "editChatKeypad", payload)
-
-
-def channel_plan(channel):
-    """Return cadence for a per-channel plan; explicit values override it."""
-    plans = {
-        0: {"mod_interval_minutes": 120, "video_interval_minutes": 270},
-        1: {"mod_interval_minutes": 60, "video_interval_minutes": 180},
-        2: {"mod_interval_minutes": 30, "video_interval_minutes": 120},
-    }
-    plan = plans.get(int(channel.get("posting_plan", 1)), plans[1]).copy()
-    plan.update(channel.get("posting_schedule", {}))
-    return plan
-
-
-def is_channel_active_now(channel, now):
-    schedule = channel.get("posting_schedule", {})
-    return int(schedule.get("start_hour_tehran", 9)) <= now.hour < int(schedule.get("end_hour_tehran", 23))
-
-
-def is_due(last_timestamp, interval_minutes, now):
-    """Use elapsed time, so a delayed GitHub Actions run catches up safely."""
-    if not last_timestamp:
-        return True
-    try:
-        last = datetime.strptime(last_timestamp, "%Y-%m-%d %H:%M")
-    except (TypeError, ValueError):
-        return True
-    return now.replace(tzinfo=None) - last >= timedelta(minutes=int(interval_minutes))
 
 
 # ---------------------------------------------------------------------------
@@ -664,6 +595,119 @@ def track_channel_activation(state, config):
         guid = ch["guid"]
         if guid not in activated:
             activated[guid] = tehran_now().strftime("%Y-%m-%d %H:%M")
+
+
+# ---------------------------------------------------------------------------
+# رفع باگ: پیشروی offset حتی وقتی روبیکا next_offset_id خالی برمی‌گردونه
+# (وقتی صفحه‌ی آخره). بدون این، last_offset_id هیچ‌وقت جلو نمی‌ره و همون
+# پیام‌های قدیمی هر بار از اول پردازش می‌شن.
+# ---------------------------------------------------------------------------
+def extract_fallback_offset(updates):
+    if not updates:
+        return None
+    last = updates[-1]
+    msg = last.get("new_message") or last.get("updated_message") or {}
+    return last.get("update_id") or last.get("id") or msg.get("message_id")
+
+
+# ---------------------------------------------------------------------------
+# عضویت اجباری در کانال — بدون متد رسمیِ مستند «چک عضویت» (بر خلاف
+# تلگرام). با نام و شکل ورودیِ متدهای مشابه (banChatMember/unbanChatMember
+# که chat_id+user_id می‌گیرن) امتحان می‌کنیم. اگه روبیکا چنین متدی
+# نداشته باشه، به‌جای مسدود کردن همه‌ی کاربرهای واقعی پشت یه چکِ خراب،
+# fail-open می‌کنیم (رد میشن) و به مالک هشدار می‌دیم.
+# ---------------------------------------------------------------------------
+def check_chat_member(token, channel_guid, user_guid):
+    """True/False/None. None یعنی نتونستیم مطمئن چک کنیم."""
+    try:
+        result = api_call(token, "getChatMember", {"chat_id": channel_guid, "user_id": user_guid})
+    except Exception as e:
+        print(f"DEBUG: getChatMember ناموفق (channel={channel_guid}, user={user_guid}): {e}")
+        return None
+    print(f"DEBUG: getChatMember خام: {result}")
+    status = None
+    if isinstance(result, dict):
+        status = result.get("status") or (result.get("member") or {}).get("status") or (result.get("chat_member") or {}).get("status")
+    if not status:
+        return None
+    return str(status).lower() in ("member", "creator", "admin", "administrator", "owner")
+
+
+def check_all_required_channels(token, config, user_guid):
+    """
+    (all_joined: bool, missing: list, check_reliable: bool) برمی‌گردونه.
+    check_reliable=False یعنی نتونستیم واقعاً چک کنیم (متد جواب معتبر
+    نداد) — در این حالت صدازننده باید fail-open رفتار کنه.
+    """
+    channels = config.get("required_join_channels", [])
+    if not channels:
+        return True, [], True
+    missing = []
+    any_unreliable = False
+    for ch in channels:
+        status = check_chat_member(token, ch["guid"], user_guid)
+        if status is None:
+            any_unreliable = True
+            continue
+        if not status:
+            missing.append(ch)
+    if any_unreliable:
+        return (len(missing) == 0), missing, False
+    return (len(missing) == 0), missing, True
+
+
+def build_join_prompt(channels):
+    lines = ["📢 برای دریافت فایل مود، اول باید عضو کانال‌های زیر بشید:", ""]
+    for i, ch in enumerate(channels, start=1):
+        lines.append(f"{i}. {ch.get('name', ch['guid'])}\n{ch.get('link', '')}")
+    lines.append("\n✅ بعد از عضویت در همه، دوباره بنویسید: /start")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# تشخیص اسپم/فعالیت بیش‌ازحد یک کاربر
+# ---------------------------------------------------------------------------
+SPAM_WINDOW_MINUTES = 5
+SPAM_THRESHOLD = 15
+SPAM_REPORT_COOLDOWN_MINUTES = 30
+
+
+def check_spam(state, chat_id):
+    now = tehran_now().replace(tzinfo=None)
+    log = state.setdefault("activity_log", {})
+    entries = log.get(chat_id, [])
+    entries.append(now.strftime("%Y-%m-%d %H:%M:%S"))
+    cutoff = now - timedelta(minutes=SPAM_WINDOW_MINUTES)
+    fresh = []
+    for t in entries:
+        try:
+            if datetime.strptime(t, "%Y-%m-%d %H:%M:%S") >= cutoff:
+                fresh.append(t)
+        except Exception:
+            pass
+    log[chat_id] = fresh
+    if len(log) > 1000:
+        state["activity_log"] = {k: v for k, v in log.items() if v}
+    return len(fresh) >= SPAM_THRESHOLD
+
+
+# ---------------------------------------------------------------------------
+# پلن‌های زمان‌بندی پست‌گذاری (قابل تنظیم سراسری یا برای هر کانال)
+# ---------------------------------------------------------------------------
+DEFAULT_PLANS = {
+    "0": {"mod_interval_hours": 2, "video_interval_hours": 4.5},
+    "1": {"mod_interval_hours": 1, "video_interval_hours": 3},
+    "2": {"mod_interval_hours": 0.5, "video_interval_hours": 2},
+}
+
+
+def resolve_channel_plan(config, channel):
+    plans = config.get("schedule", {}).get("plans", DEFAULT_PLANS)
+    plan_key = str(channel.get("plan", config.get("schedule", {}).get("default_plan", 1)))
+    plan = plans.get(plan_key, DEFAULT_PLANS["1"])
+    mod_h = channel.get("mod_interval_hours", plan.get("mod_interval_hours", 1))
+    video_h = channel.get("video_interval_hours", plan.get("video_interval_hours", 3))
+    return float(mod_h), float(video_h)
 
 
 # ---------------------------------------------------------------------------

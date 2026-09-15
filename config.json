@@ -3,55 +3,42 @@
 
   "source_channel_guid": "c0ECrHf06f41d4ee8759a5c9cb703079",
 
-  "owner_guid": "b0IahsF0BEAo0c667263fa750539d1d2",
+  "owner_guid": "PUT_YOUR_OWNER_GUID_HERE",
 
   "panel_keyword": "پنل",
   "broadcast_secret": "بگو-رمز-خودتو-اینجا-عوض-کن",
   "help_text": "سلام! برای دریافت فایل مود، شمارهٔ نوشته‌شده زیر پستش رو با # یا / برام بفرستید (مثلاً #1 یا /1).",
+
+  "_comment_join": "کانال‌هایی که عضویت توشون برای گرفتن فایل مود اجباریه. guid رو از GUID این چت (پیام /myid به بات در پیوی همون کانال، یا فوروارد یه پیام از کانال به بات) پیدا کن.",
+  "required_join_channels": [
+    {"guid": "c0PUT_REQUIRED_CHANNEL_GUID_HERE", "name": "کانال ۱", "link": "https://rubika.ir/your_channel"}
+  ],
 
   "texts": {
     "ticket_prompt": "لطفاً متن تیکت خودتون رو بنویسید.",
     "ticket_sent": "تیکت شما ارسال شد. با تشکر 🙏"
   },
 
-  "anti_spam": {
-    "enabled": true,
-    "window_seconds": 60,
-    "max_messages_in_window": 8,
-    "report_cooldown_seconds": 900
-  },
-
-  "forced_join": {
-    "enabled": false,
-    "membership_method": "getChatMember",
-    "membership_user_id_key": "user_id",
-    "channels": [
-      {
-        "guid": "c0DBT990e47b63fa688bba87d5736cc2",
-        "name": "کانال عضویت اجباری",
-        "link": "@Addonmine"
-      }
-    ]
-  },
-
+  "_comment_schedule": "start_hour_tehran/end_hour_tehran = بازهٔ فعالیت. هر کانال با plan (۰/۱/۲) یا با mod_interval_hours/video_interval_hours اختصاصی مشخص می‌شه.",
   "schedule": {
-    "_comment": "هر کانال posting_plan خودش را دارد: 0=مود120دقیقه/ویدیو270دقیقه، 1=60/180، 2=30/120.",
     "start_hour_tehran": 9,
-    "end_hour_tehran": 23
+    "end_hour_tehran": 23,
+    "default_plan": 1,
+    "plans": {
+      "0": {"mod_interval_hours": 2, "video_interval_hours": 4.5},
+      "1": {"mod_interval_hours": 1, "video_interval_hours": 3},
+      "2": {"mod_interval_hours": 0.5, "video_interval_hours": 2}
+    }
   },
 
   "destination_channels": [
     {
-      "guid": "c0DBT990e47b63fa688bba87d5736cc2",
+      "guid": "c0xCHANNEL_ONE_GUID",
       "name": "کانال یک",
       "enabled": true,
-      "posting_plan": 1,
-      "posting_schedule": {
-        "start_hour_tehran": 9,
-        "end_hour_tehran": 23
-      },
+      "plan": 1,
       "send_file_directly": false,
-      "channel_link": "@Addonmine",
+      "channel_link": "https://rubika.ir/your_channel_one",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",
       "mod_file_caption": "دانلود کنید و لذت ببرید 🎮",
       "video_extra_text": "🎬 ویدیوی امروز رو از دست ندید!"
