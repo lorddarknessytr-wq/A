@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aa8f9c2ac5e03d26cf8e197",
+  "last_offset_id": "6aa901f5ac5e03d26cf901f5",
   "mods": [
     {
       "id": "ee83d5e9",
@@ -54,7 +54,6 @@
   },
   "used_videos_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [
-      "36a4b0ad",
       "8e1fbaba"
     ]
   },
@@ -78,7 +77,7 @@
     ]
   },
   "sent_log": {
-    "heartbeat": "2026-09-15 11:25"
+    "heartbeat": "2026-09-15 12:00"
   },
   "errors": [
     {
@@ -114,39 +113,66 @@
       "time": "2026-09-15 11:25",
       "category": "پست فوری مود برای کانال یک",
       "message": "Rubika API sendFile خطا داد: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
-      "notified": false
+      "notified": true
     },
     {
       "id": "5fdcff",
       "time": "2026-09-15 11:25",
       "category": "پست فوری ویدیو برای کانال یک",
       "message": "Rubika API sendFile خطا داد: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
-      "notified": false
+      "notified": true
     },
     {
       "id": "b3c74c",
       "time": "2026-09-15 11:25",
       "category": "پردازش پیام",
       "message": "Rubika API sendFile خطا داد: {'status': 'INVALID_ACCESS', 'dev_message': 'file_id is not valid.'}",
-      "notified": false
+      "notified": true
+    },
+    {
+      "id": "d60ba7",
+      "time": "2026-09-15 12:00",
+      "category": "پست فوری ویدیو برای کانال یک",
+      "message": "فایل قدیمی message_id کانال منبع ندارد و قابل فوروارد نیست؛ آن را یک‌بار دوباره در کانال منبع ارسال کنید.",
+      "notified": true
+    },
+    {
+      "id": "742e49",
+      "time": "2026-09-15 12:00",
+      "category": "پست فوری مود برای کانال یک",
+      "message": "فایل قدیمی message_id کانال منبع ندارد و قابل فوروارد نیست؛ آن را یک‌بار دوباره در کانال منبع ارسال کنید.",
+      "notified": true
+    },
+    {
+      "id": "a3dc23",
+      "time": "2026-09-15 12:00",
+      "category": "پردازش پیام",
+      "message": "forwardMessage: {'status': 'INVALID_INPUT'}",
+      "notified": true
+    },
+    {
+      "id": "20148b",
+      "time": "2026-09-15 12:00",
+      "category": "زمان‌بندی ارسال به کانال یک",
+      "message": "forwardMessage: {'status': 'INVALID_INPUT'}",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-15 11:16",
-  "bug_page_offset": 5,
+  "last_error_notify_time": "2026-09-15 12:00",
+  "bug_page_offset": 0,
   "owner_keypad_set": true,
   "user_message_history": {
     "u0IahsF05003ed26a32d073c66c1388d": [
-      1789432054.293653,
-      1789432058.954979,
-      1789432082.842278
+      1789473631.366167,
+      1789473632.609412,
+      1789473653.472944
     ],
     "u0KZR3M01835df70ed5360ccd648f712": [
-      1789432084.373303,
-      1789432085.848716
+      1789473654.267164
     ]
   },
   "recent_user_requests": {
-    "u0KZR3M01835df70ed5360ccd648f712:/9": 1789432085.848745
+    "u0KZR3M01835df70ed5360ccd648f712:/9": 1789473654.267362
   },
   "user_requests": {
     "b0IahsF0BEAo0c667263fa750539d1d2": {
@@ -161,5 +187,8 @@
       "window_start": "2026-09-15 11:25",
       "count": 1
     }
+  },
+  "last_scheduled_posts": {
+    "c0DBT990e47b63fa688bba87d5736cc2": {}
   }
 }
