@@ -88,7 +88,8 @@ def handle_source_channel_message(state, msg):
 
         state["files_by_number"][file_number] = {
             "file_id": file_info.get("file_id"),
-            "file_type": file_info.get("file_type"),
+            "file_type": core.normalize_send_file_type(file_info.get("file_type")),
+            "file_name": file_info.get("file_name") or file_info.get("name"),
             "message_id": message_id,
             "source_channel_guid": msg.get("chat_id"),
             "title": (pending.get("title") if pending else None) or f"فایل شماره {file_number}",
@@ -115,51 +116,73 @@ def handle_source_channel_message(state, msg):
 
 
 def handle_start_command(token, config, state, chat_id):
-    all_joined, missing, reliable = core.check_all_required_channels(token, config, chat_id)
-
-    if not reliable:
-        core.log_error(state, "چک عضویت اجباری (/start)", "getChatMember جواب معتبر نداد؛ fail-open (کاربر رد شد)")
-
-    if reliable and not all_joined:
-        core.send_message(token, chat_id, core.build_join_prompt(missing))
-        return
-
-    help_text = config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1).")
-    core.send_message(token, chat_id, f"🚀 ربات فعال شد!\n\n{help_text}")
+    # عضویت فقط اطلاع‌رسانی است؛ /file عمداً حتی برای فرد غیرعضو هم فایل را می‌دهد.
+    channels = config.get("required_join_channels", [])
+    if channels:
+        core.send_message(token, chat_id, core.build_join_prompt(channels))
+    else:
+        help_text = config.get("help_text", "شمارهٔ مود را بفرستید.")
+        core.send_message(token, chat_id, help_text)
 
 
-NUMBER_REQUEST_RE = re.compile(r"^[#/](\d+)$")
+NUMBER_REQUEST_RE = re.compile(r"^(?:[#/])?(\d+)$")
 NUMBER_REQUEST_COOLDOWN_MINUTES = 10
 
 
 def handle_number_request(token, config, state, chat_id, text):
-    m = NUMBER_REQUEST_RE.match(text)
+    m = NUMBER_REQUEST_RE.match((text or "").strip())
     if not m:
         return False
+
     number = m.group(1)
-
-    # عضویت اجباری: قبل از تحویل فایل، چک می‌کنیم عضو کانال‌های لازم هست یا نه
-    all_joined, missing, reliable = core.check_all_required_channels(token, config, chat_id)
-    if not reliable:
-        core.log_error(state, "چک عضویت اجباری", "getChatMember جواب معتبر نداد؛ fail-open (کاربر رد شد)")
-    if reliable and not all_joined:
-        core.send_message(token, chat_id, core.build_join_prompt(missing))
-        return True
-
-    # جلوگیری از سیل: اگه همین عدد رو همین کاربر به‌تازگی گرفته، دوباره نفرست
-    if not core.should_send_now(state, f"numreq:{chat_id}:{number}", NUMBER_REQUEST_COOLDOWN_MINUTES):
-        print(f"DEBUG: درخواست تکراریِ #{number} از {chat_id} — قبلاً به‌تازگی فرستاده شده، رد شد")
-        return True
-
     entry = state.get("files_by_number", {}).get(number)
     if not entry:
         core.send_message(token, chat_id, f"فایلی با شمارهٔ {number} پیدا نشد.")
-    else:
-        core.send_file(
-            token, chat_id, entry["file_id"], entry.get("title", ""),
-            file_type=entry.get("file_type") or "File", file_name=entry.get("title", "mod_file"),
-            source_chat_id=entry.get("source_channel_guid"), source_message_id=entry.get("message_id"),
-        )
+        return True
+
+    # اگر کاربر همان درخواست را پشت سر هم تکرار کرد، دوباره پیام تولید نکن.
+    if not core.should_send_now(state, f"numreq:{chat_id}:{number}", NUMBER_REQUEST_COOLDOWN_MINUTES):
+        print(f"DEBUG: درخواست تکراری #{number} از {chat_id} — نادیده گرفته شد.")
+        return True
+
+    state.setdefault("pending_file_requests", {})[chat_id] = {
+        "number": number,
+        "requested_at": core.tehran_now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    core.send_message(token, chat_id, core.build_join_prompt(config.get("required_join_channels", [])))
+    return True
+
+
+def handle_file_command(token, config, state, chat_id):
+    """فایل مود آخرین شماره‌ای که کاربر درخواست کرده را تحویل می‌دهد.
+    این مسیر هیچ‌وقت عضویت را چک نمی‌کند."""
+    if not chat_id:
+        return True
+
+    pending = state.setdefault("pending_file_requests", {}).get(chat_id)
+    if not pending:
+        core.send_message(token, chat_id, "⚠️ اول شمارهٔ مود را بفرستید؛ سپس برای دریافت آن /file را بزنید.")
+        return True
+
+    number = str(pending.get("number", "")).strip()
+    entry = state.get("files_by_number", {}).get(number)
+    # درخواست یک‌بارمصرف است: حتی اگر فایل خراب/حذف شده باشد، همان درخواست دوباره خودکار اجرا نشود.
+    state["pending_file_requests"].pop(chat_id, None)
+
+    if not entry:
+        core.send_message(token, chat_id, f"فایل مود شمارهٔ {number} دیگر در انبار ربات پیدا نشد.")
+        return True
+
+    core.send_file(
+        token,
+        chat_id,
+        entry["file_id"],
+        entry.get("title", f"مود {number}"),
+        file_type=entry.get("file_type") or "File",
+        file_name=entry.get("file_name") or entry.get("title") or f"mod_{number}",
+        source_chat_id=entry.get("source_channel_guid"),
+        source_message_id=entry.get("message_id"),
+    )
     return True
 
 
@@ -563,6 +586,10 @@ def main():
         msg = update.get("new_message") or update.get("updated_message") or update
         if not isinstance(msg, dict):
             continue
+        update_identity = core.get_update_identity(update, msg)
+        if core.was_processed(state, update_identity):
+            print(f"DEBUG: آپدیت تکراری رد شد -> {update_identity}")
+            continue
         chat_id = msg.get("chat_id") or update.get("chat_id")
         text = (msg.get("text") or "").strip()
         print(f"DEBUG: پیام -> chat_id={chat_id} | text={text!r}")
@@ -609,6 +636,8 @@ def main():
                 core.send_message(token, chat_id, help_text)
             elif chat_id and handle_ticket_flow(token, config, state, chat_id, text):
                 pass
+            elif text == "/file" and chat_id:
+                handle_file_command(token, config, state, chat_id)
             elif not msg.get("file") and handle_number_request(token, config, state, chat_id, text):
                 pass
             elif chat_id and msg.get("file") and chat_id in (
@@ -621,16 +650,16 @@ def main():
                 handle_owner_message(token, config, state, text, msg)
         except Exception as e:
             core.log_error(state, "پردازش پیام", e)
+        finally:
+            # حتی اگر پیام مربوط به دستور خاصی نبود، همان update دوباره پردازش نشود.
+            core.mark_processed(state, update_identity)
 
     if next_offset:
+        # فقط next_offset_id خودِ API معتبر است؛ message_id آپدیت را به‌جای
+        # offset_id حدس نمی‌زنیم، چون همین حدس می‌تواند باعث تکرار آپدیت‌ها شود.
         state["last_offset_id"] = next_offset
     else:
-        fallback = core.extract_fallback_offset(updates)
-        if fallback:
-            state["last_offset_id"] = fallback
-            print(f"DEBUG: next_offset خالی بود؛ از شناسهٔ آخرین پیام استفاده شد: {fallback}")
-        else:
-            print("DEBUG: next_offset خالی بود؛ last_offset_id تغییر نکرد")
+        print("DEBUG: next_offset_id خالی بود؛ offset قبلی حفظ شد و dedupe از تکرار جلوگیری می‌کند.")
 
     try:
         run_posting_schedule(token, config, state)

@@ -30,7 +30,9 @@ TEHRAN_OFFSET = timedelta(hours=3, minutes=30)
 MAX_ERRORS_STORED = 200
 ERRORS_PER_PAGE = 5
 ERROR_NOTIFY_COOLDOWN_MINUTES = 10
-REQUEST_TIMEOUT = 20
+REQUEST_TIMEOUT = 15
+UPLOAD_TIMEOUT = 90
+MAX_PROCESSED_IDS = 1000
 
 
 # ---------------------------------------------------------------------------
@@ -103,13 +105,13 @@ def reupload_file(token, file_id, file_type, file_name="file"):
     download_url = (file_info or {}).get("download_url")
     if not download_url:
         raise RuntimeError("getFile آدرس دانلود برنگردوند.")
-    r = requests.get(download_url, timeout=120)
+    r = requests.get(download_url, timeout=UPLOAD_TIMEOUT)
     r.raise_for_status()
-    upload_req = request_send_file(token, file_type)
+    upload_req = request_send_file(token, normalize_send_file_type(file_type))
     upload_url = (upload_req or {}).get("upload_url")
     if not upload_url:
         raise RuntimeError("requestSendFile آدرس آپلود برنگردوند.")
-    up = requests.post(upload_url, files={"file": (file_name, r.content)}, timeout=120)
+    up = requests.post(upload_url, files={"file": (file_name, r.content)}, timeout=UPLOAD_TIMEOUT)
     up.raise_for_status()
     result = up.json()
     new_file_id = result.get("file_id") or (result.get("data") or {}).get("file_id")
@@ -118,49 +120,68 @@ def reupload_file(token, file_id, file_type, file_name="file"):
     return new_file_id
 
 
+def normalize_send_file_type(file_type):
+    """نوع‌های ناشناخته مثل Application را به File تبدیل می‌کند."""
+    value = str(file_type or "File").strip()
+    if value.lower() in {"image", "video", "file"}:
+        return value.title()
+    return "File"
+
+
+def safe_file_name(file_name, fallback="file"):
+    name = str(file_name or "").strip()
+    if not name:
+        return fallback
+    return name.replace("/", "_").replace("\\", "_")[:180]
+
+
 def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file",
               source_chat_id=None, source_message_id=None):
-    """
-    ارسال فایل با ۳ سطح محافظت (به ترتیب):
-    ۱. مستقیم با file_id فعلی.
-    ۲. اگه جواب OK بود ولی message_id نداشت (= «موفقیتِ قلابی»، معمولاً
-       چون file_id مال یک چتِ دیگه بوده) یا خطا داد: دانلود و آپلود
-       مجدد فایل، و تلاش دوباره.
-    ۳. اگه بازم شکست خورد و مختصات پیامِ اصلی در کانال منبع رو داشتیم:
-       مستقیماً از کانال منبع فوروارد می‌کنیم (متنِ سفارشی در این حالت
-       از دست می‌ره، ولی تحویل تضمین‌شده‌تره).
-    """
+    """ارسال فایل با اولویت مسیرهای سریع و با نوع فایل استاندارد."""
+    send_type = normalize_send_file_type(file_type)
+    safe_name = safe_file_name(file_name, "file")
+
     def _try(fid):
-        result = api_call(token, "sendFile", {"chat_id": chat_id, "file_id": fid, "text": text})
-        msg_id = (result or {}).get("message_id")
+        result = api_call(token, "sendFile", {
+            "chat_id": chat_id,
+            "file_id": fid,
+            "text": text,
+        })
+        if not isinstance(result, dict):
+            raise RuntimeError(f"پاسخ sendFile نامعتبر است: {result}")
+        msg_id = result.get("message_id") or result.get("new_message_id")
         if not msg_id:
-            raise RuntimeError(f"روبیکا OK داد ولی message_id نداد (احتمال: file_id مال چت دیگه‌ست یا بات ادمین این چت نیست). پاسخ خام: {result}")
+            raise RuntimeError(f"پاسخ sendFile بدون message_id: {result}")
         return result
 
     try:
         result = _try(file_id)
         print(f"DEBUG: sendFile موفق (مستقیم) -> chat_id={chat_id}")
         return result
-    except Exception as e1:
-        print(f"DEBUG: sendFile مستقیم ناموفق ({e1})، در حال آپلود مجدد...")
-        try:
-            new_file_id = reupload_file(token, file_id, file_type, file_name)
-            result = _try(new_file_id)
-            print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id}")
-            return result
-        except Exception as e2:
-            print(f"DEBUG: آپلود مجدد هم ناموفق بود ({e2})")
-            if source_chat_id and source_message_id:
-                print(f"DEBUG: تلاش آخر — فوروارد مستقیم از کانال منبع به {chat_id}")
-                fwd = api_call(token, "forwardMessage", {
-                    "from_chat_id": source_chat_id, "message_id": source_message_id, "to_chat_id": chat_id,
-                })
-                if not (fwd or {}).get("new_message_id"):
-                    raise RuntimeError(f"فوروارد هم message_id نداد: {fwd}")
-                print(f"DEBUG: فوروارد موفق -> chat_id={chat_id}")
-                return fwd
-            raise
+    except Exception as direct_error:
+        print(f"DEBUG: sendFile مستقیم ناموفق: {direct_error}")
 
+    # اگر فایل از کانال منبع آمده، فوروارد از دانلود/آپلود بسیار سریع‌تر است.
+    if source_chat_id and source_message_id:
+        try:
+            fwd = forward_message(token, source_chat_id, source_message_id, chat_id)
+            if isinstance(fwd, dict) and (fwd.get("new_message_id") or fwd.get("message_id")):
+                print(f"DEBUG: forwardMessage موفق -> chat_id={chat_id}")
+                return fwd
+            print(f"DEBUG: forwardMessage پاسخ قابل‌تأیید نداد: {fwd}")
+        except Exception as forward_error:
+            print(f"DEBUG: forwardMessage ناموفق: {forward_error}")
+
+    # فقط یک بار re-upload به عنوان آخرین راه.
+    try:
+        new_file_id = reupload_file(token, file_id, send_type, safe_name)
+        result = _try(new_file_id)
+        print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id}")
+        return result
+    except Exception as upload_error:
+        raise RuntimeError(
+            f"ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: {upload_error}"
+        )
 
 def get_updates(token, offset_id=None, limit=50):
     payload = {"limit": limit}
@@ -172,6 +193,32 @@ def get_updates(token, offset_id=None, limit=50):
 # ---------------------------------------------------------------------------
 # شناسایی کاربر در برابر کانال
 # ---------------------------------------------------------------------------
+def get_update_identity(update, msg=None):
+    if isinstance(update, dict):
+        for key in ("update_id", "id"):
+            if update.get(key) is not None:
+                return f"u:{update[key]}"
+    if isinstance(msg, dict):
+        for key in ("message_id", "id"):
+            if msg.get(key) is not None:
+                return f"m:{msg[key]}"
+    return None
+
+
+def was_processed(state, identity):
+    return bool(identity and identity in state.setdefault("processed_updates", []))
+
+
+def mark_processed(state, identity):
+    if not identity:
+        return
+    items = state.setdefault("processed_updates", [])
+    if identity not in items:
+        items.append(identity)
+    if len(items) > MAX_PROCESSED_IDS:
+        del items[:-MAX_PROCESSED_IDS]
+
+
 def known_channel_guids(config):
     guids = {config.get("source_channel_guid")}
     for ch in config.get("destination_channels", []):
@@ -256,23 +303,48 @@ _VIDEO_TAG_RE = re.compile(r"(?:^|\s)#(?:ویدئو|ویدیو)(?:\s|$)")
 
 
 def parse_mod_caption(caption: str):
-    """فرمت مورد انتظار (هر خط جدا):
-    عنوان
-    توضیحات
-    ورژن
-    #مود #<شماره>
-    اگر تگ دقیق #مود در کپشن نباشد (نه به‌عنوان بخشی از هشتگ دیگه مثل
-    #مود_فایل)، None برمی‌گردد."""
     caption = caption or ""
     if not _MOD_TAG_RE.search(caption):
         return None
+
     lines = _content_lines(caption)
-    title = _strip_label(lines[0]) if len(lines) > 0 else ""
-    description = _strip_label(lines[1]) if len(lines) > 1 else ""
-    version = _strip_label(lines[2]) if len(lines) > 2 else ""
-    number_match = re.search(r"#(\d+)\b", caption)
-    number = number_match.group(1) if number_match else None
-    return {"title": title, "description": description, "version": version, "number": number}
+    if not lines:
+        return {"title": "", "description": "", "version": "", "number": extract_number(caption)}
+
+    title = _strip_label(lines[0])
+    body = lines[1:]
+    version_index = None
+    version_value = ""
+
+    # نسخه را هم با «ورژن: ...» و هم با عددهایی مثل 1.21 پیدا می‌کنیم.
+    version_re = re.compile(r"^\s*(?:ورژن|نسخه)\s*[:：]?\s*(.+?)\s*$")
+    plain_version_re = re.compile(r"^\s*v?\d+(?:\.\d+){1,4}(?:[-+][\w.-]+)?\s*$", re.I)
+
+    for idx, line in enumerate(body):
+        m = version_re.match(line)
+        if m:
+            version_index = idx
+            version_value = m.group(1).strip()
+            break
+        if plain_version_re.match(line):
+            version_index = idx
+            version_value = line.strip()
+            break
+
+    if version_index is not None:
+        description_lines = body[:version_index] + body[version_index + 1:]
+    else:
+        description_lines = body
+        version_value = ""
+
+    description = "\n".join(_strip_label(x) for x in description_lines if _strip_label(x)).strip()
+
+    return {
+        "title": title,
+        "description": description,
+        "version": version_value,
+        "number": extract_number(caption),
+    }
 
 
 def parse_video_caption(caption: str):
@@ -657,10 +729,20 @@ def check_all_required_channels(token, config, user_guid):
 
 
 def build_join_prompt(channels):
-    lines = ["📢 برای دریافت فایل مود، اول باید عضو کانال‌های زیر بشید:", ""]
-    for i, ch in enumerate(channels, start=1):
-        lines.append(f"{i}. {ch.get('name', ch['guid'])}\n{ch.get('link', '')}")
-    lines.append("\n✅ بعد از عضویت در همه، دوباره بنویسید: /start")
+    lines = [
+        "📢 برای حمایت از ما، لطفاً در کانال‌های زیر عضو شوید:",
+        "",
+    ]
+    if channels:
+        for ch in channels:
+            lines.append(str(ch.get("guid", "")).strip())
+    else:
+        lines.append("هیچ کانال اجباری تنظیم نشده است.")
+    lines.extend([
+        "",
+        "📥 برای دریافت فایل مود /file را بزنید.",
+        "⚠️ بعد از هر درخواست مود، برای دریافت همان فایل باید /file را دوباره بزنید."
+    ])
     return "\n".join(lines)
 
 
