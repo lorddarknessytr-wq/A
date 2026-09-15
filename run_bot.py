@@ -385,39 +385,39 @@ def post_mod_and_maybe_video(token, channel, state, also_video):
 
 
 def run_posting_schedule(token, config, state):
+    """Run each channel by its elapsed-time plan, even after a late runner."""
     now = core.tehran_now()
-    today = now.strftime("%Y-%m-%d")
-    hour = now.hour
-
-    posted = state.setdefault("posted_hours_today", {"date": today, "hours": []})
-    if posted.get("date") != today:
-        posted["date"] = today
-        posted["hours"] = []
-
-    start = config["schedule"]["start_hour_tehran"]
-    end = config["schedule"]["end_hour_tehran"]
-    video_every_n = config["schedule"].get("video_every_n_hours", 4)
-
-    if not (start <= hour <= end) or hour in posted["hours"]:
-        return
-
-    also_video = (hour - start) % video_every_n == 0
+    last_posts = state.setdefault("last_scheduled_posts", {})
     posted_summary = []
 
     for channel in config["destination_channels"]:
-        if not channel.get("enabled", True):
+        if not channel.get("enabled", True) or not core.is_channel_active_now(channel, now):
             continue
+        guid = channel["guid"]
+        plan = core.channel_plan(channel)
+        channel_last = last_posts.setdefault(guid, {})
         try:
-            posted_summary += post_mod_and_maybe_video(token, channel, state, also_video)
+            if core.is_due(channel_last.get("mod"), plan["mod_interval_minutes"], now):
+                used = state["used_mods_per_channel"].setdefault(guid, [])
+                item, used = core.pick_item(state["mods"], used)
+                state["used_mods_per_channel"][guid] = used
+                if item:
+                    core.send_mod(token, channel, item, state)
+                    channel_last["mod"] = now.strftime("%Y-%m-%d %H:%M")
+                    posted_summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
+            if core.is_due(channel_last.get("video"), plan["video_interval_minutes"], now):
+                used = state["used_videos_per_channel"].setdefault(guid, [])
+                item, used = core.pick_item(state["videos"], used)
+                state["used_videos_per_channel"][guid] = used
+                if item:
+                    core.send_video(token, channel, item)
+                    channel_last["video"] = now.strftime("%Y-%m-%d %H:%M")
+                    posted_summary.append(f"🎬 {channel['name']}: ویدیو «{item['title']}»")
         except Exception as e:
-            core.log_error(state, f"ارسال به {channel['name']}", e)
-
-    posted["hours"].append(hour)
+            core.log_error(state, f"زمان‌بندی ارسال به {channel['name']}", e)
 
     if posted_summary:
-        core.notify_owner(token, config, f"📤 گزارش پست ساعت {hour}:00\n" + "\n".join(posted_summary))
-    else:
-        core.notify_owner(token, config, f"ℹ️ ساعت {hour}:00 چیزی برای پست‌کردن (مود/ویدیوی تکراری‌نشده) موجود نبود.")
+        core.notify_owner(token, config, "📤 گزارش ارسال زمان‌بندی‌شده\n" + "\n".join(posted_summary))
 
 
 def resolve_post_targets(config, target):
@@ -591,7 +591,7 @@ def main():
             )
             if is_new_user or owner_needs_keypad:
                 try:
-                    core.set_chat_keypad(token, chat_id, ["/help", "/ticket"])
+                    core.set_chat_keypad(token, chat_id, ["/help", "/ticket", "✅ بررسی عضویت"])
                     if owner_needs_keypad:
                         state["owner_keypad_set"] = True
                 except Exception as e:
@@ -602,7 +602,7 @@ def main():
 
             if text == "/myid" and chat_id:
                 core.send_message(token, chat_id, f"GUID این چت:\n{chat_id}")
-            elif text == "/start" and chat_id:
+            elif text in ("/start", "✅ بررسی عضویت") and chat_id:
                 allowed, missing = core.required_memberships(token, config, user_guid or chat_id)
                 if allowed:
                     core.send_message(token, chat_id, config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1)."))

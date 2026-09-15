@@ -35,9 +35,9 @@
   },
 
   "schedule": {
-    "start_hour_tehran": 11,
-    "end_hour_tehran": 23,
-    "video_every_n_hours": 4
+    "_comment": "هر کانال posting_plan خودش را دارد: 0=مود120دقیقه/ویدیو270دقیقه، 1=60/180، 2=30/120.",
+    "start_hour_tehran": 9,
+    "end_hour_tehran": 23
   },
 
   "destination_channels": [
@@ -45,6 +45,11 @@
       "guid": "c0xCHANNEL_ONE_GUID",
       "name": "کانال یک",
       "enabled": true,
+      "posting_plan": 1,
+      "posting_schedule": {
+        "start_hour_tehran": 9,
+        "end_hour_tehran": 23
+      },
       "send_file_directly": false,
       "channel_link": "https://rubika.ir/your_channel_one",
       "mod_photo_extra_text": "🔥 مود ویژه امروز",

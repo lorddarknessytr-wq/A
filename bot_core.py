@@ -446,6 +446,34 @@ def set_chat_keypad(token, chat_id, buttons):
     return api_call(token, "editChatKeypad", payload)
 
 
+def channel_plan(channel):
+    """Return cadence for a per-channel plan; explicit values override it."""
+    plans = {
+        0: {"mod_interval_minutes": 120, "video_interval_minutes": 270},
+        1: {"mod_interval_minutes": 60, "video_interval_minutes": 180},
+        2: {"mod_interval_minutes": 30, "video_interval_minutes": 120},
+    }
+    plan = plans.get(int(channel.get("posting_plan", 1)), plans[1]).copy()
+    plan.update(channel.get("posting_schedule", {}))
+    return plan
+
+
+def is_channel_active_now(channel, now):
+    schedule = channel.get("posting_schedule", {})
+    return int(schedule.get("start_hour_tehran", 9)) <= now.hour < int(schedule.get("end_hour_tehran", 23))
+
+
+def is_due(last_timestamp, interval_minutes, now):
+    """Use elapsed time, so a delayed GitHub Actions run catches up safely."""
+    if not last_timestamp:
+        return True
+    try:
+        last = datetime.strptime(last_timestamp, "%Y-%m-%d %H:%M")
+    except (TypeError, ValueError):
+        return True
+    return now.replace(tzinfo=None) - last >= timedelta(minutes=int(interval_minutes))
+
+
 # ---------------------------------------------------------------------------
 # پخش پیام به همهٔ کانال‌های مقصد
 # ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 from unittest.mock import patch
 
 import bot_core as core
@@ -48,6 +49,13 @@ class BotCoreTests(unittest.TestCase):
             with self.assertRaises(core.RubikaAPIError):
                 core.deliver_media("t", "destination", {"file_id": "invalid"}, "invalid")
         send_file.assert_not_called()
+
+    def test_channel_plan_uses_elapsed_time_for_late_runs(self):
+        self.assertEqual(core.channel_plan({"posting_plan": 0})["video_interval_minutes"], 270)
+        self.assertEqual(core.channel_plan({"posting_plan": 2})["mod_interval_minutes"], 30)
+        now = datetime(2026, 9, 15, 10, 37)
+        self.assertTrue(core.is_due("2026-09-15 10:00", 30, now))
+        self.assertFalse(core.is_due("2026-09-15 10:10", 30, now))
 
     def test_duplicate_request_is_suppressed(self):
         state = {}
