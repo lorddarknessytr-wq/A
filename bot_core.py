@@ -432,16 +432,16 @@ def send_mod(token, channel, mod, state):
         lines.append(mod["title"])
         lines.append("")            # خط خالی بعد از عنوان
     if mod.get("description"):
-        lines.append(f"🔔 {mod['description']}")
+        lines.append(f"⚙️- {mod['description']}")
         # توجه: بین توضیح و طریقهٔ دانلود عمداً خط خالی نمی‌گذاریم
 
     direct = channel.get("send_file_directly", False)
     if not direct and mod.get("number"):
-        lines.append(f"📥 برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو برای ربات (@TLP_Admin) بفرستید.")
+        lines.append(f"برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو برای ربات (@TLP_AdminBot) بفرستید.")
 
     if mod.get("version"):
         lines.append("")            # خط خالی قبل از ورژن
-        lines.append(f"💾 ورژن: {mod['version']}")
+        lines.append(f"💾- ورژن: {mod['version']}")
 
     lines.append("")                # خط خالی قبل از لینک کانال
     lines.append(f" {channel['channel_link']}")
