@@ -37,11 +37,11 @@
       "name": "کانال یک",
       "enabled": true,
       "plan": 1,
-      "send_file_directly": true,
+      "send_file_directly": false,
       "channel_link": "@Addonmine",
-      "mod_photo_extra_text": "🔥 مود ویژه امروز",
-      "mod_file_caption": "#فایل_مود /n📋 File : 1-1/nاگه بزنی رو پیوستن یک بربری خوشمزه بهت میدم🥰/n〘 @BarBariio_yt ⏎ 〙",
-      "video_extra_text": "ری اکشن فراموش نکنی مَشتی😊/n 〘 @BarBariio_yt ⏎ 〙"
+      "mod_photo_extra_text": "خوشت اومد ری اکشن فراموشت نشه🧡😊",
+      "mod_file_caption": "#فایل_مود /n/n📋 File : 1-1 /n/n اگه بزنی رو پیوستن یک بربری خوشمزه بهت میدم🥰 /n/n〘 @BarBariio_yt ⏎ 〙",
+      "video_extra_text": "ری اکشن فراموش نکنی مَشتی😊/n/n 〘 @BarBariio_yt ⏎ 〙"
     }
   ]
 }
