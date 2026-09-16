@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aaa636af33e45d0ef6451a1",
+  "last_offset_id": "6aaa6791a231514da2254c89",
   "mods": [
     {
       "id": "3b2bb777",
@@ -36,7 +36,10 @@
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-16 12:15"
   },
-  "known_users": [],
+  "known_users": [
+    "b0KZR3M0BEAo077d2f10db168ddb361e",
+    "b0HGUl0BEAo085282fb45b7b8fac902b"
+  ],
   "blocked_users": {},
   "awaiting_ticket": [],
   "awaiting_broadcast": false,
@@ -48,7 +51,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-16 13:09"
+    "heartbeat": "2026-09-16 13:26"
   },
   "errors": [],
   "last_error_notify_time": null,
@@ -57,9 +60,24 @@
   "processed_updates": [
     "m:1909673696088329284",
     "m:1909673696090329284",
-    "m:1909675696512329284"
+    "m:1909675696512329284",
+    "m:1909677528791138801",
+    "m:1909677064687873356",
+    "m:1909686700004329284",
+    "m:1909701705692329284"
   ],
-  "activity_log": {},
+  "activity_log": {
+    "b0KZR3M0BEAo077d2f10db168ddb361e": [
+      "2026-09-16 13:26:05",
+      "2026-09-16 13:26:07",
+      "2026-09-16 13:26:07"
+    ],
+    "b0HGUl0BEAo085282fb45b7b8fac902b": [
+      "2026-09-16 13:26:07",
+      "2026-09-16 13:26:24",
+      "2026-09-16 13:26:24"
+    ]
+  },
   "owner_keypad_set": true,
   "posted_slots_today": {
     "date": "2026-09-16",
