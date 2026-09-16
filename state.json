@@ -49,8 +49,7 @@
   "recent_files": {},
   "used_mods_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [
-      "49942f4f",
-      "3e0217cb"
+      "49942f4f"
     ]
   },
   "used_videos_per_channel": {
@@ -93,8 +92,12 @@
   "owner_keypad_set": true,
   "posted_slots_today": {
     "date": "2026-09-16",
-    "mod": {},
-    "video": {}
+    "mod": {
+      "c0DBT990e47b63fa688bba87d5736cc2:3": true
+    },
+    "video": {
+      "c0DBT990e47b63fa688bba87d5736cc2:1": true
+    }
   },
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
