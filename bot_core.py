@@ -166,19 +166,44 @@ def file_extension(file_name):
         return ""
     return ext
 
+def build_metadata(text, parts):
+    """
+    ساخت آرایهٔ متادیتا برای فرمت‌بندی متن.
+    parts: لیستی از دیکشنری‌ها با کلیدهای 'type' و 'text'
+    """
+    metadata = []
+    cursor = 0
+    for part in parts:
+        segment = part.get("text", "")
+        idx = text.find(segment, cursor)
+        if idx == -1:
+            continue
+        meta = {
+            "type": part["type"],
+            "from_index": idx,
+            "length": len(segment),
+        }
+        if part.get("link"):
+            meta["link_url"] = part["link"]
+        metadata.append(meta)
+        cursor = idx + len(segment)
+    return metadata
 
 def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file",
-              source_chat_id=None, source_message_id=None):
+              source_chat_id=None, source_message_id=None, metadata=None):
     """ارسال فایل با اولویت مسیرهای سریع و با نوع فایل استاندارد."""
     send_type = normalize_send_file_type(file_type)
     safe_name = safe_file_name(file_name, "file")
 
     def _try(fid):
-        result = api_call(token, "sendFile", {
+        payload = {
             "chat_id": chat_id,
             "file_id": fid,
             "text": text,
-        })
+        }
+        if metadata:
+            payload["metadata"] = metadata
+        result = api_call(token, "sendFile", payload)
         if not isinstance(result, dict):
             raise RuntimeError(f"پاسخ sendFile نامعتبر است: {result}")
         msg_id = result.get("message_id") or result.get("new_message_id")
@@ -193,7 +218,6 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
     except Exception as direct_error:
         print(f"DEBUG: sendFile مستقیم ناموفق: {direct_error}")
 
-    # اگر فایل از کانال منبع آمده، فوروارد از دانلود/آپلود بسیار سریع‌تر است.
     if source_chat_id and source_message_id:
         try:
             fwd = forward_message(token, source_chat_id, source_message_id, chat_id)
@@ -204,7 +228,6 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
         except Exception as forward_error:
             print(f"DEBUG: forwardMessage ناموفق: {forward_error}")
 
-    # فقط یک بار re-upload به عنوان آخرین راه.
     try:
         new_file_id = reupload_file(token, file_id, send_type, safe_name)
         result = _try(new_file_id)
@@ -427,35 +450,52 @@ def extract_extension_line(caption: str):
 # ارسال مود / ویدیو به یک کانال مقصد
 # ---------------------------------------------------------------------------
 def send_mod(token, channel, mod, state):
-    lines = []
+    # ۱. ساخت بخش‌های متن با فرمت‌های مشخص
+    parts = []
+    
+    # عنوان: بولد
     if mod.get("title"):
-        lines.append(mod["title"])
-        lines.append("")            # خط خالی بعد از عنوان
+        parts.append({"type": "Bold", "text": mod["title"] + "\n"})
+    
+    # توضیحات: نقل قول (Quote)
     if mod.get("description"):
-        lines.append(f"⚙️- {mod['description']}")
-        # توجه: بین توضیح و طریقهٔ دانلود عمداً خط خالی نمی‌گذاریم
+        parts.append({"type": "Quote", "text": f"📝 {mod['description']}\n"})
+    
+    # ورژن: متن معمولی
+    if mod.get("version"):
+        parts.append({"type": "Text", "text": f"🔢 ورژن: {mod['version']}\n"})
 
     direct = channel.get("send_file_directly", False)
     if not direct and mod.get("number"):
-        lines.append(f"برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو برای ربات (@TLP_AdminBot) بفرستید.")
+        parts.append({"type": "Text", "text": f"📥 برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو به ربات در پیوی بفرستید.\n"})
 
-    if mod.get("version"):
-        lines.append("")            # خط خالی قبل از ورژن
-        lines.append(f"💾- ورژن: {mod['version']}")
-
-    lines.append("")                # خط خالی قبل از لینک کانال
-    lines.append(f" {channel['channel_link']}")
-
+    parts.append({"type": "Text", "text": f"🔗 کانال: {channel['channel_link']}\n"})
     if channel.get("mod_photo_extra_text"):
-        lines.append("")            # خط خالی قبل از متن اضافه
-        lines.append(channel["mod_photo_extra_text"])
+        parts.append({"type": "Text", "text": channel["mod_photo_extra_text"] + "\n"})
 
+    # ۲. تبدیل لیست به متن یکپارچه و ساخت متادیتا
+    full_text = "".join(p["text"] for p in parts)
+    metadata = build_metadata(full_text, parts)
+
+    # ۳. ارسال عکس با متن و متادیتا
     source_guid = mod.get("source_channel_guid")
     send_file(
-        token, channel["guid"], mod["photo_file_id"], "\n".join(lines),
+        token, channel["guid"], mod["photo_file_id"], full_text,
         file_type=mod.get("photo_file_type") or "Image", file_name="cover.jpg",
         source_chat_id=source_guid, source_message_id=mod.get("photo_message_id"),
+        metadata=metadata,  # <--- اینجا متادیتا پاس داده میشه
     )
+
+    # ۴. ارسال فایل مستقیم (بدون تغییر)
+    if direct and mod.get("number"):
+        entry = state.get("files_by_number", {}).get(mod["number"])
+        if entry and entry.get("file_id"):
+            send_file(
+                token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""),
+                file_type=entry.get("file_type") or "File",
+                file_name=f"{mod['number']}{entry.get('manual_extension') or file_extension(entry.get('file_name'))}",
+                source_chat_id=source_guid, source_message_id=entry.get("message_id"),
+            )
 
     if direct and mod.get("number"):
         entry = state.get("files_by_number", {}).get(mod["number"])
