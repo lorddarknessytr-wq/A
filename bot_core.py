@@ -435,13 +435,13 @@ def send_mod(token, channel, mod, state):
     if mod.get("version"):
         lines.append(f"💾 ورژن: {mod['version']}")
 
-  lines.append(f"🔗 کانال: {channel['channel_link']}")
-    if channel.get("mod_photo_extra_text"):
-        lines.append(channel["mod_photo_extra_text"])
-      
     direct = channel.get("send_file_directly", False)
     if not direct and mod.get("number"):
         lines.append(f"📥 برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو به ربات در پیوی بفرستید.")
+
+    lines.append(f"🔗 کانال: {channel['channel_link']}")
+    if channel.get("mod_photo_extra_text"):
+        lines.append(channel["mod_photo_extra_text"])
 
     source_guid = mod.get("source_channel_guid")
     send_file(
