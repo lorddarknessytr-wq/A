@@ -431,9 +431,9 @@ def send_mod(token, channel, mod, state):
     if mod.get("title"):
         lines.append(mod["title"])
     if mod.get("description"):
-        lines.append(f"📝 {mod['description']}")
+        lines.append(f" {mod['description']}")
     if mod.get("version"):
-        lines.append(f"🔢 ورژن: {mod['version']}")
+        lines.append(f"💾 ورژن: {mod['version']}")
 
     direct = channel.get("send_file_directly", False)
     if not direct and mod.get("number"):
