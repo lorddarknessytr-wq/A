@@ -800,18 +800,18 @@ def check_all_required_channels(token, config, user_guid):
 
 def build_join_prompt(channels):
     lines = [
-        "📢 برای حمایت از ما، لطفاً در کانال‌های زیر عضو شوید:",
+        "📣 برای استفاده از ربات باید در کانال های زیر عضو شوید:",
         "",
     ]
     if channels:
         for ch in channels:
             lines.append(str(ch.get("guid", "")).strip())
     else:
-        lines.append("هیچ کانال اجباری تنظیم نشده است.")
+        lines.append("هیچ کانالی تنظیم نشده است.")
     lines.extend([
         "",
-        "📥 برای دریافت فایل مود /file را بزنید.",
-        "⚠️ بعد از هر درخواست مود، برای دریافت همان فایل باید /file را دوباره بزنید."
+        "✨️ پس از عضویت در کانال های بالا برای دریافت فایل مود /file را ارسال کنید",
+        "⚠️ اگر در چنل های بالا عضو هستید فقط /file را بزنید*"
     ])
     return "\n".join(lines)
 
