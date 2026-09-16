@@ -90,10 +90,14 @@ def handle_source_channel_message(state, msg):
             file_info.get("file_name") or file_info.get("name")
             or file_info.get("original_name") or file_info.get("title")
         )
+        # پسوند دستی: اول از کپشن خودِ فایل، وگرنه از کپشن عکسِ در انتظار
+        manual_ext = core.extract_extension_line(caption) or (pending.get("extension") if pending else "")
+
         state["files_by_number"][file_number] = {
             "file_id": file_info.get("file_id"),
             "file_type": core.normalize_send_file_type(file_info.get("file_type")),
             "file_name": original_name,
+            "manual_extension": manual_ext,
             "message_id": message_id,
             "source_channel_guid": msg.get("chat_id"),
             "title": (pending.get("title") if pending else None) or f"فایل شماره {file_number}",
@@ -120,13 +124,18 @@ def handle_source_channel_message(state, msg):
 
 
 def handle_start_command(token, config, state, chat_id):
-    # عضویت فقط اطلاع‌رسانی است؛ /file عمداً حتی برای فرد غیرعضو هم فایل را می‌دهد.
+    welcome = config.get(
+        "start_text",
+        "👋 سلام و خوش اومدید!\n\n"
+        "برای دریافت هر مود، شماره‌ای که زیر همون پست توی کانال نوشته شده "
+        "رو برام بفرستید (مثلاً 9 یا #9)، بعد /file رو بزنید تا فایلش براتون بیاد.\n\n"
+        "🎫 اگه با پشتیبانی کاری داشتید، با /ticket می‌تونید برام پیام بذارید."
+    )
     channels = config.get("required_join_channels", [])
     if channels:
-        core.send_message(token, chat_id, core.build_join_prompt(channels))
-    else:
-        help_text = config.get("help_text", "شمارهٔ مود را بفرستید.")
-        core.send_message(token, chat_id, help_text)
+        # عضویت فقط اطلاع‌رسانیه؛ /file عمداً حتی برای فرد غیرعضو هم فایل رو می‌ده.
+        welcome += "\n\n" + core.build_join_prompt(channels)
+    core.send_message(token, chat_id, welcome)
 
 
 NUMBER_REQUEST_RE = re.compile(r"^(?:[#/])?(\d+)$")
@@ -183,7 +192,7 @@ def handle_file_command(token, config, state, chat_id):
         entry["file_id"],
         f"#{number}",
         file_type=entry.get("file_type") or "File",
-        file_name=f"{number}{core.file_extension(entry.get('file_name'))}",
+        file_name=f"{number}{entry.get('manual_extension') or core.file_extension(entry.get('file_name'))}",
         source_chat_id=entry.get("source_channel_guid"),
         source_message_id=entry.get("message_id"),
     )
@@ -357,6 +366,19 @@ def handle_owner_message(token, config, state, text, msg=None):
         )
         return
 
+    if text.startswith("/reply"):
+        parts = text.split(maxsplit=2)
+        if len(parts) < 3:
+            core.send_message(token, config["owner_guid"], "فرمت درست: /reply <GUID> <متن پاسخ>\n(GUID رو از همون پیام تیکتی که برات فرستادم بردار)")
+        else:
+            target_guid, reply_text = parts[1], parts[2]
+            try:
+                core.send_message(token, target_guid, f"📩 پاسخ پشتیبانی:\n{reply_text}")
+                core.send_message(token, config["owner_guid"], "✅ پاسخ ارسال شد.")
+            except Exception as e:
+                core.send_message(token, config["owner_guid"], f"❌ ارسال ناموفق بود: {e}")
+        return
+
     if text == "/bugs":
         core.send_message(token, config["owner_guid"], core.build_bugs_page(state))
         return
@@ -375,6 +397,7 @@ def handle_owner_message(token, config, state, text, msg=None):
         f"🐞 تعداد کل باگ‌های ثبت‌شده: {n_errors}\n"
         f"برای دیدن گزارش باگ‌ها: /bugs\n"
         f"برای پنل کانال‌ها: {panel_keyword}\n"
+        f"برای پاسخ به تیکت: /reply <GUID> <متن>\n"
         f"برای راهنما: /help"
     )
     core.send_message(token, config["owner_guid"], status)

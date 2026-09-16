@@ -332,6 +332,15 @@ def _strip_label(line: str) -> str:
 
 _MOD_TAG_RE = re.compile(r"(?:^|\s)#مود(?:\s|$)")
 _VIDEO_TAG_RE = re.compile(r"(?:^|\s)#(?:ویدئو|ویدیو)(?:\s|$)")
+_EXTENSION_RE = re.compile(r"^\s*(?:پسوند|فرمت|extension|ext)\s*[:：]\s*(.+?)\s*$", re.IGNORECASE)
+
+
+def normalize_extension(value):
+    """ورودی مثل 'mcaddon' یا '.mcaddon' یا 'MCPACK' را به '.mcaddon' استاندارد می‌کند."""
+    value = str(value or "").strip().lstrip(".")
+    if not value or " " in value or len(value) > 12:
+        return ""
+    return "." + value.lower()
 
 
 def parse_mod_caption(caption: str):
@@ -341,42 +350,48 @@ def parse_mod_caption(caption: str):
 
     lines = _content_lines(caption)
     if not lines:
-        return {"title": "", "description": "", "version": "", "number": extract_number(caption)}
+        return {"title": "", "description": "", "version": "", "extension": "", "number": extract_number(caption)}
 
     title = _strip_label(lines[0])
     body = lines[1:]
     version_index = None
     version_value = ""
+    extension_index = None
+    extension_value = ""
 
     # نسخه را هم با «ورژن: ...» و هم با عددهایی مثل 1.21 پیدا می‌کنیم.
     version_re = re.compile(r"^\s*(?:ورژن|نسخه)\s*[:：]?\s*(.+?)\s*$")
     plain_version_re = re.compile(r"^\s*v?\d+(?:\.\d+){1,4}(?:[-+][\w.-]+)?\s*$", re.I)
 
     for idx, line in enumerate(body):
+        ext_m = _EXTENSION_RE.match(line)
+        if ext_m:
+            extension_index = idx
+            extension_value = normalize_extension(ext_m.group(1))
+            continue
+        if version_index is not None:
+            continue
         m = version_re.match(line)
         if m:
             version_index = idx
             version_value = m.group(1).strip()
-            break
+            continue
         if plain_version_re.match(line):
             version_index = idx
             version_value = line.strip()
-            break
 
-    if version_index is not None:
-        description_lines = body[:version_index] + body[version_index + 1:]
-    else:
-        description_lines = body
-        version_value = ""
-
+    skip = {i for i in (version_index, extension_index) if i is not None}
+    description_lines = [l for i, l in enumerate(body) if i not in skip]
     description = "\n".join(_strip_label(x) for x in description_lines if _strip_label(x)).strip()
 
     return {
         "title": title,
         "description": description,
         "version": version_value,
+        "extension": extension_value,
         "number": extract_number(caption),
     }
+
 
 
 def parse_video_caption(caption: str):
@@ -396,6 +411,16 @@ def extract_number(caption: str):
     """شمارهٔ بعد از # را از هر کپشنی (عکس یا فایل) استخراج می‌کند."""
     m = re.search(r"#(\d+)\b", caption or "")
     return m.group(1) if m else None
+
+
+def extract_extension_line(caption: str):
+    """اگر کپشن (عکس یا خودِ فایل) یک خط 'پسوند: xxx' داشته باشه، پسوند
+    نرمال‌شده رو برمی‌گردونه؛ وگرنه رشتهٔ خالی."""
+    for line in _content_lines(caption or ""):
+        m = _EXTENSION_RE.match(line)
+        if m:
+            return normalize_extension(m.group(1))
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -431,7 +456,7 @@ def send_mod(token, channel, mod, state):
             send_file(
                 token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""),
                 file_type=entry.get("file_type") or "File",
-                file_name=f"{mod['number']}{file_extension(entry.get('file_name'))}",
+                file_name=f"{mod['number']}{entry.get('manual_extension') or file_extension(entry.get('file_name'))}",
                 source_chat_id=source_guid, source_message_id=entry.get("message_id"),
             )
 
