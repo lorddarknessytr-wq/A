@@ -1,11 +1,37 @@
 {
-  "last_offset_id": "6aaa5f79e11f31e3afa94161",
-  "mods": [],
+  "last_offset_id": "6aaa636af33e45d0ef6451a1",
+  "mods": [
+    {
+      "id": "3b2bb777",
+      "photo_file_id": "eAv3aPLk08493587666206438031956925967572026091612",
+      "photo_file_type": null,
+      "photo_message_id": "1909673696088329284",
+      "source_channel_guid": null,
+      "title": "xSpeell Craft",
+      "description": "💜این افزونه به شما این امکان را می‌دهد تا هنر ساخت طلسم‌های منحصربه‌فرد با ترکیبات بسیار متنوع را بیاموزید! یک زیست‌بوم جدید را کشف کنید، بلوک‌های جدید را باز کنید و با دوستان خود خوش بگذرانید.",
+      "version": "1.26+",
+      "number": "1"
+    }
+  ],
   "videos": [],
   "pending_photo": null,
-  "files_by_number": {},
+  "files_by_number": {
+    "1": {
+      "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
+      "file_type": "File",
+      "file_name": "SpellCraft_Add-On_RU.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1909673696090329284",
+      "source_channel_guid": null,
+      "title": "xSpeell Craft"
+    }
+  },
   "recent_files": {},
-  "used_mods_per_channel": {},
+  "used_mods_per_channel": {
+    "c0DBT990e47b63fa688bba87d5736cc2": [
+      "3b2bb777"
+    ]
+  },
   "used_videos_per_channel": {},
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-16 12:15"
@@ -21,11 +47,25 @@
     "date": null,
     "hours": []
   },
-  "sent_log": {},
+  "sent_log": {
+    "heartbeat": "2026-09-16 13:09"
+  },
   "errors": [],
   "last_error_notify_time": null,
   "bug_page_offset": 0,
   "pending_file_requests": {},
-  "processed_updates": [],
-  "activity_log": {}
+  "processed_updates": [
+    "m:1909673696088329284",
+    "m:1909673696090329284",
+    "m:1909675696512329284"
+  ],
+  "activity_log": {},
+  "owner_keypad_set": true,
+  "posted_slots_today": {
+    "date": "2026-09-16",
+    "mod": {
+      "c0DBT990e47b63fa688bba87d5736cc2:4": true
+    },
+    "video": {}
+  }
 }
