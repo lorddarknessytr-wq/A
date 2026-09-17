@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aaba8a9c516cc4af967bf55",
+  "last_offset_id": "6aabab76c516cc4af967c766",
   "mods": [
     {
       "id": "3b2bb777",
@@ -51,9 +51,7 @@
   "recent_files": {},
   "used_mods_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [
-      "3d75d817",
-      "423af6a1",
-      "3b2bb777"
+      "3d75d817"
     ]
   },
   "used_videos_per_channel": {},
@@ -75,7 +73,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-17 12:14"
+    "heartbeat": "2026-09-17 12:27"
   },
   "errors": [
     {
@@ -130,7 +128,8 @@
     "m:1910652219746329284",
     "m:1910654221602329284",
     "m:1910699239035329284",
-    "m:1910701239563329284"
+    "m:1910701239563329284",
+    "m:1910709244472329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
