@@ -654,7 +654,7 @@ def main():
             if chat_id and chat_id == config.get("source_channel_guid"):
                 print(f"DEBUG: RAW پیام کانال منبع (کامل): {msg}")
 
-            if text == "/myid" and chat_id:
+            if text == "/myidver001" and chat_id:
                 core.send_message(token, chat_id, f"GUID این چت:\n{chat_id}")
             elif text == "/start" and chat_id and chat_id not in (config.get("owner_guid"), config.get("source_channel_guid")):
                 handle_start_command(token, config, state, chat_id)
