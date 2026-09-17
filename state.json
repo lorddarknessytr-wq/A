@@ -1,9 +1,171 @@
 {
-  "last_offset_id": "6aabc6ba18a8b2b7086478a0",
-  "mods": [],
+  "last_offset_id": "6aac1033bd4d61bf96a8d46f",
+  "mods": [
+    {
+      "id": "dd82c85e",
+      "photo_file_id": "eAv3aPLk08493587666206438031956925967572026091612",
+      "photo_file_type": null,
+      "photo_message_id": "1911083426718329284",
+      "source_channel_guid": null,
+      "title": "xSpeell Craft",
+      "description": "این افزونه به شما این امکان را می‌دهد تا هنر ساخت طلسم‌های منحصربه‌فرد با ترکیبات بسیار متنوع را بیاموزید! یک زیست‌بوم جدید را کشف کنید، بلوک‌های جدید را باز کنید و با دوستان خود خوش بگذرانید.",
+      "version": "1.26+",
+      "number": "1"
+    },
+    {
+      "id": "145d0bfc",
+      "photo_file_id": "eC3FxA6107990131049705335502796608848912026091718",
+      "photo_file_type": null,
+      "photo_message_id": "1911083426720329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Deep Dark Dimension",
+      "description": "با بسته الحاقی \"ابعاد تاریک و عمیق\"، از محدوده زیست‌بوم \"تاریکی عمیق\" فراتر بروید: وارد دنیایی وحشتناک از صخره‌ها، سایه‌ها و دشمنان قدرتمند جدید شوید. زیست‌بوم‌های ترسناک را کاوش کنید، با موجودات وحشتناک مبارزه کنید و با باس‌های خطرناک بجنگید، در حالی که اسرار باستانی را کشف می‌کنید و تجهیزات قدرتمندی می‌سازید!",
+      "version": "1.26.30+",
+      "number": "2"
+    },
+    {
+      "id": "5774cb04",
+      "photo_file_id": "eC3F6bk206095836427108859815602027855312026091719",
+      "photo_file_type": null,
+      "photo_message_id": "1911083426723329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Basic Structure Generation",
+      "description": "مکان‌های اسرارآمیز را کشف کنید، ماموریت‌های هیجان‌انگیزی را انجام دهید و در طول مسیر، گنج‌های پنهان را پیدا کنید!\nبیش از 80 سازه\n40 ماموریت",
+      "version": "1.21+",
+      "number": "3"
+    },
+    {
+      "id": "69c0d5b8",
+      "photo_file_id": "eC3GsgVd00514815576547492084926569000372026091719",
+      "photo_file_type": null,
+      "photo_message_id": "1911083426728329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی ZOMBIES REALISM",
+      "description": "با استفاده از ماد (افزونه) \"واقع‌گرایی زامبی‌ها\"، زامبی‌های واقع‌گرایانه را به هر دنیایی اضافه کنید! این افزونه، محتوای ترسناک برای ماجراجویی‌های شما در دوران آخرالزمان ارائه می‌دهد.\nانیمیشن‌های سریع‌تر و ترسناک‌تر.\nمحموله‌های حاوی آذوقه، سلاح و موارد دیگر.\nمبارزه با دسته‌های زامبی و باس‌ها.\nجلوه‌های صوتی ترسناک برای تجربه‌ی بقا در ژانر ترسناک.",
+      "version": "1.21+",
+      "number": "4"
+    },
+    {
+      "id": "46ea068d",
+      "photo_file_id": "eC3FepcX05706890118924421341747942840602026091719",
+      "photo_file_type": null,
+      "photo_message_id": "1911083426731329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Структуры (Structures)",
+      "description": "ایجاد ساختمان‌ها در این افزونه، قطعاً شما را خوشحال خواهد کرد! شما شاهد خواهید بود:\nبیش از ۱۱۰ سازه منحصربه‌فرد.\nدخمه‌ها با گنجینه‌ها.\nساختمان‌ها تقریباً در هر زیستگاه.\nبیش از ۹۰ بلوک منحصربه‌فرد با مکانیک پیشرفته و تنوع بالا.\nبلوک‌های سفارشی که بر اساس سیستم اصلی بازی کار می‌کنند.\nافزونه را نصب کنید و دنیای خود را همین امروز زنده کنید!",
+      "version": "1.21+",
+      "number": "5"
+    },
+    {
+      "id": "a71d46b6",
+      "photo_file_id": "eC3GOaHw02513382110857056577781797029372026091719",
+      "photo_file_type": null,
+      "photo_message_id": "1911083426735329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی End Expansion",
+      "description": "این افزونه، 6 زیست‌بوم جدید را به بُعد \"اِند\" (The End) در بازی اضافه می‌کند. همچنین، موجودات، بلوک‌ها و آیتم‌های جدیدی نیز به بازی اضافه خواهند شد.",
+      "version": "26.30+",
+      "number": "6"
+    },
+    {
+      "id": "30d423c0",
+      "photo_file_id": "eC3GmBSM05224411815033166252719641091602026091719",
+      "photo_file_type": null,
+      "photo_message_id": "1911083426738329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Liminal Dimension",
+      "description": "میز؟ صندلی؟ نه، این یک شکاف به بعدگاه است! از یک بعد جدید و منحصربه‌فرد کاوش کنید: یک فروشگاه مبلمان بی‌انتها که فقط برای شما باز شده است. اما مراقب باشید: ممکن است چیزهای بیشتری در آنجا وجود داشته باشد، فراتر از صرفاً مبلمان...",
+      "version": "1.26.30+",
+      "number": "7"
+    },
+    {
+      "id": "4f254baf",
+      "photo_file_id": "eC3FqJKX06940280241187423041902558583072026091719",
+      "photo_file_type": null,
+      "photo_message_id": "1911083426740329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Civilization",
+      "description": "این افزونه به شما این امکان را می‌دهد که تمدن خود را بسازید، گسترش دهید و مدیریت کنید. تمدن خود را توسعه دهید و جمعیت آن را افزایش دهید. ساختمان‌ها را ارتقا دهید، سرزمین‌ها را تصرف کنید، اقتصاد را مدیریت کنید، فروشگاه‌ها بسازید، مشاغل را بین شهروندان توزیع کنید، بازیکنان دیگر را دعوت کنید و یک رهبر انتخاب کنید.",
+      "version": "26.20+",
+      "number": "8"
+    }
+  ],
   "videos": [],
   "pending_photo": null,
-  "files_by_number": {},
+  "files_by_number": {
+    "1": {
+      "file_id": "dxhjVAdd05332017471328020294620564181792026091318",
+      "file_type": "File",
+      "file_name": "SpellCraft_Add-On_RU.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911083426719329284",
+      "source_channel_guid": null,
+      "title": "xSpeell Craft"
+    },
+    "2": {
+      "file_id": "eC3FuBzI04290383464674222159598254089012026091719",
+      "file_type": "File",
+      "file_name": "Deep Dark Dimension Add-On.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911083426722329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Deep Dark Dimension"
+    },
+    "3": {
+      "file_id": "eC3Ftm6d00238007067873062626320386417492026091719",
+      "file_type": "File",
+      "file_name": "Basic Structure Generation (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911083426725329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Basic Structure Generation"
+    },
+    "4": {
+      "file_id": "eC3FEyqK02226657361598274676673886391752026091719",
+      "file_type": "File",
+      "file_name": "ZOMBIES REALISM Add-On BY SKYPKA.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911083426729329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی ZOMBIES REALISM"
+    },
+    "5": {
+      "file_id": "eC3FhOsV01591780403712925047473485165402026091719",
+      "file_type": "File",
+      "file_name": "Структуры.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911083426734329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Структуры (Structures)"
+    },
+    "6": {
+      "file_id": "eC3FeeJW05246474827717476508432108225722026091719",
+      "file_type": "File",
+      "file_name": "End_Expansion_Add-On_RU.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911083426736329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی End Expansion"
+    },
+    "7": {
+      "file_id": "eC3Fq3JX05097164791247408386593616264122026091719",
+      "file_type": "File",
+      "file_name": "Liminal Dimension Add-On v1.1 (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911083426739329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Liminal Dimension"
+    },
+    "8": {
+      "file_id": "eC3FWkz806136392221589228362894120150912026091719",
+      "file_type": "File",
+      "file_name": "Civilization Add-On.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911083426741329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Civilization"
+    }
+  },
   "recent_files": {},
   "used_mods_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": []
@@ -26,7 +188,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-17 14:18"
+    "heartbeat": "2026-09-17 19:37"
   },
   "errors": [],
   "last_error_notify_time": null,
@@ -36,7 +198,23 @@
     "m:1910780288457329284",
     "m:1910780288479329284",
     "m:1910788094850138801",
-    "m:1910809637686608911"
+    "m:1910809637686608911",
+    "m:1911083426718329284",
+    "m:1911083426719329284",
+    "m:1911083426720329284",
+    "m:1911083426722329284",
+    "m:1911083426723329284",
+    "m:1911083426725329284",
+    "m:1911083426728329284",
+    "m:1911083426729329284",
+    "m:1911083426731329284",
+    "m:1911083426734329284",
+    "m:1911083426735329284",
+    "m:1911083426736329284",
+    "m:1911083426738329284",
+    "m:1911083426739329284",
+    "m:1911083426740329284",
+    "m:1911083426741329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
