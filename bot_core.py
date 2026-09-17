@@ -99,8 +99,40 @@ def get_me(token):
     return api_call(token, "getMe")
 
 
-def send_message(token, chat_id, text):
-    return api_call(token, "sendMessage", {"chat_id": chat_id, "text": text})
+FORMAT_TYPES = {
+    "bold": "Bold", "italic": "Italic", "underline": "Underline",
+    "strike": "Strike", "spoiler": "Spoiler", "mono": "Mono",
+    "pre": "Pre", "quote": "Quote",
+}
+
+
+def build_text_with_metadata(parts):
+    """
+    parts: لیستی از تاپل (متن, نوع‌فرمت یا None). نوع‌فرمت یکی از کلیدهای
+    FORMAT_TYPES (مثلاً "bold", "quote"). خروجی: (متن نهایی، آرایهٔ
+    metadata برای فرستادن به روبیکا).
+    توجه: افست‌ها بر اساس تعداد کاراکتر پایتونی حساب می‌شن (نه UTF-16
+    مثل تلگرام). اگه بعد از تست دیدی محدودهٔ بولد/نقل‌قول یکی-دو
+    کاراکتر جابه‌جا نمایش داده می‌شه (معمولاً به‌خاطر ایموجی قبل از اون
+    بخش)، بهم بگو تا حساب افست رو با UTF-16 عوض کنم.
+    """
+    text = ""
+    metadata = []
+    for chunk, fmt in parts:
+        if not chunk:
+            continue
+        start = len(text)
+        text += chunk
+        if fmt:
+            metadata.append({"type": FORMAT_TYPES[fmt], "from_index": start, "length": len(chunk)})
+    return text, metadata
+
+
+def send_message(token, chat_id, text, metadata=None):
+    payload = {"chat_id": chat_id, "text": text}
+    if metadata:
+        payload["metadata"] = metadata
+    return api_call(token, "sendMessage", payload)
 
 
 def get_file(token, file_id):
@@ -168,17 +200,23 @@ def file_extension(file_name):
 
 
 def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file",
-              source_chat_id=None, source_message_id=None):
-    """ارسال فایل با اولویت مسیرهای سریع و با نوع فایل استاندارد."""
+              source_chat_id=None, source_message_id=None, metadata=None):
+    """ارسال فایل با اولویت مسیرهای سریع و با نوع فایل استاندارد.
+    metadata فقط روی تلاش مستقیم و re-upload اثر داره؛ اگه به فوروارد
+    از کانال منبع افتاد، کپشن اصلی همون‌جا عیناً حفظ می‌شه (بدون
+    فرمت‌دهی سفارشی ما)."""
     send_type = normalize_send_file_type(file_type)
     safe_name = safe_file_name(file_name, "file")
 
     def _try(fid):
-        result = api_call(token, "sendFile", {
+        payload = {
             "chat_id": chat_id,
             "file_id": fid,
             "text": text,
-        })
+        }
+        if metadata:
+            payload["metadata"] = metadata
+        result = api_call(token, "sendFile", payload)
         if not isinstance(result, dict):
             raise RuntimeError(f"پاسخ sendFile نامعتبر است: {result}")
         msg_id = result.get("message_id") or result.get("new_message_id")
@@ -427,32 +465,43 @@ def extract_extension_line(caption: str):
 # ارسال مود / ویدیو به یک کانال مقصد
 # ---------------------------------------------------------------------------
 def send_mod(token, channel, mod, state):
-    lines = []
-    if mod.get("title"):
-        lines.append(mod["title"])
-        lines.append("")            # خط خالی بعد از عنوان
-    if mod.get("description"):
-        lines.append(f"⚙️- {mod['description']}")
-        # توجه: بین توضیح و طریقهٔ دانلود عمداً خط خالی نمی‌گذاریم
-
     direct = channel.get("send_file_directly", False)
+    parts = []
+
+    if mod.get("title"):
+        parts.append((mod["title"], "bold"))
+        parts.append(("\n\n", None))
+
+    if mod.get("description"):
+        parts.append((f"⚙️- {mod['description']}", "quote"))
+        # توجه: بین توضیح و طریقهٔ دانلود عمداً خط خالی نمی‌گذاریم؛ چون
+        # هر کدوم metadata جدای خودشونو دارن، دو تا باکس نقل‌قولِ جدا
+        # دیده می‌شن نه یکی ادامه‌ی هم. اگه به‌جای این، یکی دیده شد،
+        # همین‌جا به‌جای "\n" بذار "\n\n".
+        parts.append(("\n", None))
+
     if not direct and mod.get("number"):
-        lines.append(f"برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو برای ربات (@TLP_AdminBot) بفرستید.")
+        parts.append((
+            f"برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو برای ربات (@TLP_AdminBot) بفرستید.",
+            "quote",
+        ))
 
     if mod.get("version"):
-        lines.append("")            # خط خالی قبل از ورژن
-        lines.append(f"💾- ورژن: {mod['version']}")
+        parts.append(("\n\n", None))
+        parts.append((f"💾- ورژن: {mod['version']}", None))
 
-    lines.append("")                # خط خالی قبل از لینک کانال
-    lines.append(f" {channel['channel_link']}")
+    parts.append(("\n\n", None))
+    parts.append((f" {channel['channel_link']}", None))
 
     if channel.get("mod_photo_extra_text"):
-        lines.append("")            # خط خالی قبل از متن اضافه
-        lines.append(channel["mod_photo_extra_text"])
+        parts.append(("\n\n", None))
+        parts.append((channel["mod_photo_extra_text"], None))
+
+    text, metadata = build_text_with_metadata(parts)
 
     source_guid = mod.get("source_channel_guid")
     send_file(
-        token, channel["guid"], mod["photo_file_id"], "\n".join(lines),
+        token, channel["guid"], mod["photo_file_id"], text, metadata=metadata,
         file_type=mod.get("photo_file_type") or "Image", file_name="cover.jpg",
         source_chat_id=source_guid, source_message_id=mod.get("photo_message_id"),
     )
@@ -469,11 +518,23 @@ def send_mod(token, channel, mod, state):
 
 
 def send_video(token, channel, video):
-    lines = [video.get("title", "ویدیو جدید")]
+    # دکمهٔ روشن/خاموش ویدیو برای این کانال (در config.json هر کانال:
+    # "videos_enabled": false برای خاموش کردن).
+    if not channel.get("videos_enabled", True):
+        print(f"DEBUG: ارسال ویدیو برای {channel.get('name', channel.get('guid'))} خاموشه (videos_enabled=false)")
+        return
+
+    parts = [(video.get("title", "ویدیو جدید"), None)]
+    if channel.get("channel_link"):
+        parts.append(("\n\n", None))
+        parts.append((channel["channel_link"], "quote"))
     if channel.get("video_extra_text"):
-        lines.append(channel["video_extra_text"])
+        parts.append(("\n\n", None))
+        parts.append((channel["video_extra_text"], None))
+
+    text, metadata = build_text_with_metadata(parts)
     send_file(
-        token, channel["guid"], video["video_file_id"], "\n".join(lines),
+        token, channel["guid"], video["video_file_id"], text, metadata=metadata,
         file_type=video.get("file_type") or "Video", file_name="video.mp4",
         source_chat_id=video.get("source_channel_guid"), source_message_id=video.get("message_id"),
     )
