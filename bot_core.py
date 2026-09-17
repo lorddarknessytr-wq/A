@@ -131,7 +131,7 @@ def build_text_with_metadata(parts):
 def send_message(token, chat_id, text, metadata=None):
     payload = {"chat_id": chat_id, "text": text}
     if metadata:
-        payload["metadata"] = metadata
+        payload["metadata"] = {"meta_data_parts": metadata}
     return api_call(token, "sendMessage", payload)
 
 
@@ -208,14 +208,14 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
     send_type = normalize_send_file_type(file_type)
     safe_name = safe_file_name(file_name, "file")
 
-    def _try(fid):
+    def _try(fid, use_metadata=True):
         payload = {
             "chat_id": chat_id,
             "file_id": fid,
             "text": text,
         }
-        if metadata:
-            payload["metadata"] = metadata
+        if use_metadata and metadata:
+            payload["metadata"] = {"meta_data_parts": metadata}
         result = api_call(token, "sendFile", payload)
         if not isinstance(result, dict):
             raise RuntimeError(f"پاسخ sendFile نامعتبر است: {result}")
@@ -230,6 +230,16 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
         return result
     except Exception as direct_error:
         print(f"DEBUG: sendFile مستقیم ناموفق: {direct_error}")
+        # اگه احتمالاً به‌خاطر metadata (فرمت‌دهی) رد شده، فوراً یک بار
+        # بدون metadata امتحان می‌کنیم — این‌طوری یک باگ فرمت‌دهی هیچ‌وقت
+        # جلوی اصل تحویل فایل رو نمی‌گیره، فقط فرمتش ساده می‌مونه.
+        if metadata:
+            try:
+                result = _try(file_id, use_metadata=False)
+                print(f"DEBUG: sendFile بدون metadata موفق (فرمت‌دهی رد شد ولی فایل رسید) -> chat_id={chat_id}")
+                return result
+            except Exception as no_meta_error:
+                print(f"DEBUG: بدون metadata هم ناموفق: {no_meta_error}")
 
     # اگر فایل از کانال منبع آمده، فوروارد از دانلود/آپلود بسیار سریع‌تر است.
     if source_chat_id and source_message_id:
