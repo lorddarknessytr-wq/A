@@ -11,7 +11,7 @@
   "start_text": "👋 سلام به ربات Admin TLP خوش اومدید!\n\n🔔برای دریافت هر مود، شماره‌ای که زیر همون پست توی کانال نوشته شده رو برام بفرستید (مثلاً 1 یا #1)، بعد تایید عضویت در کانال ها /‌file رو بزنید تا فایلش براتون ارسال شود.\n\n📣 اگر با پشتیبانی کاری داشتید، با /ticket می‌تونید برای مالک پیام بذارید.",
   "_comment_join":   "کانال‌هایی که عضویت توشون برای گرفتن فایل مود اجباریه. guid رو از GUID این چت (پیام /myid به بات در پیوی همون کانال، یا فوروارد یه پیام از کانال به بات) پیدا کن.",
   "required_join_channels": [
-    {"guid": "@Addonmine", "name": "کانال ۱", "link": "@Addonmine"}
+    {"guid": "@BarBariio_yt", "name": "کانال ۱", "link": "@BarBariio_yt"}
   ],
 
   "texts": {
@@ -37,12 +37,12 @@
       "name": "کانال یک",
       "enabled": true,
       "plan": 1,
-      "send_file_directly": false,
-      "channel_link": "@Addonmine",
+      "send_file_directly": true,
+      "channel_link": "@BarBariio_yt",
       "mod_photo_extra_text": "خوشت اومد ری اکشن فراموشت نشه🧡😊",
       "mod_file_caption": "#فایل_مود /n/n📋 File : 1-1 /n/n اگه بزنی رو پیوستن یک بربری خوشمزه بهت میدم🥰 /n/n〘 @BarBariio_yt ⏎ 〙",
       "video_extra_text": "ری اکشن فراموش نکنی مَشتی😊/n/n 〘 @BarBariio_yt ⏎ 〙",
-      "videos_enabled": false
+      "videos_enabled": true
     }
   ]
 }
