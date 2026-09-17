@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aab9ce6a391481eda1b630b",
+  "last_offset_id": "6aaba84d3b45ed6dabe5c791",
   "mods": [
     {
       "id": "3b2bb777",
@@ -52,7 +52,8 @@
   "used_mods_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [
       "3d75d817",
-      "423af6a1"
+      "423af6a1",
+      "3b2bb777"
     ]
   },
   "used_videos_per_channel": {},
@@ -74,7 +75,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-17 11:20"
+    "heartbeat": "2026-09-17 12:14"
   },
   "errors": [
     {
@@ -90,9 +91,16 @@
       "category": "پست فوری مود برای کانال یک",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: پاسخ sendFile بدون message_id: {'status': 'INVALID_INPUT'}",
       "notified": true
+    },
+    {
+      "id": "bd120a",
+      "time": "2026-09-17 12:15",
+      "category": "پست فوری مود برای کانال یک",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: پاسخ sendFile بدون message_id: {'status': 'INVALID_INPUT'}",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-17 11:21",
+  "last_error_notify_time": "2026-09-17 12:15",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
@@ -120,7 +128,8 @@
     "m:1910296002524329284",
     "m:1910297003893329284",
     "m:1910652219746329284",
-    "m:1910654221602329284"
+    "m:1910654221602329284",
+    "m:1910699239035329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
