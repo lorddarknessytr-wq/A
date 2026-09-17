@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aabc036926dac6e7de0ab87",
+  "last_offset_id": "6aabc22f926dac6e7de0b2ca",
   "mods": [],
   "videos": [],
   "pending_photo": null,
@@ -12,7 +12,9 @@
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-17 13:14"
   },
-  "known_users": [],
+  "known_users": [
+    "b0KZR3M0BEAo077d2f10db168ddb361e"
+  ],
   "blocked_users": {},
   "awaiting_ticket": [],
   "awaiting_broadcast": false,
@@ -32,9 +34,15 @@
   "pending_file_requests": {},
   "processed_updates": [
     "m:1910780288457329284",
-    "m:1910780288479329284"
+    "m:1910780288479329284",
+    "m:1910788094850138801"
   ],
-  "activity_log": {},
+  "activity_log": {
+    "b0KZR3M0BEAo077d2f10db168ddb361e": [
+      "2026-09-17 14:06:21",
+      "2026-09-17 14:06:21"
+    ]
+  },
   "owner_keypad_set": true,
   "posted_slots_today": {
     "date": "2026-09-17",
