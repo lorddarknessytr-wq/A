@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aac36f1a43c6bc450fac15e",
+  "last_offset_id": "6aac4239e0466ed5413abeb3",
   "mods": [
     {
       "id": "dd82c85e",
@@ -173,7 +173,8 @@
       "46ea068d",
       "dd82c85e",
       "4f254baf",
-      "69c0d5b8"
+      "69c0d5b8",
+      "30d423c0"
     ]
   },
   "used_videos_per_channel": {},
@@ -195,10 +196,18 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-17 22:18"
+    "heartbeat": "2026-09-17 23:11"
   },
-  "errors": [],
-  "last_error_notify_time": null,
+  "errors": [
+    {
+      "id": "4b19cd",
+      "time": "2026-09-17 23:14",
+      "category": "پست فوری مود برای BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
+    }
+  ],
+  "last_error_notify_time": "2026-09-17 23:14",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
@@ -228,7 +237,8 @@
     "m:1911090429051329284",
     "m:1911095431073329284",
     "m:1911220490129329284",
-    "m:1911230493887329284"
+    "m:1911230493887329284",
+    "m:1911279524935329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
