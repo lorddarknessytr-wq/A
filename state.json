@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aad283822cf42d897c24365",
+  "last_offset_id": "6aad3b7d6cb2b8528052b1a2",
   "mods": [
     {
       "id": "dd82c85e",
@@ -418,7 +418,11 @@
       "5774cb04",
       "145d0bfc",
       "ebc1d38f",
-      "5846b0c3"
+      "5846b0c3",
+      "fc88fd8c"
+    ],
+    "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
+      "e4ccdab7"
     ]
   },
   "used_videos_per_channel": {
@@ -426,11 +430,11 @@
   },
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-17 13:14",
-    "c0CkD2t08fb7278be73f1113291ad44d": "2026-09-17 19:42"
+    "c0CkD2t08fb7278be73f1113291ad44d": "2026-09-17 19:42",
+    "c0DpOuK09d14c5817e0aaf7d4ed92e2b": "2026-09-18 16:54"
   },
   "known_users": [
-    "b0KZR3M0BEAo077d2f10db168ddb361e",
-    "c0DpOuK09d14c5817e0aaf7d4ed92e2b"
+    "b0KZR3M0BEAo077d2f10db168ddb361e"
   ],
   "blocked_users": {},
   "awaiting_ticket": [],
@@ -443,7 +447,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-18 16:30"
+    "heartbeat": "2026-09-18 16:54"
   },
   "errors": [
     {
@@ -512,7 +516,10 @@
     "m:1911887824478329284",
     "m:1911887824480329284",
     "m:1911887824481329284",
-    "m:1911919713276247218"
+    "m:1911919713276247218",
+    "m:1911977875629329284",
+    "m:1911977875640329284",
+    "m:1911977875660329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
