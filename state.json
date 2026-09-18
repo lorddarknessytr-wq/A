@@ -419,10 +419,12 @@
       "145d0bfc",
       "ebc1d38f",
       "5846b0c3",
-      "fc88fd8c"
+      "fc88fd8c",
+      "80a98c75"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
-      "e4ccdab7"
+      "e4ccdab7",
+      "fc88fd8c"
     ]
   },
   "used_videos_per_channel": {
@@ -542,7 +544,9 @@
     "mod": {
       "c0CkD2t08fb7278be73f1113291ad44d:3": true,
       "c0CkD2t08fb7278be73f1113291ad44d:6": true,
-      "c0CkD2t08fb7278be73f1113291ad44d:7": true
+      "c0CkD2t08fb7278be73f1113291ad44d:7": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:8": true,
+      "c0DpOuK09d14c5817e0aaf7d4ed92e2b:8": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:1": true,
