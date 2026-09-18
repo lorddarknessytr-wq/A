@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aad1cd6c22b73714de58c37",
+  "last_offset_id": "6aad1d879700b9f23af8a386",
   "mods": [
     {
       "id": "dd82c85e",
@@ -88,6 +88,105 @@
       "description": "این افزونه به شما این امکان را می‌دهد که تمدن خود را بسازید، گسترش دهید و مدیریت کنید. تمدن خود را توسعه دهید و جمعیت آن را افزایش دهید. ساختمان‌ها را ارتقا دهید، سرزمین‌ها را تصرف کنید، اقتصاد را مدیریت کنید، فروشگاه‌ها بسازید، مشاغل را بین شهروندان توزیع کنید، بازیکنان دیگر را دعوت کنید و یک رهبر انتخاب کنید.",
       "version": "26.20+",
       "number": "8"
+    },
+    {
+      "id": "ce06d684",
+      "photo_file_id": "eDKxD8y803225535362358783551500710333532026091813",
+      "photo_file_type": null,
+      "photo_message_id": "1911873818462329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی SuppleMentaries",
+      "description": "بیشتر بلوک‌ها! عناصر تزئینی متنوع به سبک وانیلا، بلوک‌های جدید ردستون برای سازوکارهای پیشرفته شما، زیست‌بوم‌ها و دخمه‌های جدید. همه این‌ها را می‌توانید به راحتی و بدون هیچ مشکلی در حالت بقا بسازید.",
+      "version": "1.21+",
+      "number": "9"
+    },
+    {
+      "id": "251e77d6",
+      "photo_file_id": "eDKwfS9F08994971869328420436873003416182026091813",
+      "photo_file_type": null,
+      "photo_message_id": "1911873818466329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی SCP Survival",
+      "description": "این افزونه، موجودات وحشتناک و ترسناکی را به بازی اضافه می‌کند... موجودات SCP! اکنون آن‌ها در دنیای شما پرسه می‌زنند و یک هدف دارند: نابودی شما.",
+      "version": "26.0+",
+      "number": "10"
+    },
+    {
+      "id": "fc88fd8c",
+      "photo_file_id": "eDKwm6AY06561053162291995580582762992322026091813",
+      "photo_file_type": null,
+      "photo_message_id": "1911873818470329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Build Assist",
+      "description": "اضافهٔ Build Assist به بازیکنان کمک می‌کند تا ویرایش دنیای خود را با استفاده از Toolbox بهینه‌سازی کنند، که دسترسی فوری به ابزارهای جدید را فراهم می‌کند.",
+      "version": "1.26.30+",
+      "number": "11"
+    },
+    {
+      "id": "80a98c75",
+      "photo_file_id": "eDKwpvoE07883308373120919283167802760962026091813",
+      "photo_file_type": null,
+      "photo_message_id": "1911873818473329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Vending Machines",
+      "description": "تجربه‌ی بقای خود را با افزودن یک المان مدرن، ارتقا دهید! دستگاه‌های خودفروشی مدرن بسازید و از آن‌ها برای خرید اقلام مفید/جذاب استفاده کنید. یک فنجان قهوه بنوشید و انرژی بگیرید، یک جعبه کمک‌های اولیه بخرید و سریع‌تر سلامتی خود را بازیابید، یا از آن‌ها برای تزئین پروژه‌های شهری خلاقانه‌تان، مثلاً به عنوان مبلمان، استفاده کنید.",
+      "version": "26.30+",
+      "number": "12"
+    },
+    {
+      "id": "e996eece",
+      "photo_file_id": "eDKwsIkh04548737313399191783073365146932026091814",
+      "photo_file_type": null,
+      "photo_message_id": "1911873818477329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Cyber Armors",
+      "description": "با استفاده از ماژول Cyber Armors در Minecraft PE، فناوری‌های آینده به بازی اضافه می‌شوند. این ماژول مجموعه‌های ویژه‌ای از زره‌ها به سبک رباتیک را به بازی اضافه می‌کند. طراحی این زره‌ها از اشکال حیوانات واقعی الهام گرفته شده است، به همین دلیل هر قطعه از آن‌ها ظاهری غیرمعمول و آینده‌نگر دارد. ساخت این تجهیزات فقط در مراحل پایانی بازی امکان‌پذیر است.",
+      "version": "1.26.30+",
+      "number": "13"
+    },
+    {
+      "id": "82a87d08",
+      "photo_file_id": "eDMIHwiL02335640242451968673006530087332026091814",
+      "photo_file_type": null,
+      "photo_message_id": "1911873818481329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Backpacks Stuff",
+      "description": "کوله پشتی و لوازم جانبی\nافزونه‌ای برای کوله‌پشتی‌های زیبا و کاربردی، سازگار با بسته‌ی منابع Actions and stuff! همه چیز لازم برای خوشحالی.",
+      "version": "1.26+",
+      "number": "14"
+    },
+    {
+      "id": "a25f0234",
+      "photo_file_id": "eDMHhvo404468489308769171866125387726442026091814",
+      "photo_file_type": null,
+      "photo_message_id": "1911873818483329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌یdotv vol2 overhaul",
+      "description": "همانند قسمت اول، با افزونه \"دنبال‌کنندگان پوچی: جلد دوم\"، شما باید با پنج باس قدرتمند در ماینکرافت Bedrock مبارزه کنید. هر کدام از آن‌ها به نوعی خطرناک هستند و دارای توانایی‌های بسیار قوی. شما باید تاکتیک‌های مختلفی را انتخاب کنید و از روش‌های گوناگون استفاده کنید تا دشمنان خود را شکست دهید. بدیهی است که هر موجودی، آیتم‌های ارزشمندی را به عنوان غنیمت ارائه می‌دهد که می‌توانید از آن‌ها استفاده کنید.",
+      "version": "1.21+",
+      "number": "15"
+    },
+    {
+      "id": "ebc1d38f",
+      "photo_file_id": "eDNTOwml05924197208859599571900993476712026091814",
+      "photo_file_type": null,
+      "photo_message_id": "1911873818488329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Мore Villages",
+      "description": "این افزونه، 8 دهکده جدید و بیش از 135 نفر با مشاغل جدید را به دنیای شما اضافه می‌کند!",
+      "version": "1.26+",
+      "number": "16"
+    },
+    {
+      "id": "c7f688ed",
+      "photo_file_id": "eDNT18R402060373454613602342349691269652026091814",
+      "photo_file_type": null,
+      "photo_message_id": "1911873818492329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Cinecam",
+      "description": "صحنه‌های سینمایی چشم‌نواز با حرکات روان دوربین، مسیرهای بصری و حالت‌های ضبط متنوع ایجاد کنید.",
+      "version": "26.0+",
+      "number": "17"
     }
   ],
   "videos": [],
@@ -164,6 +263,87 @@
       "message_id": "1911083426741329284",
       "source_channel_guid": null,
       "title": "افزونه‌ی Civilization"
+    },
+    "9": {
+      "file_id": "eDKwdY6F05326058282521935907545396004432026091813",
+      "file_type": "File",
+      "file_name": "Supplementaries Add-On by skupka.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911873818465329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی SuppleMentaries"
+    },
+    "10": {
+      "file_id": "eDKw885r03800452481239757188778827126732026091813",
+      "file_type": "File",
+      "file_name": "SCP Survival.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911873818467329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی SCP Survival"
+    },
+    "11": {
+      "file_id": "eDKxXzEe00541229353281069016149977551572026091813",
+      "file_type": "File",
+      "file_name": "Build Assist (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911873818471329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Build Assist"
+    },
+    "12": {
+      "file_id": "eDKxXLXP00681680045543578884042423899752026091814",
+      "file_type": "File",
+      "file_name": "Vending_Machines_RU.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911873818475329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Vending Machines"
+    },
+    "13": {
+      "file_id": "eDMIAQyf00183644602678279791655400110352026091814",
+      "file_type": "File",
+      "file_name": "Cyber-Armors-Addon-MCPE-1.21.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911873818479329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Cyber Armors"
+    },
+    "14": {
+      "file_id": "eDMIoMeL04547842776428295044462839907132026091814",
+      "file_type": "File",
+      "file_name": "Backpacks Stuff Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911873818482329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Backpacks Stuff"
+    },
+    "15": {
+      "file_id": "eDMHusgs05936258795872255004822973084162026091814",
+      "file_type": "File",
+      "file_name": "dotv_vol2_overhaul.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911873818484329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌یdotv vol2 overhaul"
+    },
+    "16": {
+      "file_id": "eDNTP7jA07506185433098459670166846048962026091814",
+      "file_type": "File",
+      "file_name": "More Villages 1.0 Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911873818491329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Мore Villages"
+    },
+    "17": {
+      "file_id": "eDNTSyaK05282901745559774709235756223442026091814",
+      "file_type": "File",
+      "file_name": "Cinecam Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911873818496329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Cinecam"
     }
   },
   "recent_files": {},
@@ -200,7 +380,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-18 12:00"
+    "heartbeat": "2026-09-18 14:47"
   },
   "errors": [
     {
@@ -244,7 +424,25 @@
     "m:1911230493887329284",
     "m:1911279524935329284",
     "m:1911293530287329284",
-    "m:1911293530327329284"
+    "m:1911293530327329284",
+    "m:1911873818462329284",
+    "m:1911873818465329284",
+    "m:1911873818466329284",
+    "m:1911873818467329284",
+    "m:1911873818470329284",
+    "m:1911873818471329284",
+    "m:1911873818473329284",
+    "m:1911873818475329284",
+    "m:1911873818477329284",
+    "m:1911873818479329284",
+    "m:1911873818481329284",
+    "m:1911873818482329284",
+    "m:1911873818483329284",
+    "m:1911873818484329284",
+    "m:1911873818488329284",
+    "m:1911873818491329284",
+    "m:1911873818492329284",
+    "m:1911873818496329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
