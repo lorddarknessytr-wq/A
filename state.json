@@ -175,10 +175,13 @@
       "4f254baf",
       "69c0d5b8",
       "30d423c0",
-      "5774cb04"
+      "5774cb04",
+      "145d0bfc"
     ]
   },
-  "used_videos_per_channel": {},
+  "used_videos_per_channel": {
+    "c0CkD2t08fb7278be73f1113291ad44d": []
+  },
   "channel_activated": {
     "c0DBT990e47b63fa688bba87d5736cc2": "2026-09-17 13:14",
     "c0CkD2t08fb7278be73f1113291ad44d": "2026-09-17 19:42"
@@ -197,7 +200,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-18 00:00"
+    "heartbeat": "2026-09-18 12:00"
   },
   "errors": [
     {
@@ -257,10 +260,12 @@
   },
   "owner_keypad_set": true,
   "posted_slots_today": {
-    "date": "2026-09-17",
+    "date": "2026-09-18",
     "mod": {
-      "c0DBT990e47b63fa688bba87d5736cc2:5": true
+      "c0CkD2t08fb7278be73f1113291ad44d:3": true
     },
-    "video": {}
+    "video": {
+      "c0CkD2t08fb7278be73f1113291ad44d:1": true
+    }
   }
 }
