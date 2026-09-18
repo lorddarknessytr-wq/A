@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aad1d879700b9f23af8a386",
+  "last_offset_id": "6aad204a3669ba0c5e865d6c",
   "mods": [
     {
       "id": "dd82c85e",
@@ -187,6 +187,39 @@
       "description": "صحنه‌های سینمایی چشم‌نواز با حرکات روان دوربین، مسیرهای بصری و حالت‌های ضبط متنوع ایجاد کنید.",
       "version": "26.0+",
       "number": "17"
+    },
+    {
+      "id": "5846b0c3",
+      "photo_file_id": "eDO5jN1r08630314132656219340545125640292026091814",
+      "photo_file_type": null,
+      "photo_message_id": "1911887824473329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Revive",
+      "description": "یک فرصت دوباره برای زندگی داشته باشید! یک بازیکن دیگر می‌تواند شما را احیا کند و زره، آیتم‌ها و تجربه‌ی شما را بازگرداند.",
+      "version": "26.0+",
+      "number": "18"
+    },
+    {
+      "id": "e4ccdab7",
+      "photo_file_id": "eDO6uAec04441933713153509377452673531602026091815",
+      "photo_file_type": null,
+      "photo_message_id": "1911887824477329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Overhauled Farming Food",
+      "description": "تجربه بقای خود را ارتقا دهید! محصولات کشاورزی بکارید، غذا بپزید، فضایی دنج ایجاد کنید و رستوران خود را راه اندازی کنید!",
+      "version": "26.0+",
+      "number": "19"
+    },
+    {
+      "id": "c2611f87",
+      "photo_file_id": "eDO6GfmX02806362955210941422974279281592026091814",
+      "photo_file_type": null,
+      "photo_message_id": "1911887824480329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Physics Pro 1.0",
+      "description": "فیزیک واقع‌گرایانه، اکنون در Bedrock! موجودات و بازیکنان پس از مرگ، با فیزیک واقعی سقوط می‌کنند و می‌چرخند. اشیاء به طور واقع‌گرایانه پراکنده می‌شوند و انفجارهای TNT بلوک‌ها را به هوا پرتاب می‌کنند.",
+      "version": "1.26.30+",
+      "number": "20"
     }
   ],
   "videos": [],
@@ -344,6 +377,33 @@
       "message_id": "1911873818496329284",
       "source_channel_guid": null,
       "title": "افزونه‌ی Cinecam"
+    },
+    "18": {
+      "file_id": "eDO53oQk05183604751297606588461899288662026091814",
+      "file_type": "File",
+      "file_name": "Revive Add-On 2.1 (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911887824475329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Revive"
+    },
+    "19": {
+      "file_id": "eDO6XDwE04720155958211783211045943981062026091814",
+      "file_type": "File",
+      "file_name": "Overhauled Farming Food Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911887824478329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Overhauled Farming Food"
+    },
+    "20": {
+      "file_id": "eDO5WUxg04031854025627818778617480588432026091814",
+      "file_type": "File",
+      "file_name": "Physics Pro 1.0 Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1911887824481329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Physics Pro 1.0"
     }
   },
   "recent_files": {},
@@ -356,7 +416,8 @@
       "69c0d5b8",
       "30d423c0",
       "5774cb04",
-      "145d0bfc"
+      "145d0bfc",
+      "ebc1d38f"
     ]
   },
   "used_videos_per_channel": {
@@ -380,7 +441,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-18 14:47"
+    "heartbeat": "2026-09-18 15:00"
   },
   "errors": [
     {
@@ -442,7 +503,13 @@
     "m:1911873818488329284",
     "m:1911873818491329284",
     "m:1911873818492329284",
-    "m:1911873818496329284"
+    "m:1911873818496329284",
+    "m:1911887824473329284",
+    "m:1911887824475329284",
+    "m:1911887824477329284",
+    "m:1911887824478329284",
+    "m:1911887824480329284",
+    "m:1911887824481329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
@@ -460,10 +527,12 @@
   "posted_slots_today": {
     "date": "2026-09-18",
     "mod": {
-      "c0CkD2t08fb7278be73f1113291ad44d:3": true
+      "c0CkD2t08fb7278be73f1113291ad44d:3": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:6": true
     },
     "video": {
-      "c0CkD2t08fb7278be73f1113291ad44d:1": true
+      "c0CkD2t08fb7278be73f1113291ad44d:1": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:2": true
     }
   }
 }
