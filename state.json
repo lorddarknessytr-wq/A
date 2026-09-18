@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aad3b7d6cb2b8528052b1a2",
+  "last_offset_id": "6aad65ec5de2c9b25c1a4972",
   "mods": [
     {
       "id": "dd82c85e",
@@ -220,6 +220,61 @@
       "description": "فیزیک واقع‌گرایانه، اکنون در Bedrock! موجودات و بازیکنان پس از مرگ، با فیزیک واقعی سقوط می‌کنند و می‌چرخند. اشیاء به طور واقع‌گرایانه پراکنده می‌شوند و انفجارهای TNT بلوک‌ها را به هوا پرتاب می‌کنند.",
       "version": "1.26.30+",
       "number": "20"
+    },
+    {
+      "id": "14656abf",
+      "photo_file_id": "eD1XNj9V07634326002493690186168698765832026091819",
+      "photo_file_type": null,
+      "photo_message_id": "1912136948141329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Futuristic Expansions",
+      "description": "وارد دنیای آینده شوید، جایی که سلاح‌های پیشرفته، شمشیرهای انرژی و زره‌های نسل جدید در آنجا وجود دارند.",
+      "version": "1.26.40+",
+      "number": "21"
+    },
+    {
+      "id": "1c2b8da0",
+      "photo_file_id": "eD1Vzzrh06018426812113438074229972637922026091819",
+      "photo_file_type": null,
+      "photo_message_id": "1912136948145329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Spellswords",
+      "description": "سلاح‌های منحصربه‌فردی را با استفاده از 136 ترکیب مختلف ایجاد کنید و با شمشیرهایی برای مبارزه با هر دو دست و از هر دو طرف بجنگید.",
+      "version": "26.0+",
+      "number": "22"
+    },
+    {
+      "id": "e9e29d72",
+      "photo_file_id": "eD1WpLi703101482217637313724077277080432026091819",
+      "photo_file_type": null,
+      "photo_message_id": "1912136948152329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Mob Companions",
+      "description": "با باس‌ها در سیاهچال‌ها مبارزه کنید، زره آن‌ها را جمع‌آوری کنید، متحدان را احضار کنید و در نبرد از آن‌ها فرمان بگیرید.",
+      "version": "26.0+",
+      "number": "23"
+    },
+    {
+      "id": "e5f96350",
+      "photo_file_id": "eD1VWhze08771453850750539934639313624932026091819",
+      "photo_file_type": null,
+      "photo_message_id": "1912136948156329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Vibrant Memories",
+      "description": "تصاویر زیبا در ماینکرافت ایجاد کنید! زوایا را ذخیره کنید، زمان و آب و هوا را تغییر دهید تا عکس‌های بی‌نقص بگیرید.",
+      "version": "1.21+",
+      "number": "24"
+    },
+    {
+      "id": "d8644e7e",
+      "photo_file_id": "eD1VaOSL08009018490848339512640207802172026091819",
+      "photo_file_type": null,
+      "photo_message_id": "1912136948158329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی RC Toys",
+      "description": "از ۲۶ اسباب‌بازی کنترلی مختلف استفاده کنید، حرکات نمایشی انجام دهید، از موانع عبور کنید و مسیرهای مسابقه‌ای خود را طراحی کنید",
+      "version": "1.26.20+",
+      "number": "25"
     }
   ],
   "videos": [],
@@ -404,6 +459,51 @@
       "message_id": "1911887824481329284",
       "source_channel_guid": null,
       "title": "افزونه‌ی Physics Pro 1.0"
+    },
+    "21": {
+      "file_id": "eD1VpJ4K04027168842731170508574613549832026091819",
+      "file_type": "File",
+      "file_name": "Futuristic Expansions Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912136948142329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Futuristic Expansions"
+    },
+    "22": {
+      "file_id": "eD1VqGSx06909313025554921226198535783962026091819",
+      "file_type": "File",
+      "file_name": "Spellswords Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912136948150329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Spellswords"
+    },
+    "23": {
+      "file_id": "eD1WnzzS01634701937744337941628999549872026091819",
+      "file_type": "File",
+      "file_name": "Mob Companions Add-On 1.0 (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912136948154329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Mob Companions"
+    },
+    "24": {
+      "file_id": "eD1VV7vE01002309688343509903513119741902026091819",
+      "file_type": "File",
+      "file_name": "Vibrant Memories Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912136948157329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Vibrant Memories"
+    },
+    "25": {
+      "file_id": "eD1Vwsy102447756968199620431703719860092026091819",
+      "file_type": "File",
+      "file_name": "RC Toys (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912136948159329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی RC Toys"
     }
   },
   "recent_files": {},
@@ -422,13 +522,15 @@
       "fc88fd8c",
       "80a98c75",
       "a25f0234",
-      "251e77d6"
+      "251e77d6",
+      "e9e29d72"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
       "fc88fd8c",
       "c2611f87",
-      "dd82c85e"
+      "dd82c85e",
+      "ce06d684"
     ]
   },
   "used_videos_per_channel": {
@@ -454,7 +556,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-18 19:30"
+    "heartbeat": "2026-09-18 20:00"
   },
   "errors": [
     {
@@ -526,7 +628,17 @@
     "m:1911919713276247218",
     "m:1911977875629329284",
     "m:1911977875640329284",
-    "m:1911977875660329284"
+    "m:1911977875660329284",
+    "m:1912136948141329284",
+    "m:1912136948142329284",
+    "m:1912136948145329284",
+    "m:1912136948150329284",
+    "m:1912136948152329284",
+    "m:1912136948154329284",
+    "m:1912136948156329284",
+    "m:1912136948157329284",
+    "m:1912136948158329284",
+    "m:1912136948159329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
@@ -555,7 +667,9 @@
       "c0CkD2t08fb7278be73f1113291ad44d:9": true,
       "c0DpOuK09d14c5817e0aaf7d4ed92e2b:9": true,
       "c0CkD2t08fb7278be73f1113291ad44d:10": true,
-      "c0DpOuK09d14c5817e0aaf7d4ed92e2b:10": true
+      "c0DpOuK09d14c5817e0aaf7d4ed92e2b:10": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:11": true,
+      "c0DpOuK09d14c5817e0aaf7d4ed92e2b:11": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:1": true,
