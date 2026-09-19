@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aae5008a7cc339dd7af3fdd",
+  "last_offset_id": "6aae7494bc854aa652b5566d",
   "mods": [
     {
       "id": "dd82c85e",
@@ -275,6 +275,61 @@
       "description": "از ۲۶ اسباب‌بازی کنترلی مختلف استفاده کنید، حرکات نمایشی انجام دهید، از موانع عبور کنید و مسیرهای مسابقه‌ای خود را طراحی کنید",
       "version": "1.26.20+",
       "number": "25"
+    },
+    {
+      "id": "1f51eda1",
+      "photo_file_id": "eD276Ct503928340985342848886720399184282026091820",
+      "photo_file_type": null,
+      "photo_message_id": "1912993397441329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Fishing++",
+      "description": "این افزونه (Addon) مکانیسم جدیدی برای ماهیگیری، هوش مصنوعی پیشرفته برای رفتار ماهی‌ها، سیستم‌های پیچیده آکواریوم و بسیاری ویژگی‌های دیگر را به تجربه ماهیگیری اضافه می‌کند.\n🔥 بیش از ۴۰ گونه ماهی\n🔥 قلاب‌های ماهیگیری جدید با قابلیت ساخت (Crafting)!\n🔥 نمایش ایموت (Emote) توسط ماهی‌ها\n🔥 آکواریوم‌های واقع‌گرایانه و کاربردی!",
+      "version": "26.30",
+      "number": "26"
+    },
+    {
+      "id": "c27c227f",
+      "photo_file_id": "eER5ugLf06745149785691549168447521974772026091914",
+      "photo_file_type": null,
+      "photo_message_id": "1912993397443329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Freight Train",
+      "description": "ما به طور فعال در حال بهبود محیط بازی هستیم و پیشنهاد می‌کنیم از افزونه \"Freight Train\" برای ماینکرافت استفاده کنید. همانطور که حدس زده‌اید، این بار می‌توانید از یک وسیله نقلیه کاملاً جدید به شکل یک قطار استفاده کنید. این وسیله بزرگ در هر لحظه از طریق یک دستور در دسترس خواهد بود. در عین حال، این قطار به همراه ریل‌ها و انواع واگن‌ها اضافه خواهد شد.",
+      "version": "1.26.30+",
+      "number": "27"
+    },
+    {
+      "id": "95af3c2b",
+      "photo_file_id": "eER5ckrf08482479925328847278656512341642026091915",
+      "photo_file_type": null,
+      "photo_message_id": "1912993397445329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Police",
+      "description": "در دنیای خود، می‌توانید پلیس شوید یا دزد. در این بازی، ماشین‌های پلیس، سگ‌ها، ابزارها و بسیاری چیزهای دیگر وجود دارد.",
+      "version": "1.26.0+",
+      "number": "28"
+    },
+    {
+      "id": "1604bdcf",
+      "photo_file_id": "eER6FwXv06901596972749881552682787447372026091915",
+      "photo_file_type": null,
+      "photo_message_id": "1912993397447329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Animal Armor+",
+      "description": "14 مجموعه زره حیوانات منحصربه‌فرد با بیش از 40 قابلیت! به موش تبدیل شوید، مانند یک عقاب پرواز کنید و مانند یک شیر غرش کنید.",
+      "version": "1.26.40+",
+      "number": "29"
+    },
+    {
+      "id": "6723b00f",
+      "photo_file_id": "eEShmgzW00156220796943221789644759662582026091915",
+      "photo_file_type": null,
+      "photo_message_id": "1912993397450329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Farmer's Delight",
+      "description": "این یک افزونه آشپزی است که به شما امکان می‌دهد انواع مختلف غذاها را بپزید، محصولات جدیدی را پرورش دهید و همچنین مبلمان جدیدی به دست آورید!",
+      "version": "1.21.101+",
+      "number": "30"
     }
   ],
   "videos": [],
@@ -504,6 +559,51 @@
       "message_id": "1912136948159329284",
       "source_channel_guid": null,
       "title": "افزونه‌ی RC Toys"
+    },
+    "26": {
+      "file_id": "eDJmb6aL06504934459787658506912404306152026091812",
+      "file_type": "File",
+      "file_name": "FISHING++ by domikalmazika.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912993397442329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Fishing++"
+    },
+    "27": {
+      "file_id": "eER59VtV07212747636477619106885785663192026091914",
+      "file_type": "File",
+      "file_name": "Freight-Train-Addon-MCPE-1.21.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912993397444329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Freight Train"
+    },
+    "28": {
+      "file_id": "eER6QHlV01459953695656014022676062828102026091915",
+      "file_type": "File",
+      "file_name": "Police Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912993397446329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Police"
+    },
+    "29": {
+      "file_id": "eER5oUaF07588037729724465206770506580212026091915",
+      "file_type": "File",
+      "file_name": "Animal Armor+ (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912993397448329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Animal Armor+"
+    },
+    "30": {
+      "file_id": "eEShBFdY01585524807540983798924947991292026091915",
+      "file_type": "File",
+      "file_name": "FarmersDelight_RU.mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1912993397451329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Farmer's Delight"
     }
   },
   "recent_files": {},
@@ -533,7 +633,8 @@
       "82a87d08",
       "a71d46b6",
       "e4ccdab7",
-      "e5f96350"
+      "e5f96350",
+      "1f51eda1"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -550,7 +651,8 @@
       "a25f0234",
       "5774cb04",
       "e996eece",
-      "145d0bfc"
+      "145d0bfc",
+      "c7f688ed"
     ]
   },
   "used_videos_per_channel": {
@@ -577,7 +679,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-19 15:00"
+    "heartbeat": "2026-09-19 16:00"
   },
   "errors": [
     {
@@ -668,7 +770,17 @@
     "m:1912804320727329284",
     "m:1912804320767329284",
     "m:1912809324371329284",
-    "m:1912809324496329284"
+    "m:1912809324496329284",
+    "m:1912993397441329284",
+    "m:1912993397442329284",
+    "m:1912993397443329284",
+    "m:1912993397444329284",
+    "m:1912993397445329284",
+    "m:1912993397446329284",
+    "m:1912993397447329284",
+    "m:1912993397448329284",
+    "m:1912993397450329284",
+    "m:1912993397451329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
@@ -705,7 +817,9 @@
       "c0CkD2t08fb7278be73f1113291ad44d:5": true,
       "c0DpOuK09d14c5817e0aaf7d4ed92e2b:5": true,
       "c0CkD2t08fb7278be73f1113291ad44d:6": true,
-      "c0DpOuK09d14c5817e0aaf7d4ed92e2b:6": true
+      "c0DpOuK09d14c5817e0aaf7d4ed92e2b:6": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:7": true,
+      "c0DpOuK09d14c5817e0aaf7d4ed92e2b:7": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
