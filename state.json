@@ -610,36 +610,7 @@
   "used_mods_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [],
     "c0CkD2t08fb7278be73f1113291ad44d": [
-      "46ea068d",
-      "dd82c85e",
-      "4f254baf",
-      "69c0d5b8",
-      "30d423c0",
-      "5774cb04",
-      "145d0bfc",
-      "ebc1d38f",
-      "5846b0c3",
-      "fc88fd8c",
-      "80a98c75",
-      "a25f0234",
-      "251e77d6",
-      "e9e29d72",
-      "c2611f87",
-      "c7f688ed",
-      "14656abf",
-      "1c2b8da0",
-      "e996eece",
-      "ce06d684",
-      "82a87d08",
-      "a71d46b6",
-      "e4ccdab7",
-      "e5f96350",
-      "1f51eda1",
-      "d8644e7e",
-      "c27c227f",
-      "6723b00f",
-      "1604bdcf",
-      "95af3c2b"
+      "e9e29d72"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -684,7 +655,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-19 21:00"
+    "heartbeat": "2026-09-19 22:00"
   },
   "errors": [
     {
@@ -693,9 +664,16 @@
       "category": "پست فوری مود برای BarBariio_yt",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
       "notified": true
+    },
+    {
+      "id": "b2cdb0",
+      "time": "2026-09-19 22:02",
+      "category": "ارسال به BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-17 23:14",
+  "last_error_notify_time": "2026-09-19 22:02",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
