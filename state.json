@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aae4dfdd9cf7fbaff374905",
+  "last_offset_id": "6aae5008a7cc339dd7af3fdd",
   "mods": [
     {
       "id": "dd82c85e",
@@ -565,7 +565,7 @@
   "awaiting_broadcast": false,
   "awaiting_channelcast": false,
   "awaiting_newguid": false,
-  "awaiting_panel_selection": false,
+  "awaiting_panel_selection": true,
   "posted_hours_today": {
     "date": null,
     "hours": []
@@ -660,7 +660,9 @@
     "m:1912804320693329284",
     "m:1912804320710329284",
     "m:1912804320727329284",
-    "m:1912804320767329284"
+    "m:1912804320767329284",
+    "m:1912809324371329284",
+    "m:1912809324496329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
