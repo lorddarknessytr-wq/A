@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aaf8da6f0cd70fb2aa6958d",
+  "last_offset_id": "6aaf991f523242b724132837",
   "mods": [
     {
       "id": "dd82c85e",
@@ -332,7 +332,168 @@
       "number": "30"
     }
   ],
-  "videos": [],
+  "videos": [
+    {
+      "id": "9ca89373",
+      "video_file_id": "eFH4cvYA00098104048103543281733476597352026092011",
+      "file_type": "Video",
+      "message_id": "1913961890695329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "1b6fbe49",
+      "video_file_id": "eFH5F1XF08535561502738537467658390966962026092011",
+      "file_type": "Video",
+      "message_id": "1913961890696329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "0eb04d0e",
+      "video_file_id": "eFH4FpgM00923341617162687435656214517972026092011",
+      "file_type": "Video",
+      "message_id": "1913961890697329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "874c8e7b",
+      "video_file_id": "eFH3Fyfa02704546817932416445668694502512026092011",
+      "file_type": "Video",
+      "message_id": "1913961890699329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "4358beaa",
+      "video_file_id": "eFH3f9vV07988902046908179155800679961062026092011",
+      "file_type": "Video",
+      "message_id": "1913961890702329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "d9c14b04",
+      "video_file_id": "eFH3RjhF06950144572832960546459328126942026092011",
+      "file_type": "Video",
+      "message_id": "1913961890704329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "f3b3a0fd",
+      "video_file_id": "eFH3Gq5o07401562708935900395463417325892026092011",
+      "file_type": "Video",
+      "message_id": "1913961890705329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "d6b933f8",
+      "video_file_id": "eFH4gZLe01647778927815268694708107145762026092011",
+      "file_type": "Video",
+      "message_id": "1913961890706329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "abf9a4a5",
+      "video_file_id": "eFH3jVLj00700857389228149770843720218722026092011",
+      "file_type": "Video",
+      "message_id": "1913961890707329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "14e702fa",
+      "video_file_id": "eFH4oKQJ02735190856568074251417808462912026092011",
+      "file_type": "Video",
+      "message_id": "1913961890708329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "1ed2019a",
+      "video_file_id": "eFH4IEru06756165193020105763337608611802026092011",
+      "file_type": "Video",
+      "message_id": "1913961890709329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "21322ace",
+      "video_file_id": "eFH4B74w01846351680086641317969996798322026092011",
+      "file_type": "Video",
+      "message_id": "1913961890712329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "4e83867f",
+      "video_file_id": "eFH3aeta02169998990376972552461259117482026092011",
+      "file_type": "Video",
+      "message_id": "1913961890713329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "412fb74b",
+      "video_file_id": "eFIeWBXT03676077949984159822079782707972026092011",
+      "file_type": "Video",
+      "message_id": "1913961890714329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "99bb26ab",
+      "video_file_id": "eFIeuddW05285658712357602201614582500202026092011",
+      "file_type": "Video",
+      "message_id": "1913961890718329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "3c5e560b",
+      "video_file_id": "eFId4NwN04534189060699939830419440167672026092011",
+      "file_type": "Video",
+      "message_id": "1913961890719329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "364ed36a",
+      "video_file_id": "eFIeqsCb05304840846765442799253493328452026092011",
+      "file_type": "Video",
+      "message_id": "1913961890720329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "88221c7d",
+      "video_file_id": "eFIg7cqr02203580112379241229245508520142026092011",
+      "file_type": "Video",
+      "message_id": "1913961890723329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "c5e0aeb5",
+      "video_file_id": "eFIf8Xm505359546753002535197429887804692026092011",
+      "file_type": "Video",
+      "message_id": "1913961890724329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    },
+    {
+      "id": "3b628149",
+      "video_file_id": "eFIfELIH06041483143100950959101845359302026092011",
+      "file_type": "Video",
+      "message_id": "1913961890725329284",
+      "source_channel_guid": null,
+      "title": "ویدیو جدید"
+    }
+  ],
   "pending_photo": null,
   "files_by_number": {
     "1": {
@@ -670,7 +831,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-20 11:30"
+    "heartbeat": "2026-09-20 11:58"
   },
   "errors": [
     {
@@ -786,7 +947,27 @@
     "m:1913929872035329284",
     "m:1913929872040329284",
     "m:1913929872076329284",
-    "m:1913929872103329284"
+    "m:1913929872103329284",
+    "m:1913961890695329284",
+    "m:1913961890696329284",
+    "m:1913961890697329284",
+    "m:1913961890699329284",
+    "m:1913961890702329284",
+    "m:1913961890704329284",
+    "m:1913961890705329284",
+    "m:1913961890706329284",
+    "m:1913961890707329284",
+    "m:1913961890708329284",
+    "m:1913961890709329284",
+    "m:1913961890712329284",
+    "m:1913961890713329284",
+    "m:1913961890714329284",
+    "m:1913961890718329284",
+    "m:1913961890719329284",
+    "m:1913961890720329284",
+    "m:1913961890723329284",
+    "m:1913961890724329284",
+    "m:1913961890725329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
