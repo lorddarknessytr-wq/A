@@ -64,7 +64,7 @@ def handle_source_channel_message(state, msg):
         }
 
     elif video_parsed is not None or file_type == "Video":
-        title = (video_parsed or {}).get("title") or caption.strip() or "ویدیو جدید"
+        title = (video_parsed or {}).get("title") or caption.strip() or ""
         state["videos"].append({
             "id": uuid_short(),
             "video_file_id": file_info.get("file_id"),
