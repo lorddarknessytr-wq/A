@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6aaf9dba86e19b16d1e2defc",
+  "last_offset_id": "6aafb35f1ea93b0b64b342dc",
   "mods": [
     {
       "id": "dd82c85e",
@@ -777,7 +777,8 @@
       "5774cb04",
       "145d0bfc",
       "e5f96350",
-      "6723b00f"
+      "6723b00f",
+      "fc88fd8c"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -801,12 +802,14 @@
       "e5f96350",
       "4f254baf",
       "95af3c2b",
-      "251e77d6"
+      "251e77d6",
+      "69c0d5b8"
     ],
     "c0Dstdk0f57ec41df351be2d40c89404": [
       "e5f96350",
       "46ea068d",
-      "1604bdcf"
+      "1604bdcf",
+      "c2611f87"
     ]
   },
   "used_videos_per_channel": {
@@ -841,7 +844,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-20 12:30"
+    "heartbeat": "2026-09-20 14:00"
   },
   "errors": [
     {
@@ -864,9 +867,16 @@
       "category": "ارسال به Barbarii_mod",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: آپلود مجدد جواب معتبر نداد: {'status': 'SERVER_ERROR'}",
       "notified": true
+    },
+    {
+      "id": "1c55ad",
+      "time": "2026-09-20 14:04",
+      "category": "ارسال به Barbarii_mod",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-20 12:08",
+  "last_error_notify_time": "2026-09-20 14:04",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
@@ -986,7 +996,8 @@
     "m:1913961890724329284",
     "m:1913961890725329284",
     "m:1913974894970329284",
-    "m:1913985898562329284"
+    "m:1913985898562329284",
+    "m:1914057764112247218"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
@@ -1000,7 +1011,8 @@
       "2026-09-17 19:42:27"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
-      "2026-09-18 16:00:53"
+      "2026-09-20 14:00:38",
+      "2026-09-20 14:00:40"
     ],
     "c0Dstdk0f57ec41df351be2d40c89404": [
       "2026-09-19 12:00:53"
@@ -1024,7 +1036,9 @@
       "c0Dstdk0f57ec41df351be2d40c89404:2": true,
       "c0CkD2t08fb7278be73f1113291ad44d:3": true,
       "c0Dstdk0f57ec41df351be2d40c89404:3": true,
-      "c0DpOuK09d14c5817e0aaf7d4ed92e2b:3": true
+      "c0DpOuK09d14c5817e0aaf7d4ed92e2b:3": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:5": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:5": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
