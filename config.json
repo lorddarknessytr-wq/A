@@ -47,7 +47,7 @@
     {
       "guid": "c0Dstdk0f57ec41df351be2d40c89404",
       "name": "",
-      "enabled": false,
+      "enabled": true,
       "plan": 1,
       "send_file_directly": true,
       "channel_link": "",
