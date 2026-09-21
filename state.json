@@ -899,7 +899,8 @@
       "5604d73f",
       "bc2905cd",
       "251e77d6",
-      "ce06d684"
+      "ce06d684",
+      "1604bdcf"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -951,7 +952,8 @@
       "c27c227f",
       "a25f0234",
       "fc88fd8c",
-      "30d423c0"
+      "30d423c0",
+      "67704fdf"
     ]
   },
   "used_videos_per_channel": {
@@ -963,7 +965,8 @@
       "c5e0aeb5",
       "874c8e7b",
       "88221c7d",
-      "99bb26ab"
+      "99bb26ab",
+      "d9c14b04"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "1b6fbe49"
@@ -976,7 +979,8 @@
       "9ca89373",
       "3b628149",
       "abf9a4a5",
-      "0eb04d0e"
+      "0eb04d0e",
+      "3c5e560b"
     ]
   },
   "channel_activated": {
@@ -1000,7 +1004,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-21 20:30"
+    "heartbeat": "2026-09-21 21:00"
   },
   "errors": [
     {
@@ -1037,9 +1041,23 @@
       "category": "ارسال به ",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: آپلود مجدد جواب معتبر نداد: {'status': 'INVALID_INPUT', 'dev_message': 'Invalid format for image file'}",
       "notified": true
+    },
+    {
+      "id": "4946ca",
+      "time": "2026-09-21 21:03",
+      "category": "ارسال به BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
+    },
+    {
+      "id": "de4f2e",
+      "time": "2026-09-21 21:06",
+      "category": "ارسال به ",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-21 14:02",
+  "last_error_notify_time": "2026-09-21 21:06",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
@@ -1225,7 +1243,9 @@
       "c0CkD2t08fb7278be73f1113291ad44d:10": true,
       "c0Dstdk0f57ec41df351be2d40c89404:10": true,
       "c0CkD2t08fb7278be73f1113291ad44d:11": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:11": true
+      "c0Dstdk0f57ec41df351be2d40c89404:11": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:12": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:12": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
