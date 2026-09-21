@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6ab11e5d941235d95aa0f4c6",
+  "last_offset_id": "6ab121468435833136f52015",
   "mods": [
     {
       "id": "dd82c85e",
@@ -330,6 +330,61 @@
       "description": "این یک افزونه آشپزی است که به شما امکان می‌دهد انواع مختلف غذاها را بپزید، محصولات جدیدی را پرورش دهید و همچنین مبلمان جدیدی به دست آورید!",
       "version": "1.21.101+",
       "number": "30"
+    },
+    {
+      "id": "4119a25d",
+      "photo_file_id": "eG9K6Ui900164883647838120213669373562582026092115",
+      "photo_file_type": null,
+      "photo_message_id": "1915336583979329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Baby Zombie EVERYTHING",
+      "description": "بیش از 40 نوع زامبی کوچک، خطرات و ماجراجویی‌های جدید! با زامبی‌های حیوانات مبارزه کنید، حیوانات خانگی را رام کنید، در میان گروه زامبی‌ها پنهان شوید و با زامبی تخریبگر به مبارزه بپردازید.",
+      "version": "1.26.30+",
+      "number": "31"
+    },
+    {
+      "id": "bc2905cd",
+      "photo_file_id": "eGaVK6rh06754799548988456303937710452332026092115",
+      "photo_file_type": null,
+      "photo_message_id": "1915336583982329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Pirates",
+      "description": "به یک دزد دریایی واقعی تبدیل شوید، کشتی خود را بسازید و ارتقا دهید، با مار دریایی مبارزه کنید و گنج‌های کمیاب و آیتم‌های قدرتمند را پیدا کنید!",
+      "version": "26.0+",
+      "number": "32"
+    },
+    {
+      "id": "5604d73f",
+      "photo_file_id": "eGaVcm3203463471548735774628737589751852026092115",
+      "photo_file_type": null,
+      "photo_message_id": "1915336583985329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Fabulous Furniture",
+      "description": "بیش از 250 قطعه مبلمان به سبک وانیلا! مبلمان خود را شخصی‌سازی کنید، از بین 16 رنگ انتخاب کنید، از قطعات تعاملی استفاده کنید و از ویژگی‌ها و جلوه‌های منحصربه‌فرد زیادی لذت ببرید.",
+      "version": "26.0+",
+      "number": "33"
+    },
+    {
+      "id": "67704fdf",
+      "photo_file_id": "eGaWjFAC02541663758493253928444798171572026092115",
+      "photo_file_type": null,
+      "photo_message_id": "1915336583988329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Al Players",
+      "description": "همراه با بازیکنان هوش مصنوعی بازی کنید، منابع را جمع‌آوری کنید، دنیا را کاوش کنید و حتی در حالت آفلاین با دشمنان مبارزه کنید.",
+      "version": "1.26.1+",
+      "number": "34"
+    },
+    {
+      "id": "19ccf7e8",
+      "photo_file_id": "eGaXLZa804184831768822786656156787152342026092115",
+      "photo_file_type": null,
+      "photo_message_id": "1915336583993329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Headcams",
+      "description": "آیا می‌خواهید استریمینگ را به ماینکرافت اضافه کنید؟ از دوربین‌های پیشانی استفاده کنید یا دوربین‌ها را روی سه‌پایه قرار دهید تا دنیا و پایگاه‌های خود را از زوایای مختلف به صورت زنده مشاهده کنید.",
+      "version": "26.0+",
+      "number": "35"
     }
   ],
   "videos": [
@@ -765,6 +820,51 @@
       "message_id": "1912993397451329284",
       "source_channel_guid": null,
       "title": "افزونه‌ی Farmer's Delight"
+    },
+    "31": {
+      "file_id": "eG9KlDy108895067737806815343147584152732026092115",
+      "file_type": "File",
+      "file_name": "Baby Zombie EVERYTHING! Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1915336583980329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Baby Zombie EVERYTHING"
+    },
+    "32": {
+      "file_id": "eGaWLrn304098890226142381978853412933892026092115",
+      "file_type": "File",
+      "file_name": "Пираты Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1915336583983329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Pirates"
+    },
+    "33": {
+      "file_id": "eGaWGjt709590569065438661325262317361542026092115",
+      "file_type": "File",
+      "file_name": "Великолепная мебель Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1915336583987329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Fabulous Furniture"
+    },
+    "34": {
+      "file_id": "eGaVktI207056720021883722576862393745062026092115",
+      "file_type": "File",
+      "file_name": "AI Players Add-On (addon).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1915336583992329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Al Players"
+    },
+    "35": {
+      "file_id": "eGaVfLkX02289126764532877060255003967132026092115",
+      "file_type": "File",
+      "file_name": "Headcams (addon) (1).mcaddon",
+      "manual_extension": ".mcaddon",
+      "message_id": "1915336583994329284",
+      "source_channel_guid": null,
+      "title": "افزونه‌ی Headcams"
     }
   },
   "recent_files": {},
@@ -794,7 +894,8 @@
       "d8644e7e",
       "a25f0234",
       "1f51eda1",
-      "80a98c75"
+      "80a98c75",
+      "95af3c2b"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -841,7 +942,8 @@
       "80a98c75",
       "e4ccdab7",
       "251e77d6",
-      "1c2b8da0"
+      "1c2b8da0",
+      "4119a25d"
     ]
   },
   "used_videos_per_channel": {
@@ -888,7 +990,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-21 15:38"
+    "heartbeat": "2026-09-21 16:00"
   },
   "errors": [
     {
@@ -1051,7 +1153,17 @@
     "m:1914057764112247218",
     "m:1915327575886329284",
     "m:1915330577993329284",
-    "m:1915331578424329284"
+    "m:1915331578424329284",
+    "m:1915336583979329284",
+    "m:1915336583980329284",
+    "m:1915336583982329284",
+    "m:1915336583983329284",
+    "m:1915336583985329284",
+    "m:1915336583987329284",
+    "m:1915336583988329284",
+    "m:1915336583992329284",
+    "m:1915336583993329284",
+    "m:1915336583994329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
@@ -1093,7 +1205,9 @@
       "c0Dstdk0f57ec41df351be2d40c89404:4": true,
       "c0CkD2t08fb7278be73f1113291ad44d:5": true,
       "c0CkD2t08fb7278be73f1113291ad44d:6": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:6": true
+      "c0Dstdk0f57ec41df351be2d40c89404:6": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:7": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:7": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
