@@ -873,7 +873,8 @@
     "c0CkD2t08fb7278be73f1113291ad44d": [
       "145d0bfc",
       "1f51eda1",
-      "4119a25d"
+      "4119a25d",
+      "95af3c2b"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -934,7 +935,8 @@
       "5604d73f",
       "ce06d684",
       "c7f688ed",
-      "19ccf7e8"
+      "19ccf7e8",
+      "d8644e7e"
     ]
   },
   "used_videos_per_channel": {
@@ -949,7 +951,8 @@
       "99bb26ab",
       "d9c14b04",
       "3c5e560b",
-      "abf9a4a5"
+      "abf9a4a5",
+      "f3b3a0fd"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "1b6fbe49"
@@ -965,7 +968,8 @@
       "0eb04d0e",
       "3c5e560b",
       "14e702fa",
-      "d9c14b04"
+      "d9c14b04",
+      "d6b933f8"
     ]
   },
   "channel_activated": {
@@ -989,7 +993,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-22 14:30"
+    "heartbeat": "2026-09-22 15:00"
   },
   "errors": [
     {
@@ -1217,13 +1221,17 @@
       "c0CkD2t08fb7278be73f1113291ad44d:4": true,
       "c0Dstdk0f57ec41df351be2d40c89404:4": true,
       "c0CkD2t08fb7278be73f1113291ad44d:5": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:5": true
+      "c0Dstdk0f57ec41df351be2d40c89404:5": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:6": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:6": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
       "c0Dstdk0f57ec41df351be2d40c89404:0": true,
       "c0CkD2t08fb7278be73f1113291ad44d:1": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:1": true
+      "c0Dstdk0f57ec41df351be2d40c89404:1": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:2": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:2": true
     }
   }
 }
