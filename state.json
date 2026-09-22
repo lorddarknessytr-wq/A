@@ -881,7 +881,8 @@
       "ce06d684",
       "d8644e7e",
       "ebc1d38f",
-      "e5f96350"
+      "e5f96350",
+      "14656abf"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -915,7 +916,8 @@
       "ce06d684",
       "4119a25d",
       "5774cb04",
-      "c7f688ed"
+      "c7f688ed",
+      "d8644e7e"
     ]
   },
   "used_videos_per_channel": {
@@ -976,7 +978,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-22 22:30"
+    "heartbeat": "2026-09-22 23:00"
   },
   "errors": [
     {
@@ -1041,9 +1043,16 @@
       "category": "ارسال به BarBariio_yt",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
       "notified": true
+    },
+    {
+      "id": "4af6f0",
+      "time": "2026-09-22 23:03",
+      "category": "ارسال به ",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-22 21:05",
+  "last_error_notify_time": "2026-09-22 23:04",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
@@ -1233,7 +1242,8 @@
       "c0CkD2t08fb7278be73f1113291ad44d:12": true,
       "c0Dstdk0f57ec41df351be2d40c89404:12": true,
       "c0CkD2t08fb7278be73f1113291ad44d:13": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:13": true
+      "c0Dstdk0f57ec41df351be2d40c89404:13": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:14": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
