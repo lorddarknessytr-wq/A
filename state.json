@@ -891,7 +891,8 @@
       "5774cb04",
       "c2611f87",
       "dd82c85e",
-      "e9e29d72"
+      "e9e29d72",
+      "82a87d08"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -935,7 +936,8 @@
       "a71d46b6",
       "19ccf7e8",
       "1f51eda1",
-      "30d423c0"
+      "30d423c0",
+      "1604bdcf"
     ]
   },
   "used_videos_per_channel": {
@@ -956,7 +958,8 @@
       "9ca89373",
       "4e83867f",
       "364ed36a",
-      "3b628149"
+      "3b628149",
+      "1b6fbe49"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "1b6fbe49"
@@ -978,7 +981,8 @@
       "f3b3a0fd",
       "364ed36a",
       "1b6fbe49",
-      "412fb74b"
+      "412fb74b",
+      "99bb26ab"
     ]
   },
   "channel_activated": {
@@ -1002,7 +1006,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-23 17:30"
+    "heartbeat": "2026-09-23 18:00"
   },
   "errors": [
     {
@@ -1095,9 +1099,16 @@
       "category": "ارسال به ",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
       "notified": true
+    },
+    {
+      "id": "f8f29d",
+      "time": "2026-09-23 18:02",
+      "category": "ارسال به BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: آپلود مجدد جواب معتبر نداد: {'status': 'SERVER_ERROR'}",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-23 14:04",
+  "last_error_notify_time": "2026-09-23 18:03",
   "bug_page_offset": 5,
   "pending_file_requests": {},
   "processed_updates": [
@@ -1277,14 +1288,17 @@
       "c0CkD2t08fb7278be73f1113291ad44d:7": true,
       "c0Dstdk0f57ec41df351be2d40c89404:7": true,
       "c0CkD2t08fb7278be73f1113291ad44d:8": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:8": true
+      "c0Dstdk0f57ec41df351be2d40c89404:8": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:9": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:9": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
       "c0Dstdk0f57ec41df351be2d40c89404:0": true,
       "c0CkD2t08fb7278be73f1113291ad44d:1": true,
       "c0CkD2t08fb7278be73f1113291ad44d:2": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:2": true
+      "c0Dstdk0f57ec41df351be2d40c89404:2": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:3": true
     }
   }
 }
