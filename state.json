@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6ab39517d2167ece3b97b061",
+  "last_offset_id": "6ab43bc217d3e511ddbde3e0",
   "mods": [
     {
       "id": "dd82c85e",
@@ -897,7 +897,8 @@
       "5604d73f",
       "5846b0c3",
       "e996eece",
-      "fc88fd8c"
+      "fc88fd8c",
+      "a71d46b6"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -970,7 +971,8 @@
       "364ed36a",
       "3b628149",
       "1b6fbe49",
-      "412fb74b"
+      "412fb74b",
+      "0eb04d0e"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "1b6fbe49"
@@ -1018,7 +1020,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-23 23:30"
+    "heartbeat": "2026-09-24 00:21"
   },
   "errors": [
     {
@@ -1125,9 +1127,16 @@
       "category": "ارسال به ",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
       "notified": true
+    },
+    {
+      "id": "3fd416",
+      "time": "2026-09-24 00:24",
+      "category": "پست فوری ویدیو برای BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-23 21:06",
+  "last_error_notify_time": "2026-09-24 00:24",
   "bug_page_offset": 5,
   "pending_file_requests": {},
   "processed_updates": [
@@ -1262,7 +1271,11 @@
     "m:1915336583992329284",
     "m:1915336583993329284",
     "m:1915336583994329284",
-    "m:1917374606060329284"
+    "m:1917374606060329284",
+    "m:1918102964199329284",
+    "m:1918102964231329284",
+    "m:1918102964325329284",
+    "m:1918103965064329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
