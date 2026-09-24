@@ -872,7 +872,8 @@
     "c0DBT990e47b63fa688bba87d5736cc2": [],
     "c0CkD2t08fb7278be73f1113291ad44d": [
       "c7f688ed",
-      "bc2905cd"
+      "bc2905cd",
+      "1c2b8da0"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -900,41 +901,7 @@
       "69c0d5b8"
     ],
     "c0Dstdk0f57ec41df351be2d40c89404": [
-      "e9e29d72",
-      "c27c227f",
-      "6723b00f",
-      "ce06d684",
-      "4119a25d",
-      "5774cb04",
-      "c7f688ed",
-      "d8644e7e",
-      "c2611f87",
-      "dd82c85e",
-      "82a87d08",
-      "251e77d6",
-      "4f254baf",
-      "a71d46b6",
-      "19ccf7e8",
-      "1f51eda1",
-      "30d423c0",
-      "1604bdcf",
-      "95af3c2b",
-      "e5f96350",
-      "46ea068d",
-      "e4ccdab7",
-      "80a98c75",
-      "145d0bfc",
-      "bc2905cd",
-      "fc88fd8c",
-      "67704fdf",
-      "1c2b8da0",
-      "5846b0c3",
-      "5604d73f",
-      "e996eece",
-      "69c0d5b8",
-      "a25f0234",
-      "ebc1d38f",
-      "14656abf"
+      "95af3c2b"
     ]
   },
   "used_videos_per_channel": {
@@ -975,7 +942,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-24 16:30"
+    "heartbeat": "2026-09-24 17:01"
   },
   "errors": [
     {
@@ -1288,7 +1255,9 @@
       "c0CkD2t08fb7278be73f1113291ad44d:6": true,
       "c0Dstdk0f57ec41df351be2d40c89404:6": true,
       "c0CkD2t08fb7278be73f1113291ad44d:7": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:7": true
+      "c0Dstdk0f57ec41df351be2d40c89404:7": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:8": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:8": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
