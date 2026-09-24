@@ -383,6 +383,13 @@ def handle_owner_message(token, config, state, text, msg=None):
         core.send_message(token, config["owner_guid"], core.build_bugs_page(state))
         return
 
+    if text == "/clearbugs":
+        n = len(state.get("errors", []))
+        state["errors"] = []
+        state["bug_page_offset"] = 0
+        core.send_message(token, config["owner_guid"], f"🧹 لیست باگ‌ها پاک شد ({n} مورد حذف شد).")
+        return
+
     n_mods = len(state.get("mods", []))
     n_videos = len(state.get("videos", []))
     n_errors = len(state.get("errors", []))
@@ -396,6 +403,7 @@ def handle_owner_message(token, config, state, text, msg=None):
         f"🎬 ویدیوهای ذخیره‌شده: {n_videos}\n"
         f"🐞 تعداد کل باگ‌های ثبت‌شده: {n_errors}\n"
         f"برای دیدن گزارش باگ‌ها: /bugs\n"
+        f"برای پاک کردن لیست باگ‌ها: /clearbugs\n"
         f"برای پنل کانال‌ها: {panel_keyword}\n"
         f"برای پاسخ به تیکت: /reply <GUID> <متن>\n"
         f"برای راهنما: /help"
