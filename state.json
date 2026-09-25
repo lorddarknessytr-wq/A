@@ -882,7 +882,8 @@
       "145d0bfc",
       "c27c227f",
       "19ccf7e8",
-      "80a98c75"
+      "80a98c75",
+      "5604d73f"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -919,7 +920,8 @@
       "6723b00f",
       "dd82c85e",
       "bc2905cd",
-      "5774cb04"
+      "5774cb04",
+      "1f51eda1"
     ]
   },
   "used_videos_per_channel": {
@@ -966,7 +968,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-25 11:30"
+    "heartbeat": "2026-09-25 12:00"
   },
   "errors": [
     {
@@ -1087,9 +1089,23 @@
       "category": "ارسال به ",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
       "notified": true
+    },
+    {
+      "id": "80ec60",
+      "time": "2026-09-25 12:12",
+      "category": "ارسال به BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
+    },
+    {
+      "id": "f0e450",
+      "time": "2026-09-25 12:23",
+      "category": "ارسال به ",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-25 10:13",
+  "last_error_notify_time": "2026-09-25 12:23",
   "bug_page_offset": 15,
   "pending_file_requests": {},
   "processed_updates": [
