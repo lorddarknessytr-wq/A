@@ -887,7 +887,8 @@
       "95af3c2b",
       "e5f96350",
       "e996eece",
-      "d8644e7e"
+      "d8644e7e",
+      "251e77d6"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -977,7 +978,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-25 16:30"
+    "heartbeat": "2026-09-25 17:00"
   },
   "errors": [
     {
@@ -1154,9 +1155,16 @@
       "category": "ارسال به ",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
       "notified": true
+    },
+    {
+      "id": "dc4dcf",
+      "time": "2026-09-25 17:02",
+      "category": "ارسال به BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): آپلود مجدد جواب معتبر نداد: {'status': 'INVALID_INPUT', 'dev_message': 'Invalid format for image file'}",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-25 16:23",
+  "last_error_notify_time": "2026-09-25 17:02",
   "bug_page_offset": 20,
   "pending_file_requests": {},
   "processed_updates": [
