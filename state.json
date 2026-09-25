@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6ab619bc4c92f19ba8afe6ff",
+  "last_offset_id": "6ab63a34e26696c72d730af1",
   "mods": [
     {
       "id": "dd82c85e",
@@ -883,7 +883,8 @@
       "c27c227f",
       "19ccf7e8",
       "80a98c75",
-      "5604d73f"
+      "5604d73f",
+      "95af3c2b"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -921,7 +922,8 @@
       "dd82c85e",
       "bc2905cd",
       "5774cb04",
-      "1f51eda1"
+      "1f51eda1",
+      "82a87d08"
     ]
   },
   "used_videos_per_channel": {
@@ -968,7 +970,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-25 12:30"
+    "heartbeat": "2026-09-25 13:00"
   },
   "errors": [
     {
@@ -1103,9 +1105,23 @@
       "category": "ارسال به ",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
       "notified": true
+    },
+    {
+      "id": "dd7d19",
+      "time": "2026-09-25 13:11",
+      "category": "ارسال به BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
+    },
+    {
+      "id": "2a1655",
+      "time": "2026-09-25 13:23",
+      "category": "ارسال به ",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-25 12:23",
+  "last_error_notify_time": "2026-09-25 13:23",
   "bug_page_offset": 15,
   "pending_file_requests": {},
   "processed_updates": [
@@ -1258,7 +1274,8 @@
     "m:1918482176501329284",
     "m:1918489179761329284",
     "m:1918489179792329284",
-    "m:1919435633932329284"
+    "m:1919435633932329284",
+    "m:1919537677899329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
