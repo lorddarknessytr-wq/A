@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6ab63a34e26696c72d730af1",
+  "last_offset_id": "6ab6647af88965c02a325034",
   "mods": [
     {
       "id": "dd82c85e",
@@ -886,7 +886,8 @@
       "5604d73f",
       "95af3c2b",
       "e5f96350",
-      "e996eece"
+      "e996eece",
+      "d8644e7e"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -927,7 +928,8 @@
       "1f51eda1",
       "82a87d08",
       "c7f688ed",
-      "30d423c0"
+      "30d423c0",
+      "d8644e7e"
     ]
   },
   "used_videos_per_channel": {
@@ -975,7 +977,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-25 15:31"
+    "heartbeat": "2026-09-25 16:00"
   },
   "errors": [
     {
@@ -1138,10 +1140,24 @@
       "category": "ارسال به ",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
       "notified": true
+    },
+    {
+      "id": "03b643",
+      "time": "2026-09-25 16:11",
+      "category": "ارسال به BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
+    },
+    {
+      "id": "31e209",
+      "time": "2026-09-25 16:23",
+      "category": "ارسال به ",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): ('Connection aborted.', TimeoutError('The write operation timed out'))",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-25 15:26",
-  "bug_page_offset": 15,
+  "last_error_notify_time": "2026-09-25 16:23",
+  "bug_page_offset": 20,
   "pending_file_requests": {},
   "processed_updates": [
     "m:1910780288457329284",
@@ -1294,7 +1310,8 @@
     "m:1918489179761329284",
     "m:1918489179792329284",
     "m:1919435633932329284",
-    "m:1919537677899329284"
+    "m:1919537677899329284",
+    "m:1919710760325329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
