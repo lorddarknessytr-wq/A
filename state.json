@@ -871,41 +871,7 @@
   "used_mods_per_channel": {
     "c0DBT990e47b63fa688bba87d5736cc2": [],
     "c0CkD2t08fb7278be73f1113291ad44d": [
-      "c7f688ed",
-      "bc2905cd",
-      "1c2b8da0",
-      "5774cb04",
-      "e9e29d72",
-      "67704fdf",
-      "e4ccdab7",
-      "14656abf",
-      "145d0bfc",
-      "c27c227f",
-      "19ccf7e8",
-      "80a98c75",
-      "5604d73f",
-      "95af3c2b",
-      "e5f96350",
-      "e996eece",
-      "d8644e7e",
-      "251e77d6",
-      "dd82c85e",
-      "5846b0c3",
-      "1f51eda1",
-      "69c0d5b8",
-      "c2611f87",
-      "6723b00f",
-      "30d423c0",
-      "a71d46b6",
-      "1604bdcf",
-      "a25f0234",
-      "82a87d08",
-      "ebc1d38f",
-      "4119a25d",
-      "fc88fd8c",
-      "ce06d684",
-      "4f254baf",
-      "46ea068d"
+      "1604bdcf"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -1001,7 +967,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-26 19:30"
+    "heartbeat": "2026-09-26 20:00"
   },
   "errors": [],
   "last_error_notify_time": "2026-09-25 18:13",
@@ -1200,7 +1166,8 @@
       "c0CkD2t08fb7278be73f1113291ad44d:7": true,
       "c0CkD2t08fb7278be73f1113291ad44d:8": true,
       "c0CkD2t08fb7278be73f1113291ad44d:9": true,
-      "c0CkD2t08fb7278be73f1113291ad44d:10": true
+      "c0CkD2t08fb7278be73f1113291ad44d:10": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:11": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
