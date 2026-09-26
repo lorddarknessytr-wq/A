@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6ab6a39eebc1a70b9ff239ec",
+  "last_offset_id": "6ab81fd903c2eb84b91dc41a",
   "mods": [
     {
       "id": "dd82c85e",
@@ -957,7 +957,8 @@
       "145d0bfc",
       "bc2905cd",
       "fc88fd8c",
-      "67704fdf"
+      "67704fdf",
+      "14656abf"
     ]
   },
   "used_videos_per_channel": {
@@ -993,7 +994,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-24 12:30"
+    "heartbeat": "2026-09-26 23:11"
   },
   "errors": [
     {
@@ -1107,9 +1108,16 @@
       "category": "پست فوری ویدیو برای BarBariio_yt",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: ('Connection aborted.', TimeoutError('The write operation timed out'))",
       "notified": true
+    },
+    {
+      "id": "d07b9c",
+      "time": "2026-09-26 23:13",
+      "category": "پست فوری ویدیو برای ",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): پاسخ sendFile بدون message_id: {'status': 'INVALID_INPUT', 'dev_message': 'The length or from_index is not valid.'}",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-24 00:24",
+  "last_error_notify_time": "2026-09-26 23:13",
   "bug_page_offset": 5,
   "pending_file_requests": {},
   "processed_updates": [
@@ -1249,7 +1257,9 @@
     "m:1918102964231329284",
     "m:1918102964325329284",
     "m:1918103965064329284",
-    "m:1918122974741329284"
+    "m:1918122974741329284",
+    "m:1921153495266329284",
+    "m:1921153495382329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
