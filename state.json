@@ -900,7 +900,8 @@
       "1604bdcf",
       "a25f0234",
       "82a87d08",
-      "ebc1d38f"
+      "ebc1d38f",
+      "4119a25d"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -957,7 +958,8 @@
       "88221c7d",
       "3b628149",
       "f3b3a0fd",
-      "d9c14b04"
+      "d9c14b04",
+      "364ed36a"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "1b6fbe49"
@@ -994,7 +996,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-26 14:30"
+    "heartbeat": "2026-09-26 15:00"
   },
   "errors": [],
   "last_error_notify_time": "2026-09-25 18:13",
@@ -1188,11 +1190,13 @@
       "c0CkD2t08fb7278be73f1113291ad44d:2": true,
       "c0CkD2t08fb7278be73f1113291ad44d:3": true,
       "c0CkD2t08fb7278be73f1113291ad44d:4": true,
-      "c0CkD2t08fb7278be73f1113291ad44d:5": true
+      "c0CkD2t08fb7278be73f1113291ad44d:5": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:6": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
-      "c0CkD2t08fb7278be73f1113291ad44d:1": true
+      "c0CkD2t08fb7278be73f1113291ad44d:1": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:2": true
     }
   }
 }
