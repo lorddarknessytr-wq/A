@@ -107,25 +107,34 @@ FORMAT_TYPES = {
 }
 
 
+def _utf16_len(s):
+    """طول رشته بر حسب واحدهای UTF-16 (مثل تلگرام) — هر ایموجی/کاراکتر
+    خارج از BMP دو واحد حساب می‌شه، نه یکی. قبلاً از len() پایتون
+    (تعداد کاراکتر خام) استفاده می‌شد که وقتی قبل از بخش فرمت‌شده
+    ایموجی بود، مرز بولد/نقل‌قول رو جابه‌جا می‌کرد و باعث می‌شد بخشی از
+    متن از داخل باکس «بیرون بزنه»."""
+    return len(s.encode("utf-16-le")) // 2
+
+
 def build_text_with_metadata(parts):
     """
     parts: لیستی از تاپل (متن, نوع‌فرمت یا None). نوع‌فرمت یکی از کلیدهای
     FORMAT_TYPES (مثلاً "bold", "quote"). خروجی: (متن نهایی، آرایهٔ
-    metadata برای فرستادن به روبیکا).
-    توجه: افست‌ها بر اساس تعداد کاراکتر پایتونی حساب می‌شن (نه UTF-16
-    مثل تلگرام). اگه بعد از تست دیدی محدودهٔ بولد/نقل‌قول یکی-دو
-    کاراکتر جابه‌جا نمایش داده می‌شه (معمولاً به‌خاطر ایموجی قبل از اون
-    بخش)، بهم بگو تا حساب افست رو با UTF-16 عوض کنم.
+    metadata برای فرستادن به روبیکا). افست‌ها بر اساس واحد UTF-16
+    حساب می‌شن (همون قراردادی که تلگرام و به‌احتمال زیاد خودِ روبیکا
+    استفاده می‌کنن) تا مرز بولد/نقل‌قول با وجود ایموجی هم دقیق بمونه.
     """
     text = ""
     metadata = []
+    pos16 = 0
     for chunk, fmt in parts:
         if not chunk:
             continue
-        start = len(text)
         text += chunk
+        length16 = _utf16_len(chunk)
         if fmt:
-            metadata.append({"type": FORMAT_TYPES[fmt], "from_index": start, "length": len(chunk)})
+            metadata.append({"type": FORMAT_TYPES[fmt], "from_index": pos16, "length": length16})
+        pos16 += length16
     return text, metadata
 
 
@@ -134,15 +143,9 @@ _CUSTOM_QUOTE_RE = re.compile(r"/Quote(.*?)/Quote", re.IGNORECASE | re.DOTALL)
 
 def parse_custom_markup(text):
     """
-    برای متن‌های کاستوم داخل config.json (مثل mod_photo_extra_text یا
-    video_extra_text): هر بخشی بین دو تا /Quote رو به‌صورت نقل‌قول
-    علامت می‌زنه. خروجی مستقیم قابل‌استفاده توی build_text_with_metadata
-    یا اضافه‌شدن به لیست parts هست.
-
-    مثال تنظیم در config.json:
-        "mod_photo_extra_text": "سلام /Quote این خط نقل‌قول می‌شه /Quote خداحافظ"
-
-    اگه هیچ /Quote ای توی متن نباشه، همون متن ساده و بدون فرمت برمی‌گرده.
+    برای متن‌های کاستوم داخل config.json: هر بخشی بین دو تا /Quote رو
+    به‌صورت نقل‌قول علامت می‌زنه. خروجی مستقیم قابل‌استفاده توی
+    build_text_with_metadata یا اضافه‌شدن به لیست parts هست.
     """
     if not text:
         return []
@@ -281,18 +284,14 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
             return result
         except Exception as direct_error:
             print(f"DEBUG: sendFile مستقیم ناموفق: {direct_error}")
-            # اگه احتمالاً به‌خاطر metadata (فرمت‌دهی) رد شده، فوراً یک بار
-            # بدون metadata امتحان می‌کنیم — این‌طوری یک باگ فرمت‌دهی هیچ‌وقت
-            # جلوی اصل تحویل فایل رو نمی‌گیره، فقط فرمتش ساده می‌مونه.
             if metadata:
                 try:
                     result = _try(file_id, use_metadata=False)
-                    print(f"DEBUG: sendFile بدون metadata موفق (فرمت‌دهی رد شد ولی فایل رسید) -> chat_id={chat_id}")
+                    print(f"DEBUG: sendFile بدون metadata موفق -> chat_id={chat_id}")
                     return result
                 except Exception as no_meta_error:
                     print(f"DEBUG: بدون metadata هم ناموفق: {no_meta_error}")
 
-        # اگر فایل از کانال منبع آمده، فوروارد از دانلود/آپلود بسیار سریع‌تر است.
         if source_chat_id and source_message_id:
             try:
                 fwd = forward_message(token, source_chat_id, source_message_id, chat_id)
@@ -303,7 +302,6 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
             except Exception as forward_error:
                 print(f"DEBUG: forwardMessage ناموفق: {forward_error}")
 
-        # فقط یک بار re-upload به عنوان آخرین راه.
         new_file_id = reupload_file(token, file_id, send_type, safe_name)
         result = _try(new_file_id)
         print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id}")
@@ -580,11 +578,8 @@ def send_mod(token, channel, mod, state):
     if direct and mod.get("number"):
         entry = state.get("files_by_number", {}).get(mod["number"])
         if entry and entry.get("file_id"):
-            caption_text, caption_meta = build_text_with_metadata(
-                parse_custom_markup(channel.get("mod_file_caption", ""))
-            )
             send_file(
-                token, channel["guid"], entry["file_id"], caption_text, metadata=caption_meta,
+                token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""),
                 file_type=entry.get("file_type") or "File",
                 file_name=f"{mod['number']}{entry.get('manual_extension') or file_extension(entry.get('file_name'))}",
                 source_chat_id=source_guid, source_message_id=entry.get("message_id"),
@@ -634,6 +629,24 @@ def pick_item(items, used_ids):
 # ---------------------------------------------------------------------------
 # جلوگیری از سیل پیام‌های دوره‌ای (دفترچهٔ ارسال سبک)
 # ---------------------------------------------------------------------------
+def prune_sent_log(state, max_age_hours=1):
+    """حذف رکوردهای قدیمی‌تر از max_age_hours از دفترچهٔ ارسال (مثل
+    یادداشت‌های تکراری «ربات فعال است»/heartbeat) تا فایل state.json
+    سنگین نشه. جدا از should_send_now هم قابل‌فراخوانیه تا این پاک‌سازی
+    هر اجرا تضمینی انجام بشه، نه فقط وقتی یک کلید خاص چک می‌شه."""
+    log = state.get("sent_log", {})
+    if not log:
+        return
+    now = tehran_now().replace(tzinfo=None)
+    cutoff = now - timedelta(hours=max_age_hours)
+    for k in list(log.keys()):
+        try:
+            if datetime.strptime(log[k], "%Y-%m-%d %H:%M") < cutoff:
+                del log[k]
+        except Exception:
+            del log[k]
+
+
 def should_send_now(state, key, min_interval_minutes):
     """اگر برای این key در min_interval_minutes اخیر پیامی ثبت نشده، True
     برمی‌گرداند و زمان الان را ثبت می‌کند. ورودی‌های قدیمی‌تر از ۱ ساعت
@@ -651,17 +664,7 @@ def should_send_now(state, key, min_interval_minutes):
             pass
 
     log[key] = now.strftime("%Y-%m-%d %H:%M")
-
-    cutoff = now - timedelta(hours=1)
-    for k in list(log.keys()):
-        if k == key:
-            continue
-        try:
-            if datetime.strptime(log[k], "%Y-%m-%d %H:%M") < cutoff:
-                del log[k]
-        except Exception:
-            del log[k]
-
+    prune_sent_log(state)
     return True
 
 

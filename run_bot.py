@@ -453,19 +453,23 @@ def run_posting_schedule(token, config, state):
         try:
             if due_mod and not posted["mod"].get(mod_key):
                 used = state["used_mods_per_channel"].setdefault(guid, [])
-                item, used = core.pick_item(state["mods"], used)
-                state["used_mods_per_channel"][guid] = used
+                item, candidate_used = core.pick_item(state["mods"], used)
                 if item is not None:
                     core.send_mod(token, channel, item, state)
+                    # فقط بعد از ارسال واقعاً موفق، به‌عنوان «مصرف‌شده» ثبت می‌شه —
+                    # قبلاً این خط قبل از send_mod اجرا می‌شد و اگه ارسال شکست
+                    # می‌خورد (حتی بعد از همهٔ retry ها)، مود همون لحظه برای
+                    # همیشه سوخته می‌شد و دیگه هیچ‌وقت دوباره امتحان نمی‌شد.
+                    state["used_mods_per_channel"][guid] = candidate_used
                     posted_summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
                 posted["mod"][mod_key] = True
 
             if due_video and not posted["video"].get(video_key):
                 used_v = state["used_videos_per_channel"].setdefault(guid, [])
-                vitem, used_v = core.pick_item(state["videos"], used_v)
-                state["used_videos_per_channel"][guid] = used_v
+                vitem, candidate_used_v = core.pick_item(state["videos"], used_v)
                 if vitem is not None:
                     core.send_video(token, channel, vitem)
+                    state["used_videos_per_channel"][guid] = candidate_used_v
                     posted_summary.append(f"🎬 {channel['name']}: ویدیو «{vitem['title']}»")
                 posted["video"][video_key] = True
         except Exception as e:
@@ -508,17 +512,17 @@ def run_force_post_typed(token, config, state, target, kind):
         try:
             if kind == "mod":
                 used = state["used_mods_per_channel"].setdefault(guid, [])
-                item, used = core.pick_item(state["mods"], used)
-                state["used_mods_per_channel"][guid] = used
+                item, candidate_used = core.pick_item(state["mods"], used)
                 if item is not None:
                     core.send_mod(token, channel, item, state)
+                    state["used_mods_per_channel"][guid] = candidate_used
                     summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
             else:
                 used = state["used_videos_per_channel"].setdefault(guid, [])
-                item, used = core.pick_item(state["videos"], used)
-                state["used_videos_per_channel"][guid] = used
+                item, candidate_used = core.pick_item(state["videos"], used)
                 if item is not None:
                     core.send_video(token, channel, item)
+                    state["used_videos_per_channel"][guid] = candidate_used
                     summary.append(f"🎬 {channel['name']}: ویدیو «{item['title']}»")
         except Exception as e:
             core.log_error(state, f"پست فوری {kind_fa} برای {channel['name']}", e)
@@ -707,6 +711,7 @@ def main():
         pass
 
     core.trim_stored_content(state)
+    core.prune_sent_log(state)  # پاک‌سازی تضمینیِ یادداشت‌های قدیمی (مثل heartbeat) هر اجرا
 
     print(f"DEBUG: وضعیت قبل از ذخیره -> last_offset_id={state.get('last_offset_id')!r} "
           f"mods={len(state.get('mods', []))} videos={len(state.get('videos', []))} "
