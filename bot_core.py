@@ -578,8 +578,11 @@ def send_mod(token, channel, mod, state):
     if direct and mod.get("number"):
         entry = state.get("files_by_number", {}).get(mod["number"])
         if entry and entry.get("file_id"):
+            caption_text, caption_meta = build_text_with_metadata(
+                parse_custom_markup(channel.get("mod_file_caption", ""))
+            )
             send_file(
-                token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""),
+                token, channel["guid"], entry["file_id"], caption_text, metadata=caption_meta,
                 file_type=entry.get("file_type") or "File",
                 file_name=f"{mod['number']}{entry.get('manual_extension') or file_extension(entry.get('file_name'))}",
                 source_chat_id=source_guid, source_message_id=entry.get("message_id"),
