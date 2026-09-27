@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6ab98470686bd11364cd3fd0",
+  "last_offset_id": "6ab9854f394434b10a7f6289",
   "mods": [
     {
       "id": "dd82c85e",
@@ -1206,7 +1206,9 @@
       "bc2905cd",
       "46ea068d",
       "33d4c5e0",
-      "b945bed9"
+      "b945bed9",
+      "8243ea5a",
+      "2c4ccca0"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "e4ccdab7",
@@ -1270,7 +1272,8 @@
       "1ed2019a",
       "364ed36a",
       "4e83867f",
-      "4358beaa"
+      "4358beaa",
+      "3b628149"
     ],
     "c0DpOuK09d14c5817e0aaf7d4ed92e2b": [
       "1b6fbe49"
@@ -1300,7 +1303,7 @@
     "hours": []
   },
   "sent_log": {
-    "heartbeat": "2026-09-28 00:28"
+    "heartbeat": "2026-09-28 00:36"
   },
   "errors": [
     {
@@ -1316,9 +1319,30 @@
       "category": "پست فوری ویدیو برای ",
       "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): پاسخ sendFile بدون message_id: {'status': 'INVALID_INPUT', 'dev_message': 'The length or from_index is not valid.'}",
       "notified": true
+    },
+    {
+      "id": "1f80ac",
+      "time": "2026-09-28 00:38",
+      "category": "پست فوری مود برای ",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): پاسخ sendFile بدون message_id: {'status': 'INVALID_INPUT', 'dev_message': 'The length or from_index is not valid.'}",
+      "notified": true
+    },
+    {
+      "id": "31623c",
+      "time": "2026-09-28 00:40",
+      "category": "پست فوری مود برای ",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): پاسخ sendFile بدون message_id: {'status': 'INVALID_INPUT', 'dev_message': 'The length or from_index is not valid.'}",
+      "notified": true
+    },
+    {
+      "id": "c31bae",
+      "time": "2026-09-28 00:42",
+      "category": "پست فوری ویدیو برای ",
+      "message": "ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): پاسخ sendFile بدون message_id: {'status': 'INVALID_INPUT', 'dev_message': 'The length or from_index is not valid.'}",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-28 00:31",
+  "last_error_notify_time": "2026-09-28 00:42",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
@@ -1501,7 +1525,10 @@
     "m:1922262061483329284",
     "m:1922262062375329284",
     "m:1922263062745329284",
-    "m:1922263062789329284"
+    "m:1922263062789329284",
+    "m:1922267064159329284",
+    "m:1922267064995329284",
+    "m:1922267065066329284"
   ],
   "activity_log": {
     "b0KZR3M0BEAo077d2f10db168ddb361e": [
