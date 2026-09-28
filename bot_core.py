@@ -16,7 +16,6 @@ bot_core.py
 
 import json
 import re
-import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -107,59 +106,26 @@ FORMAT_TYPES = {
 }
 
 
-def _utf16_len(s):
-    """طول رشته بر حسب واحدهای UTF-16 (مثل تلگرام) — هر ایموجی/کاراکتر
-    خارج از BMP دو واحد حساب می‌شه، نه یکی. قبلاً از len() پایتون
-    (تعداد کاراکتر خام) استفاده می‌شد که وقتی قبل از بخش فرمت‌شده
-    ایموجی بود، مرز بولد/نقل‌قول رو جابه‌جا می‌کرد و باعث می‌شد بخشی از
-    متن از داخل باکس «بیرون بزنه»."""
-    return len(s.encode("utf-16-le")) // 2
-
-
 def build_text_with_metadata(parts):
     """
     parts: لیستی از تاپل (متن, نوع‌فرمت یا None). نوع‌فرمت یکی از کلیدهای
     FORMAT_TYPES (مثلاً "bold", "quote"). خروجی: (متن نهایی، آرایهٔ
-    metadata برای فرستادن به روبیکا). افست‌ها بر اساس واحد UTF-16
-    حساب می‌شن (همون قراردادی که تلگرام و به‌احتمال زیاد خودِ روبیکا
-    استفاده می‌کنن) تا مرز بولد/نقل‌قول با وجود ایموجی هم دقیق بمونه.
+    metadata برای فرستادن به روبیکا).
+    توجه: افست‌ها بر اساس تعداد کاراکتر پایتونی حساب می‌شن (نه UTF-16
+    مثل تلگرام). اگه بعد از تست دیدی محدودهٔ بولد/نقل‌قول یکی-دو
+    کاراکتر جابه‌جا نمایش داده می‌شه (معمولاً به‌خاطر ایموجی قبل از اون
+    بخش)، بهم بگو تا حساب افست رو با UTF-16 عوض کنم.
     """
     text = ""
     metadata = []
-    pos16 = 0
     for chunk, fmt in parts:
         if not chunk:
             continue
+        start = len(text)
         text += chunk
-        length16 = _utf16_len(chunk)
         if fmt:
-            metadata.append({"type": FORMAT_TYPES[fmt], "from_index": pos16, "length": length16})
-        pos16 += length16
+            metadata.append({"type": FORMAT_TYPES[fmt], "from_index": start, "length": len(chunk)})
     return text, metadata
-
-
-_CUSTOM_QUOTE_RE = re.compile(r"/Quote(.*?)/Quote", re.IGNORECASE | re.DOTALL)
-
-
-def parse_custom_markup(text):
-    """
-    برای متن‌های کاستوم داخل config.json: هر بخشی بین دو تا /Quote رو
-    به‌صورت نقل‌قول علامت می‌زنه. خروجی مستقیم قابل‌استفاده توی
-    build_text_with_metadata یا اضافه‌شدن به لیست parts هست.
-    """
-    if not text:
-        return []
-    parts = []
-    last = 0
-    for m in _CUSTOM_QUOTE_RE.finditer(text):
-        if m.start() > last:
-            parts.append((text[last:m.start()], None))
-        if m.group(1):
-            parts.append((m.group(1), "quote"))
-        last = m.end()
-    if last < len(text):
-        parts.append((text[last:], None))
-    return parts
 
 
 def send_message(token, chat_id, text, metadata=None):
@@ -183,25 +149,6 @@ def forward_message(token, from_chat_id, message_id, to_chat_id):
     })
 
 
-def _request_with_retry(method, url, retries=3, backoff_seconds=3, **kwargs):
-    """درخواست خام (دانلود/آپلود فایل) با تلاش مجدد. قبلاً این نوع
-    درخواست‌ها هیچ retry ای نداشتن — یک قطعی شبکهٔ لحظه‌ای (Timeout/
-    Connection aborted) کافی بود کل ارسال شکست بخوره؛ حالا مثل api_call
-    چند بار با فاصله دوباره امتحان می‌شن."""
-    last_exc = None
-    for attempt in range(1, retries + 1):
-        try:
-            resp = requests.request(method, url, **kwargs)
-            resp.raise_for_status()
-            return resp
-        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-            last_exc = e
-            print(f"DEBUG: درخواست {method} به {url[:60]}... ناموفق (تلاش {attempt}/{retries}): {e}")
-            if attempt < retries:
-                time.sleep(backoff_seconds * attempt)
-    raise last_exc
-
-
 def reupload_file(token, file_id, file_type, file_name="file"):
     """دانلود فایل با file_id قدیمی و آپلود دوباره‌اش تا file_id تازه و
     معتبر برای چتِ مقصدِ جدید بگیریم (چون file_id یک چت همیشه برای چت
@@ -210,12 +157,14 @@ def reupload_file(token, file_id, file_type, file_name="file"):
     download_url = (file_info or {}).get("download_url")
     if not download_url:
         raise RuntimeError("getFile آدرس دانلود برنگردوند.")
-    r = _request_with_retry("GET", download_url, timeout=UPLOAD_TIMEOUT)
+    r = requests.get(download_url, timeout=UPLOAD_TIMEOUT)
+    r.raise_for_status()
     upload_req = request_send_file(token, normalize_send_file_type(file_type))
     upload_url = (upload_req or {}).get("upload_url")
     if not upload_url:
         raise RuntimeError("requestSendFile آدرس آپلود برنگردوند.")
-    up = _request_with_retry("POST", upload_url, timeout=UPLOAD_TIMEOUT, files={"file": (file_name, r.content)})
+    up = requests.post(upload_url, files={"file": (file_name, r.content)}, timeout=UPLOAD_TIMEOUT)
+    up.raise_for_status()
     result = up.json()
     new_file_id = result.get("file_id") or (result.get("data") or {}).get("file_id")
     if not new_file_id:
@@ -255,9 +204,7 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
     """ارسال فایل با اولویت مسیرهای سریع و با نوع فایل استاندارد.
     metadata فقط روی تلاش مستقیم و re-upload اثر داره؛ اگه به فوروارد
     از کانال منبع افتاد، کپشن اصلی همون‌جا عیناً حفظ می‌شه (بدون
-    فرمت‌دهی سفارشی ما). کل زنجیره (مستقیم → forward → re-upload) اگه
-    یک‌بار به‌خاطر قطعی موقت شبکه شکست بخوره، یک بار دیگه هم کامل تکرار
-    می‌شه قبل از اینکه واقعاً شکست‌خورده حساب بشه."""
+    فرمت‌دهی سفارشی ما)."""
     send_type = normalize_send_file_type(file_type)
     safe_name = safe_file_name(file_name, "file")
 
@@ -277,50 +224,44 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
             raise RuntimeError(f"پاسخ sendFile بدون message_id: {result}")
         return result
 
-    def _attempt_once():
-        try:
-            result = _try(file_id)
-            print(f"DEBUG: sendFile موفق (مستقیم) -> chat_id={chat_id}")
-            return result
-        except Exception as direct_error:
-            print(f"DEBUG: sendFile مستقیم ناموفق: {direct_error}")
-            if metadata:
-                try:
-                    result = _try(file_id, use_metadata=False)
-                    print(f"DEBUG: sendFile بدون metadata موفق -> chat_id={chat_id}")
-                    return result
-                except Exception as no_meta_error:
-                    print(f"DEBUG: بدون metadata هم ناموفق: {no_meta_error}")
-
-        if source_chat_id and source_message_id:
+    try:
+        result = _try(file_id)
+        print(f"DEBUG: sendFile موفق (مستقیم) -> chat_id={chat_id}")
+        return result
+    except Exception as direct_error:
+        print(f"DEBUG: sendFile مستقیم ناموفق: {direct_error}")
+        # اگه احتمالاً به‌خاطر metadata (فرمت‌دهی) رد شده، فوراً یک بار
+        # بدون metadata امتحان می‌کنیم — این‌طوری یک باگ فرمت‌دهی هیچ‌وقت
+        # جلوی اصل تحویل فایل رو نمی‌گیره، فقط فرمتش ساده می‌مونه.
+        if metadata:
             try:
-                fwd = forward_message(token, source_chat_id, source_message_id, chat_id)
-                if isinstance(fwd, dict) and (fwd.get("new_message_id") or fwd.get("message_id")):
-                    print(f"DEBUG: forwardMessage موفق -> chat_id={chat_id}")
-                    return fwd
-                print(f"DEBUG: forwardMessage پاسخ قابل‌تأیید نداد: {fwd}")
-            except Exception as forward_error:
-                print(f"DEBUG: forwardMessage ناموفق: {forward_error}")
+                result = _try(file_id, use_metadata=False)
+                print(f"DEBUG: sendFile بدون metadata موفق (فرمت‌دهی رد شد ولی فایل رسید) -> chat_id={chat_id}")
+                return result
+            except Exception as no_meta_error:
+                print(f"DEBUG: بدون metadata هم ناموفق: {no_meta_error}")
 
+    # اگر فایل از کانال منبع آمده، فوروارد از دانلود/آپلود بسیار سریع‌تر است.
+    if source_chat_id and source_message_id:
+        try:
+            fwd = forward_message(token, source_chat_id, source_message_id, chat_id)
+            if isinstance(fwd, dict) and (fwd.get("new_message_id") or fwd.get("message_id")):
+                print(f"DEBUG: forwardMessage موفق -> chat_id={chat_id}")
+                return fwd
+            print(f"DEBUG: forwardMessage پاسخ قابل‌تأیید نداد: {fwd}")
+        except Exception as forward_error:
+            print(f"DEBUG: forwardMessage ناموفق: {forward_error}")
+
+    # فقط یک بار re-upload به عنوان آخرین راه.
+    try:
         new_file_id = reupload_file(token, file_id, send_type, safe_name)
         result = _try(new_file_id)
         print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id}")
         return result
-
-    last_error = None
-    for attempt in range(1, 3):
-        try:
-            return _attempt_once()
-        except Exception as e:
-            last_error = e
-            print(f"DEBUG: کل زنجیرهٔ ارسال (تلاش {attempt}/2) شکست خورد: {e}")
-            if attempt < 2:
-                time.sleep(5)
-
-    raise RuntimeError(
-        f"ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): {last_error}"
-    )
-
+    except Exception as upload_error:
+        raise RuntimeError(
+            f"ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند: {upload_error}"
+        )
 
 def get_updates(token, offset_id=None, limit=50):
     payload = {"limit": limit}
@@ -564,7 +505,7 @@ def send_mod(token, channel, mod, state):
 
     if channel.get("mod_photo_extra_text"):
         parts.append(("\n\n", None))
-        parts.extend(parse_custom_markup(channel["mod_photo_extra_text"]))
+        parts.append((channel["mod_photo_extra_text"], None))
 
     text, metadata = build_text_with_metadata(parts)
 
@@ -578,11 +519,8 @@ def send_mod(token, channel, mod, state):
     if direct and mod.get("number"):
         entry = state.get("files_by_number", {}).get(mod["number"])
         if entry and entry.get("file_id"):
-            caption_text, caption_meta = build_text_with_metadata(
-                parse_custom_markup(channel.get("mod_file_caption", ""))
-            )
             send_file(
-                token, channel["guid"], entry["file_id"], caption_text, metadata=caption_meta,
+                token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""),
                 file_type=entry.get("file_type") or "File",
                 file_name=f"{mod['number']}{entry.get('manual_extension') or file_extension(entry.get('file_name'))}",
                 source_chat_id=source_guid, source_message_id=entry.get("message_id"),
@@ -596,19 +534,13 @@ def send_video(token, channel, video):
         print(f"DEBUG: ارسال ویدیو برای {channel.get('name', channel.get('guid'))} خاموشه (videos_enabled=false)")
         return
 
-    parts = []
-    if video.get("title"):
-        parts.append((video["title"], None))
-
+    parts = [(video.get("title", "ویدیو جدید"), None)]
     if channel.get("channel_link"):
-        if parts:
-            parts.append(("\n\n", None))
+        parts.append(("\n\n", None))
         parts.append((channel["channel_link"], "quote"))
-
     if channel.get("video_extra_text"):
-        if parts:
-            parts.append(("\n\n", None))
-        parts.extend(parse_custom_markup(channel["video_extra_text"]))
+        parts.append(("\n\n", None))
+        parts.append((channel["video_extra_text"], None))
 
     text, metadata = build_text_with_metadata(parts)
     send_file(
@@ -632,24 +564,6 @@ def pick_item(items, used_ids):
 # ---------------------------------------------------------------------------
 # جلوگیری از سیل پیام‌های دوره‌ای (دفترچهٔ ارسال سبک)
 # ---------------------------------------------------------------------------
-def prune_sent_log(state, max_age_hours=1):
-    """حذف رکوردهای قدیمی‌تر از max_age_hours از دفترچهٔ ارسال (مثل
-    یادداشت‌های تکراری «ربات فعال است»/heartbeat) تا فایل state.json
-    سنگین نشه. جدا از should_send_now هم قابل‌فراخوانیه تا این پاک‌سازی
-    هر اجرا تضمینی انجام بشه، نه فقط وقتی یک کلید خاص چک می‌شه."""
-    log = state.get("sent_log", {})
-    if not log:
-        return
-    now = tehran_now().replace(tzinfo=None)
-    cutoff = now - timedelta(hours=max_age_hours)
-    for k in list(log.keys()):
-        try:
-            if datetime.strptime(log[k], "%Y-%m-%d %H:%M") < cutoff:
-                del log[k]
-        except Exception:
-            del log[k]
-
-
 def should_send_now(state, key, min_interval_minutes):
     """اگر برای این key در min_interval_minutes اخیر پیامی ثبت نشده، True
     برمی‌گرداند و زمان الان را ثبت می‌کند. ورودی‌های قدیمی‌تر از ۱ ساعت
@@ -667,7 +581,17 @@ def should_send_now(state, key, min_interval_minutes):
             pass
 
     log[key] = now.strftime("%Y-%m-%d %H:%M")
-    prune_sent_log(state)
+
+    cutoff = now - timedelta(hours=1)
+    for k in list(log.keys()):
+        if k == key:
+            continue
+        try:
+            if datetime.strptime(log[k], "%Y-%m-%d %H:%M") < cutoff:
+                del log[k]
+        except Exception:
+            del log[k]
+
     return True
 
 
