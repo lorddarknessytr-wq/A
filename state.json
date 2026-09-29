@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6ab821db137b27ba38f99be9",
+  "last_offset_id": "6abb200e79d2427318e648f7",
   "mods": [
     {
       "id": "dd82c85e",
@@ -980,8 +980,7 @@
     "c0Dstdk0f57ec41df351be2d40c89404": "2026-09-19 12:30"
   },
   "known_users": [
-    "b0KZR3M0BEAo077d2f10db168ddb361e",
-    "c0DBT990e47b63fa688bba87d5736cc2"
+    "b0KZR3M0BEAo077d2f10db168ddb361e"
   ],
   "blocked_users": {},
   "awaiting_ticket": [],
