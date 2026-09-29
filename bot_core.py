@@ -827,7 +827,7 @@ def parse_video_caption(caption):
     if not has_video_tag(caption):
         return None
     lines = _content_lines(caption)
-    title = _strip_label(lines[0]) if lines else "ویدیو جدید"
+    title = _strip_label(lines[0]) if lines else ""
     return {"title": title}
 
 
