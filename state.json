@@ -1,5 +1,5 @@
 {
-  "last_offset_id": "6abb24fade6d4fc6392da082",
+  "last_offset_id": "6abb2755b8e415478807e1d2",
   "mods": [
     {
       "photo_file_id": "eAv3aPLk08493587666206438031956925967572026091612",
@@ -1910,7 +1910,11 @@
       "seen": "2026-09-29 06:10"
     }
   },
-  "used_mods_per_channel": {},
+  "used_mods_per_channel": {
+    "c0Dstdk0f57ec41df351be2d40c89404": [
+      "03295a2e"
+    ]
+  },
   "used_videos_per_channel": {},
   "mod_progress": {},
   "channel_activated": {
@@ -1924,7 +1928,7 @@
   "awaiting_channelcast": false,
   "awaiting_panel_selection": false,
   "sent_log": {
-    "heartbeat": "2026-09-29 06:07",
+    "heartbeat": "2026-09-29 06:20",
     "ownerreply:/panel": "2026-09-29 06:10",
     "ownerreply:/start": "2026-09-29 06:10"
   },
@@ -2054,7 +2058,8 @@
     "n:b0IahsF0BEAo0c667263fa750539d1d2:1923382607758329284:2ba89445",
     "e:b0IahsF0BEAo0c667263fa750539d1d2:1923382607759329284:55f70bbe",
     "n:b0IahsF0BEAo0c667263fa750539d1d2:1923382607876329284:6e58016f",
-    "n:b0IahsF0BEAo0c667263fa750539d1d2:1923382607940329284:98999acc"
+    "n:b0IahsF0BEAo0c667263fa750539d1d2:1923382607940329284:98999acc",
+    "n:b0IahsF0BEAo0c667263fa750539d1d2:1923383608495329284:eef51cf8"
   ],
   "activity_log": {},
   "owner_keypad_set": true,
