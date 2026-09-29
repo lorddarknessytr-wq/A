@@ -5,8 +5,8 @@
   "broadcast_secret": "/forall",
   "_comment_archiver": "اطلاعات مخزن آرشیور که این مخزن باید فقط بخونه (نه بنویسه). owner/repo از آدرس گیت‌هابِ همون مخزن.",
   "archiver_repo": {
-    "owner": "PUT_YOUR_GITHUB_USERNAME_HERE",
-    "repo": "PUT_ARCHIVER_REPO_NAME_HERE",
+    "owner": "lorddarknessytr",
+    "repo": "A-ar",
     "branch": "main",
     "state_path": "state.json"
   },
