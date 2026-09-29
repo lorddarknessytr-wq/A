@@ -1922,14 +1922,16 @@
       "f7124d8a",
       "b88d1adb",
       "104afd8b",
-      "6b308c82"
+      "6b308c82",
+      "af8fd788"
     ],
     "c0CkD2t08fb7278be73f1113291ad44d": [
       "03295a2e",
       "21ac49f8",
       "e73a51e2",
       "7bfb0f72",
-      "54cdbc31"
+      "54cdbc31",
+      "8b4485ad"
     ]
   },
   "used_videos_per_channel": {
@@ -1958,7 +1960,7 @@
   "awaiting_channelcast": false,
   "awaiting_panel_selection": false,
   "sent_log": {
-    "heartbeat": "2026-09-29 18:30"
+    "heartbeat": "2026-09-29 19:00"
   },
   "errors": [],
   "last_error_notify_time": null,
@@ -2109,7 +2111,9 @@
       "c0Dstdk0f57ec41df351be2d40c89404:7": true,
       "c0CkD2t08fb7278be73f1113291ad44d:4": true,
       "c0Dstdk0f57ec41df351be2d40c89404:8": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:9": true
+      "c0Dstdk0f57ec41df351be2d40c89404:9": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:5": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:10": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
