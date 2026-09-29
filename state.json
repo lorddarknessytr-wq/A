@@ -1921,7 +1921,8 @@
       "64de48db",
       "f7124d8a",
       "b88d1adb",
-      "104afd8b"
+      "104afd8b",
+      "6b308c82"
     ],
     "c0CkD2t08fb7278be73f1113291ad44d": [
       "03295a2e",
@@ -1934,12 +1935,14 @@
   "used_videos_per_channel": {
     "c0CkD2t08fb7278be73f1113291ad44d": [
       "9ad3cd9a",
-      "b508eeb3"
+      "b508eeb3",
+      "125f21b2"
     ],
     "c0Dstdk0f57ec41df351be2d40c89404": [
       "c5fc75fe",
       "78176219",
-      "e0661892"
+      "e0661892",
+      "003a9763"
     ]
   },
   "mod_progress": {},
@@ -1954,7 +1957,7 @@
   "awaiting_channelcast": false,
   "awaiting_panel_selection": false,
   "sent_log": {
-    "heartbeat": "2026-09-29 17:30"
+    "heartbeat": "2026-09-29 18:00"
   },
   "errors": [],
   "last_error_notify_time": null,
@@ -2103,14 +2106,17 @@
       "c0Dstdk0f57ec41df351be2d40c89404:6": true,
       "c0Dstdk0f57ec41df351be2d40c89404:7": true,
       "c0CkD2t08fb7278be73f1113291ad44d:4": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:8": true
+      "c0Dstdk0f57ec41df351be2d40c89404:8": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:9": true
     },
     "video": {
       "c0CkD2t08fb7278be73f1113291ad44d:0": true,
       "c0Dstdk0f57ec41df351be2d40c89404:0": true,
       "c0Dstdk0f57ec41df351be2d40c89404:1": true,
       "c0CkD2t08fb7278be73f1113291ad44d:1": true,
-      "c0Dstdk0f57ec41df351be2d40c89404:2": true
+      "c0Dstdk0f57ec41df351be2d40c89404:2": true,
+      "c0CkD2t08fb7278be73f1113291ad44d:2": true,
+      "c0Dstdk0f57ec41df351be2d40c89404:3": true
     }
   }
 }
