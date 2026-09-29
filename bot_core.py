@@ -255,9 +255,14 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
     """ارسال فایل با اولویت مسیرهای سریع و با نوع فایل استاندارد.
     metadata فقط روی تلاش مستقیم و re-upload اثر داره؛ اگه به فوروارد
     از کانال منبع افتاد، کپشن اصلی همون‌جا عیناً حفظ می‌شه (بدون
-    فرمت‌دهی سفارشی ما). کل زنجیره (مستقیم → forward → re-upload) اگه
-    یک‌بار به‌خاطر قطعی موقت شبکه شکست بخوره، یک بار دیگه هم کامل تکرار
-    می‌شه قبل از اینکه واقعاً شکست‌خورده حساب بشه."""
+    فرمت‌دهی سفارشی ما).
+
+    توجه: این تابع کل زنجیره (مستقیم → forward → re-upload) را فقط
+    یک‌بار امتحان می‌کند، نه چند بار. تکرارِ کل زنجیره خطرناکه: اگه یه
+    تلاش واقعاً موفق بشه ولی فقط تشخیص «موفقیت» ما خطا بده، تکرار کل
+    زنجیره باعث پست دوبارهٔ همون فایل توی کانال می‌شه. قطعی‌های موقتِ
+    شبکه از قبل در سطح پایین‌تر (api_call و دانلود/آپلود فایل) چند بار
+    retry می‌شن، پس نیازی به تکرار کل زنجیره در این سطح نیست."""
     send_type = normalize_send_file_type(file_type)
     safe_name = safe_file_name(file_name, "file")
 
@@ -272,54 +277,45 @@ def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file"
         result = api_call(token, "sendFile", payload)
         if not isinstance(result, dict):
             raise RuntimeError(f"پاسخ sendFile نامعتبر است: {result}")
-        msg_id = result.get("message_id") or result.get("new_message_id")
+        msg_id = (
+            result.get("message_id") or result.get("new_message_id")
+            or (result.get("new_message") or {}).get("message_id")
+        )
         if not msg_id:
             raise RuntimeError(f"پاسخ sendFile بدون message_id: {result}")
         return result
 
-    def _attempt_once():
-        try:
-            result = _try(file_id)
-            print(f"DEBUG: sendFile موفق (مستقیم) -> chat_id={chat_id}")
-            return result
-        except Exception as direct_error:
-            print(f"DEBUG: sendFile مستقیم ناموفق: {direct_error}")
-            if metadata:
-                try:
-                    result = _try(file_id, use_metadata=False)
-                    print(f"DEBUG: sendFile بدون metadata موفق -> chat_id={chat_id}")
-                    return result
-                except Exception as no_meta_error:
-                    print(f"DEBUG: بدون metadata هم ناموفق: {no_meta_error}")
-
-        if source_chat_id and source_message_id:
-            try:
-                fwd = forward_message(token, source_chat_id, source_message_id, chat_id)
-                if isinstance(fwd, dict) and (fwd.get("new_message_id") or fwd.get("message_id")):
-                    print(f"DEBUG: forwardMessage موفق -> chat_id={chat_id}")
-                    return fwd
-                print(f"DEBUG: forwardMessage پاسخ قابل‌تأیید نداد: {fwd}")
-            except Exception as forward_error:
-                print(f"DEBUG: forwardMessage ناموفق: {forward_error}")
-
-        new_file_id = reupload_file(token, file_id, send_type, safe_name)
-        result = _try(new_file_id)
-        print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id}")
+    try:
+        result = _try(file_id)
+        print(f"DEBUG: sendFile موفق (مستقیم) -> chat_id={chat_id}")
         return result
+    except Exception as direct_error:
+        print(f"DEBUG: sendFile مستقیم ناموفق: {direct_error}")
+        if metadata:
+            try:
+                result = _try(file_id, use_metadata=False)
+                print(f"DEBUG: sendFile بدون metadata موفق -> chat_id={chat_id}")
+                return result
+            except Exception as no_meta_error:
+                print(f"DEBUG: بدون metadata هم ناموفق: {no_meta_error}")
 
-    last_error = None
-    for attempt in range(1, 3):
+    if source_chat_id and source_message_id:
         try:
-            return _attempt_once()
-        except Exception as e:
-            last_error = e
-            print(f"DEBUG: کل زنجیرهٔ ارسال (تلاش {attempt}/2) شکست خورد: {e}")
-            if attempt < 2:
-                time.sleep(5)
+            fwd = forward_message(token, source_chat_id, source_message_id, chat_id)
+            if isinstance(fwd, dict) and (
+                fwd.get("new_message_id") or fwd.get("message_id")
+                or (fwd.get("new_message") or {}).get("message_id")
+            ):
+                print(f"DEBUG: forwardMessage موفق -> chat_id={chat_id}")
+                return fwd
+            print(f"DEBUG: forwardMessage پاسخ قابل‌تأیید نداد: {fwd}")
+        except Exception as forward_error:
+            print(f"DEBUG: forwardMessage ناموفق: {forward_error}")
 
-    raise RuntimeError(
-        f"ارسال فایل شکست خورد؛ مستقیم، forward و re-upload ناموفق بودند (۲ بار کامل امتحان شد): {last_error}"
-    )
+    new_file_id = reupload_file(token, file_id, send_type, safe_name)
+    result = _try(new_file_id)
+    print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id}")
+    return result
 
 
 def get_updates(token, offset_id=None, limit=50):
@@ -578,8 +574,11 @@ def send_mod(token, channel, mod, state):
     if direct and mod.get("number"):
         entry = state.get("files_by_number", {}).get(mod["number"])
         if entry and entry.get("file_id"):
+            caption_text, caption_meta = build_text_with_metadata(
+                parse_custom_markup(channel.get("mod_file_caption", ""))
+            )
             send_file(
-                token, channel["guid"], entry["file_id"], channel.get("mod_file_caption", ""),
+                token, channel["guid"], entry["file_id"], caption_text, metadata=caption_meta,
                 file_type=entry.get("file_type") or "File",
                 file_name=f"{mod['number']}{entry.get('manual_extension') or file_extension(entry.get('file_name'))}",
                 source_chat_id=source_guid, source_message_id=entry.get("message_id"),
@@ -1027,3 +1026,41 @@ def broadcast_to_users(token, state, text):
             failed += 1
             print(f"DEBUG: broadcast failed for {uid}: {e}")
     return sent, failed
+
+
+# ---------------------------------------------------------------------------
+# پل ارتباطی بین مخزن آرشیور و مخزن ادمین
+# ---------------------------------------------------------------------------
+MAX_QUEUED_OWNER_COMMANDS = 200
+
+
+def queue_owner_command(state, chat_id, text):
+    """مخزن آرشیور، دستورهای مالک رو خودش اجرا نمی‌کنه — فقط توی این صف
+    ذخیره می‌کنه تا مخزن ادمین (که همهٔ منطق دستورها رو داره) بعداً
+    بخونه و پردازش کنه."""
+    queue = state.setdefault("pending_owner_commands", [])
+    queue.append({
+        "id": uuid.uuid4().hex[:12],
+        "chat_id": chat_id,
+        "text": text,
+        "time": tehran_now().strftime("%Y-%m-%d %H:%M:%S"),
+    })
+    if len(queue) > MAX_QUEUED_OWNER_COMMANDS:
+        del queue[: len(queue) - MAX_QUEUED_OWNER_COMMANDS]
+
+
+def fetch_repo_json_file(pat, owner, repo, path, branch="main"):
+    """یک فایل JSON رو از یک مخزن گیت‌هاب (حتی خصوصی) با GitHub Contents
+    API می‌خونه. pat فقط نیاز به دسترسیِ خواندنِ همون مخزن داره؛ هیچ
+    نوشتنی توی مخزن دیگه انجام نمی‌شه."""
+    import base64
+    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+    headers = {
+        "Authorization": f"token {pat}",
+        "Accept": "application/vnd.github+json",
+    }
+    resp = requests.get(url, headers=headers, params={"ref": branch}, timeout=REQUEST_TIMEOUT)
+    resp.raise_for_status()
+    body = resp.json()
+    content = base64.b64decode(body["content"]).decode("utf-8")
+    return json.loads(content)

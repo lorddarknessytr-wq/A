@@ -1,417 +1,257 @@
 """
-run_bot.py
------------
-هر بار اجرا می‌شود (توسط زنگ‌زن بیرونی cron-job.org، یا دستی از Actions):
+run_bot.py — مخزن «ادمین»
+---------------------------
+این مخزن هیچ‌وقت مستقیم getUpdates نمی‌زنه (فقط مخزن آرشیور این کار رو
+می‌کنه). به‌جاش:
+  1. فایل state.json مخزن آرشیور رو با GitHub API می‌خونه (فقط خواندن،
+     هیچ‌چیز توی مخزن آرشیور نوشته نمی‌شه).
+  2. دستورهای مالکی که مخزن آرشیور صف کرده (pending_owner_commands) رو
+     پردازش می‌کنه — هر کدوم فقط یک‌بار (با یک نشانگر محلی).
+  3. طبق زمان‌بندی/پلن هر کانال، از مودها/ویدیوهای آرشیور، به‌صورت
+     خودکار توی کانال‌های مقصد پست می‌کنه.
 
-  1. اگر ورودی force_post_channel داده شده باشد (اجرای دستی با شماره یا
-     all) -> فوراً یک مود در همون لحظه پست می‌کند (بدون توجه به ساعت).
-  2. getUpdates می‌زند، کاربرهای جدید را ثبت می‌کند.
-  3. دستورها: /myid ، #عدد یا /عدد (دریافت فایل)، و برای مالک: کلمهٔ پنل،
-     رمز پخش همگانی، /bugs، یا هر متن دیگر (وضعیت کلی).
-  4. کانال منبع: عکس مود باید تگ #مود داشته باشد (خط۱=عنوان، خط۲=توضیحات،
-     خط۳=ورژن، #مود #شماره)؛ ویدیو باید تگ #ویدئو داشته باشد.
-  5. سر ساعت‌های ۱۱ تا ۲۳: هر ساعت یک مود در هر کانال فعال؛ هر ۴ ساعت
-     یک‌بار علاوه بر مود، یک ویدیو هم پست می‌شود.
-  6. پیام‌های دوره‌ای (راه‌اندازی/گزارش) با فاصلهٔ حداقلی، تا سیل نشوند.
+مودها/ویدیوها و used_mods_per_channel و... همه توی state.json خودِ همین
+مخزنه (نه مخزن آرشیور) — یعنی این مخزن هیچ‌وقت چیزی توی مخزن آرشیور
+commit نمی‌کنه، فقط می‌خونه.
+
+این مخزن می‌تونه با فاصلهٔ معمولی (مثلاً هر ۱۵-۳۰ دقیقه) اجرا بشه، چون
+سرعت پاسخ به کاربر عادی به این مخزن ربطی نداره.
 """
 
 import os
-import re
 import sys
-import uuid
 
 import bot_core as core
 
 
-def uuid_short():
-    return uuid.uuid4().hex[:8]
+def fetch_archiver_data(config):
+    """state.json مخزن آرشیور رو می‌خونه. اگه نشد (PAT اشتباه، مخزن در
+    دسترس نیست، ...)، None برمی‌گردونه — صدازننده باید این حالت رو جدا
+    مدیریت کنه (نه اینکه انگار آرشیور خالیه)."""
+    pat = os.environ.get("ARCHIVER_READ_TOKEN")
+    archiver_cfg = config.get("archiver_repo", {})
+    owner = archiver_cfg.get("owner")
+    repo = archiver_cfg.get("repo")
+    branch = archiver_cfg.get("branch", "main")
+    path = archiver_cfg.get("state_path", "state.json")
+
+    if not (pat and owner and repo):
+        print("DEBUG: تنظیمات مخزن آرشیور (archiver_repo/ARCHIVER_READ_TOKEN) کامل نیست")
+        return None
+
+    try:
+        return core.fetch_repo_json_file(pat, owner, repo, path, branch)
+    except Exception as e:
+        print(f"DEBUG: خوندن state.json مخزن آرشیور شکست خورد: {e}")
+        return None
 
 
-def handle_source_channel_message(state, msg):
-    file_info = msg.get("file")
-    caption = msg.get("text") or ""
-    message_id = msg.get("message_id")
-
-    # اگر همین آپدیت فایل داره، در حافظهٔ موقت ذخیره‌اش کن (حتی اگه هنوز
-    # تگ #مود/#ویدئو نداشته باشه) تا اگه بعداً فقط کپشنش ادیت شد و آپدیتِ
-    # ادیت فاقد اطلاعات فایل بود، بتونیم از همین حافظه بازیابی‌اش کنیم.
-    if file_info and file_info.get("file_type") and message_id:
-        core.remember_recent_file(state, message_id, file_info.get("file_id"), file_info.get("file_type"))
-
-    if not file_info and message_id:
-        cached = core.recall_recent_file(state, message_id)
-        if cached:
-            file_info = {"file_type": cached["file_type"], "file_id": cached["file_id"]}
-            print(f"DEBUG: فایل از حافظهٔ موقت بازیابی شد (پیام ادیت‌شده) -> {cached['file_type']}")
-
-    if not file_info:
-        return
-
-    file_type = file_info.get("file_type")
-    print(f"DEBUG: پیام کانال منبع -> file_type={file_type!r} caption={caption[:60]!r} | file_info خام کامل: {file_info}")
-
-    # تشخیص بر اساس تگِ متن، نه رشتهٔ دقیق file_type — چون معلوم شد مقدار
-    # file_type برای عکس‌ها همیشه "Image" نیست (برخلاف ویدیو که "Video" بود)
-    mod_parsed = core.parse_mod_caption(caption)
-    video_parsed = core.parse_video_caption(caption)
-
-    if mod_parsed is not None:
-        state["pending_photo"] = {
-            "file_id": file_info.get("file_id"),
-            "file_type": file_info.get("file_type"),
-            "message_id": message_id,
-            **mod_parsed,
-        }
-
-    elif video_parsed is not None or file_type == "Video":
-        title = (video_parsed or {}).get("title") or caption.strip() or ""
-        state["videos"].append({
-            "id": uuid_short(),
-            "video_file_id": file_info.get("file_id"),
-            "file_type": file_info.get("file_type") or "Video",
-            "message_id": message_id,
-            "source_channel_guid": msg.get("chat_id"),
-            "title": title,
-        })
-
-    else:
-        file_number = core.extract_number(caption)
-        pending = state.get("pending_photo")
-
-        if not file_number and pending:
-            # فایل هشتگ نداشت؛ برای انعطاف، شمارهٔ عکسِ در انتظار را قرض می‌گیریم
-            file_number = pending.get("number")
-
-        if not file_number:
-            print("DEBUG: فایل بدون هشتگ شماره (#عدد) و بدون عکس در انتظار، نادیده گرفته شد")
-            return
-
-        original_name = (
-            file_info.get("file_name") or file_info.get("name")
-            or file_info.get("original_name") or file_info.get("title")
-        )
-        # پسوند دستی: اول از کپشن خودِ فایل، وگرنه از کپشن عکسِ در انتظار
-        manual_ext = core.extract_extension_line(caption) or (pending.get("extension") if pending else "")
-
-        state["files_by_number"][file_number] = {
-            "file_id": file_info.get("file_id"),
-            "file_type": core.normalize_send_file_type(file_info.get("file_type")),
-            "file_name": original_name,
-            "manual_extension": manual_ext,
-            "message_id": message_id,
-            "source_channel_guid": msg.get("chat_id"),
-            "title": (pending.get("title") if pending else None) or f"فایل شماره {file_number}",
-        }
-
-        if pending and pending.get("number") == file_number:
-            state["mods"].append({
-                "id": uuid_short(),
-                "photo_file_id": pending["file_id"],
-                "photo_file_type": pending.get("file_type"),
-                "photo_message_id": pending.get("message_id"),
-                "source_channel_guid": msg.get("chat_id"),
-                "title": pending["title"],
-                "description": pending["description"],
-                "version": pending["version"],
-                "number": file_number,
-            })
-            state["pending_photo"] = None
-        elif pending and pending.get("number") != file_number:
-            print(f"DEBUG: شمارهٔ فایل (#{file_number}) با شمارهٔ عکسِ در انتظار "
-                  f"(#{pending.get('number')}) یکی نیست؛ عکس همچنان منتظر می‌مونه")
-        else:
-            print(f"DEBUG: فایل #{file_number} بدون عکس همراه، فقط برای دریافت مستقیم ذخیره شد")
+def handle_ticket_reply_and_admin_texts(token, config, text, target_guid=None):
+    pass  # جا برای گسترش آینده؛ فعلاً /reply مستقیم در handle_owner_command هست
 
 
-def handle_start_command(token, config, state, chat_id):
-    welcome = config.get(
-        "start_text",
-        "👋 سلام و خوش اومدید!\n\n"
-        "برای دریافت هر مود، شماره‌ای که زیر همون پست توی کانال نوشته شده "
-        "رو برام بفرستید (مثلاً 9 یا #9)، بعد /file رو بزنید تا فایلش براتون بیاد.\n\n"
-        "🎫 اگه با پشتیبانی کاری داشتید، با /ticket می‌تونید برام پیام بذارید."
-    )
-    channels = config.get("required_join_channels", [])
-    if channels:
-        # عضویت فقط اطلاع‌رسانیه؛ /file عمداً حتی برای فرد غیرعضو هم فایل رو می‌ده.
-        welcome += "\n\n" + core.build_join_prompt(channels)
-    core.send_message(token, chat_id, welcome)
-
-
-NUMBER_REQUEST_RE = re.compile(r"^(?:[#/])?(\d+)$")
-NUMBER_REQUEST_COOLDOWN_MINUTES = 10
-
-
-def handle_number_request(token, config, state, chat_id, text):
-    m = NUMBER_REQUEST_RE.match((text or "").strip())
-    if not m:
-        return False
-
-    number = m.group(1)
-    entry = state.get("files_by_number", {}).get(number)
-    if not entry:
-        core.send_message(token, chat_id, f"فایلی با شمارهٔ {number} پیدا نشد.")
-        return True
-
-    # اگر کاربر همان درخواست را پشت سر هم تکرار کرد، دوباره پیام تولید نکن.
-    if not core.should_send_now(state, f"numreq:{chat_id}:{number}", NUMBER_REQUEST_COOLDOWN_MINUTES):
-        print(f"DEBUG: درخواست تکراری #{number} از {chat_id} — نادیده گرفته شد.")
-        return True
-
-    state.setdefault("pending_file_requests", {})[chat_id] = {
-        "number": number,
-        "requested_at": core.tehran_now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    core.send_message(token, chat_id, core.build_join_prompt(config.get("required_join_channels", [])))
-    return True
-
-
-def handle_file_command(token, config, state, chat_id):
-    """فایل مود آخرین شماره‌ای که کاربر درخواست کرده را تحویل می‌دهد.
-    این مسیر هیچ‌وقت عضویت را چک نمی‌کند."""
-    if not chat_id:
-        return True
-
-    pending = state.setdefault("pending_file_requests", {}).get(chat_id)
-    if not pending:
-        core.send_message(token, chat_id, "⚠️ اول شمارهٔ مود را بفرستید؛ سپس برای دریافت آن /file را بزنید.")
-        return True
-
-    number = str(pending.get("number", "")).strip()
-    entry = state.get("files_by_number", {}).get(number)
-    # درخواست یک‌بارمصرف است: حتی اگر فایل خراب/حذف شده باشد، همان درخواست دوباره خودکار اجرا نشود.
-    state["pending_file_requests"].pop(chat_id, None)
-
-    if not entry:
-        core.send_message(token, chat_id, f"فایل مود شمارهٔ {number} دیگر در انبار ربات پیدا نشد.")
-        return True
-
-    core.send_file(
-        token,
-        chat_id,
-        entry["file_id"],
-        f"#{number}",
-        file_type=entry.get("file_type") or "File",
-        file_name=f"{number}{entry.get('manual_extension') or core.file_extension(entry.get('file_name'))}",
-        source_chat_id=entry.get("source_channel_guid"),
-        source_message_id=entry.get("message_id"),
-    )
-    return True
-
-
-def run_resync(token, config, state):
-    """از ابتدای بافر روبیکا (نه از last_offset_id فعلی) همه‌چیز رو دوباره
-    می‌خونه و از کانال منبع، مود/ویدیوهایی که جا مونده بودن رو پیدا می‌کنه.
-    برای موقعی که مشکوکیم یه پیام قدیمی رد شده (مثلاً با flush قبلی)."""
-    offset = None
-    total_updates = 0
-    mods_before = len(state.get("mods", []))
-    videos_before = len(state.get("videos", []))
-
-    for _ in range(30):
-        try:
-            resp = core.get_updates(token, offset_id=offset, limit=50)
-        except Exception as e:
-            core.log_error(state, "دستور /update", e)
-            break
-        batch = resp.get("updates", []) if isinstance(resp, dict) else []
-        next_off = resp.get("next_offset_id") if isinstance(resp, dict) else None
-        total_updates += len(batch)
-
-        for update in batch:
-            msg = update.get("new_message") or update.get("updated_message") or update
-            if not isinstance(msg, dict):
-                continue
-            chat_id = msg.get("chat_id") or update.get("chat_id")
-            if chat_id == config.get("source_channel_guid") or (msg.get("file") is not None):
-                print(f"DEBUG: RAW (در /update) update کامل: {update}")
-            if chat_id == config.get("source_channel_guid"):
-                try:
-                    handle_source_channel_message(state, msg)
-                except Exception as e:
-                    core.log_error(state, "پردازش /update", e)
-
-        if not batch or not next_off or next_off == offset:
-            offset = next_off or core.extract_fallback_offset(batch) or offset
-            break
-        offset = next_off
-
-    if offset:
-        state["last_offset_id"] = offset
-
-    return total_updates, len(state.get("mods", [])) - mods_before, len(state.get("videos", [])) - videos_before
-
-
-def handle_ticket_flow(token, config, state, chat_id, text):
-    """True برمی‌گردونه اگه این پیام بخشی از فرایند تیکت بوده (پردازش شده)."""
-    awaiting = state.setdefault("awaiting_ticket", [])
-
-    if chat_id in awaiting:
-        awaiting.remove(chat_id)
-        now = core.tehran_now().strftime("%Y-%m-%d %H:%M")
-        core.notify_owner(
-            token, config,
-            f"🎫 تیکت جدید\n"
-            f"GUID فرستنده: {chat_id}\n"
-            f"زمان: {now}\n"
-            f"متن: {text}"
-        )
-        core.send_message(token, chat_id, config.get(
-            "texts", {}
-        ).get("ticket_sent", "تیکت شما ارسال شد. با تشکر 🙏"))
-        return True
-
-    if text == "/ticket":
-        if chat_id not in awaiting:
-            awaiting.append(chat_id)
-        core.send_message(token, chat_id, config.get(
-            "texts", {}
-        ).get("ticket_prompt", "لطفاً متن تیکت خودتون رو بنویسید."))
-        return True
-
-    return False
-
-
-def handle_owner_message(token, config, state, text, msg=None):
+def handle_owner_command(token, config, admin_state, archiver_data, text):
     panel_keyword = config.get("panel_keyword", "پنل")
     broadcast_secret = config.get("broadcast_secret", "")
+    owner_guid = config["owner_guid"]
 
-    if state.get("awaiting_broadcast"):
-        state["awaiting_broadcast"] = False
-        sent, failed = core.broadcast_to_users(token, state, text)
-        core.send_message(token, config["owner_guid"], f"📣 پیام برای {sent} کاربر ارسال شد. (ناموفق: {failed})")
+    # مودها/ویدیوها فقط برای خوندن از آرشیوره؛ اینجا (state ادمین) فقط
+    # used_mods_per_channel و مشابهش نگه‌داری می‌شه.
+    mods = (archiver_data or {}).get("mods", [])
+    videos = (archiver_data or {}).get("videos", [])
+
+    if admin_state.get("awaiting_broadcast"):
+        admin_state["awaiting_broadcast"] = False
+        users = (archiver_data or {}).get("known_users", [])
+        sent, failed = 0, 0
+        for uid in users:
+            try:
+                core.send_message(token, uid, text)
+                sent += 1
+            except Exception:
+                failed += 1
+        core.send_message(token, owner_guid, f"📣 پیام برای {sent} کاربر ارسال شد. (ناموفق: {failed})")
         return
 
     if broadcast_secret and text == broadcast_secret:
-        state["awaiting_broadcast"] = True
-        core.send_message(token, config["owner_guid"], "پیام خودت رو بفرست تا برای همهٔ کاربرها ارسالش کنم.")
+        admin_state["awaiting_broadcast"] = True
+        core.send_message(token, owner_guid, "پیام خودت رو بفرست تا برای همهٔ کاربرها ارسالش کنم.")
         return
 
-    if state.get("awaiting_channelcast"):
-        state["awaiting_channelcast"] = False
+    if admin_state.get("awaiting_channelcast"):
+        admin_state["awaiting_channelcast"] = False
         sent, failed = core.broadcast_to_channels(token, config, text)
-        core.send_message(token, config["owner_guid"], f"📡 پیام در {sent} کانال پست شد. (ناموفق: {failed})")
+        core.send_message(token, owner_guid, f"📡 پیام در {sent} کانال پست شد. (ناموفق: {failed})")
         return
 
     if text == "/channelcast":
-        state["awaiting_channelcast"] = True
-        core.send_message(token, config["owner_guid"], "پیام خودت رو بفرست تا توی همهٔ کانال‌های فعال پست کنم.")
+        admin_state["awaiting_channelcast"] = True
+        core.send_message(token, owner_guid, "پیام خودت رو بفرست تا توی همهٔ کانال‌های فعال پست کنم.")
         return
 
     if text == panel_keyword:
-        state["awaiting_panel_selection"] = True
-        core.send_message(token, config["owner_guid"], core.build_panel_list(config))
+        admin_state["awaiting_panel_selection"] = True
+        core.send_message(token, owner_guid, core.build_panel_list(config))
         return
 
-    if state.get("awaiting_panel_selection") and text.isdigit():
-        state["awaiting_panel_selection"] = False
-        core.send_message(token, config["owner_guid"], core.build_channel_detail(config, state, int(text)))
+    if admin_state.get("awaiting_panel_selection") and text.isdigit():
+        admin_state["awaiting_panel_selection"] = False
+        core.send_message(token, owner_guid, core.build_channel_detail(config, admin_state, int(text)))
         return
 
-    if text.startswith("/postmod"):
+    if text.startswith("/postmod") or text.startswith("/postvideo") or text.startswith("/post "):
+        kind = "video" if text.startswith("/postvideo") else "mod"
         parts = text.split(maxsplit=1)
         target = parts[1].strip() if len(parts) > 1 else ""
-        run_force_post_typed(token, config, state, target, "mod")
-        return
-
-    if text.startswith("/postvideo"):
-        parts = text.split(maxsplit=1)
-        target = parts[1].strip() if len(parts) > 1 else ""
-        run_force_post_typed(token, config, state, target, "video")
-        return
-
-    if text.startswith("/post "):
-        parts = text.split(maxsplit=1)
-        target = parts[1].strip() if len(parts) > 1 else ""
-        run_force_post_typed(token, config, state, target, "mod")
+        run_force_post_typed(token, config, admin_state, mods, videos, target, kind)
         return
 
     if text.startswith("/block"):
         parts = text.split(maxsplit=3)
         if len(parts) < 3:
-            core.send_message(token, config["owner_guid"], "فرمت درست: /block <chat_id> <روز یا permanent> <دلیل>")
+            core.send_message(token, owner_guid, "فرمت درست: /block <chat_id> <روز یا permanent> <دلیل>")
         else:
-            target_id = parts[1]
-            days_part = parts[2]
+            target_id, days_part = parts[1], parts[2]
             reason = parts[3] if len(parts) > 3 else ""
             days = None if days_part.lower() == "permanent" else days_part
             try:
-                info = core.block_user(state, target_id, reason, days)
-                core.send_message(token, config["owner_guid"], f"⛔ {target_id} مسدود شد.\nتا: {info['until'] or 'دائمی'}")
+                info = core.block_user(admin_state, target_id, reason, days)
+                core.send_message(token, owner_guid, f"⛔ {target_id} مسدود شد.\nتا: {info['until'] or 'دائمی'}")
             except Exception as e:
-                core.send_message(token, config["owner_guid"], f"خطا در مسدودسازی: {e}")
+                core.send_message(token, owner_guid, f"خطا در مسدودسازی: {e}")
         return
 
     if text.startswith("/unblock"):
         parts = text.split(maxsplit=1)
         if len(parts) < 2:
-            core.send_message(token, config["owner_guid"], "فرمت درست: /unblock <chat_id>")
+            core.send_message(token, owner_guid, "فرمت درست: /unblock <chat_id>")
         else:
-            ok = core.unblock_user(state, parts[1])
-            core.send_message(token, config["owner_guid"], "✅ رفع مسدودیت شد." if ok else "این آیدی مسدود نبود.")
+            ok = core.unblock_user(admin_state, parts[1])
+            core.send_message(token, owner_guid, "✅ رفع مسدودیت شد." if ok else "این آیدی مسدود نبود.")
         return
 
     if text == "/blocked":
-        core.send_message(token, config["owner_guid"], core.build_blocked_list(state))
-        return
-
-    if text == "/update":
-        total, new_mods, new_videos = run_resync(token, config, state)
-        core.send_message(
-            token, config["owner_guid"],
-            f"🔄 بازخوانی کامل شد.\n"
-            f"کل آپدیت‌های بررسی‌شده: {total}\n"
-            f"مود جدید پیدا شد: {new_mods}\n"
-            f"ویدیوی جدید پیدا شد: {new_videos}"
-        )
+        core.send_message(token, owner_guid, core.build_blocked_list(admin_state))
         return
 
     if text.startswith("/reply"):
         parts = text.split(maxsplit=2)
         if len(parts) < 3:
-            core.send_message(token, config["owner_guid"], "فرمت درست: /reply <GUID> <متن پاسخ>\n(GUID رو از همون پیام تیکتی که برات فرستادم بردار)")
+            core.send_message(token, owner_guid, "فرمت درست: /reply <GUID> <متن پاسخ>")
         else:
             target_guid, reply_text = parts[1], parts[2]
             try:
                 core.send_message(token, target_guid, f"📩 پاسخ پشتیبانی:\n{reply_text}")
-                core.send_message(token, config["owner_guid"], "✅ پاسخ ارسال شد.")
+                core.send_message(token, owner_guid, "✅ پاسخ ارسال شد.")
             except Exception as e:
-                core.send_message(token, config["owner_guid"], f"❌ ارسال ناموفق بود: {e}")
+                core.send_message(token, owner_guid, f"❌ ارسال ناموفق بود: {e}")
         return
 
     if text == "/bugs":
-        core.send_message(token, config["owner_guid"], core.build_bugs_page(state))
+        core.send_message(token, owner_guid, core.build_bugs_page(admin_state))
         return
 
     if text == "/clearbugs":
-        n = len(state.get("errors", []))
-        state["errors"] = []
-        state["bug_page_offset"] = 0
-        core.send_message(token, config["owner_guid"], f"🧹 لیست باگ‌ها پاک شد ({n} مورد حذف شد).")
+        n = len(admin_state.get("errors", []))
+        admin_state["errors"] = []
+        admin_state["bug_page_offset"] = 0
+        core.send_message(token, owner_guid, f"🧹 لیست باگ‌ها پاک شد ({n} مورد حذف شد).")
         return
 
-    n_mods = len(state.get("mods", []))
-    n_videos = len(state.get("videos", []))
-    n_errors = len(state.get("errors", []))
-    n_users = len(state.get("known_users", []))
+    if text == "/resetall":
+        core.send_message(
+            token, owner_guid,
+            "⚠️ این کار فقط تاریخچهٔ پست هر کانال (used_mods_per_channel) رو "
+            "توی مخزن ادمین پاک می‌کنه — برای پاک کردن خودِ مودها/ویدیوها، "
+            "این دستور رو توی پیوی ربات از طریق مخزن آرشیور بفرست.\n"
+            "برای تأیید همین پاک‌سازی، بفرست: /resetall confirm"
+        )
+        return
+
+    if text == "/resetall confirm":
+        admin_state["used_mods_per_channel"] = {}
+        admin_state["used_videos_per_channel"] = {}
+        admin_state["posted_slots_today"] = {"date": None, "mod": {}, "video": {}}
+        core.send_message(token, owner_guid, "🗑 تاریخچهٔ پست هر کانال (در مخزن ادمین) پاک شد.")
+        return
+
+    if not core.should_send_now(admin_state, f"ownerreply:{text}", 3):
+        print(f"DEBUG: همین متن به مالک به‌تازگی پاسخ داده شده بود؛ دوباره پاسخ داده نشد: {text!r}")
+        return
+
+    n_mods = len(mods)
+    n_videos = len(videos)
+    n_errors = len(admin_state.get("errors", []))
     now = core.tehran_now().strftime("%Y-%m-%d %H:%M")
+    archiver_status = "✅ متصل" if archiver_data is not None else "❌ در دسترس نیست (چک کن ARCHIVER_READ_TOKEN)"
     status = (
-        f"✅ ربات فعال است.\n"
+        f"✅ ربات (بخش ادمین) فعال است.\n"
         f"🕰 ساعت تهران: {now}\n"
-        f"👥 تعداد کاربران: {n_users}\n"
-        f"🎮 مودهای ذخیره‌شده: {n_mods}\n"
-        f"🎬 ویدیوهای ذخیره‌شده: {n_videos}\n"
-        f"🐞 تعداد کل باگ‌های ثبت‌شده: {n_errors}\n"
+        f"📦 اتصال به آرشیو: {archiver_status}\n"
+        f"🎮 مودهای آرشیو: {n_mods}\n"
+        f"🎬 ویدیوهای آرشیو: {n_videos}\n"
+        f"🐞 باگ‌های ثبت‌شده (ادمین): {n_errors}\n"
         f"برای دیدن گزارش باگ‌ها: /bugs\n"
         f"برای پاک کردن لیست باگ‌ها: /clearbugs\n"
-        f"برای پنل کانال‌ها: {panel_keyword}\n"
-        f"برای پاسخ به تیکت: /reply <GUID> <متن>\n"
-        f"برای راهنما: /help"
+        f"برای پنل کانال‌ها: {panel_keyword}"
     )
-    core.send_message(token, config["owner_guid"], status)
+    core.send_message(token, owner_guid, status)
 
 
-def run_posting_schedule(token, config, state):
+def resolve_post_targets(config, target):
+    target = (target or "").strip()
+    all_channels = config["destination_channels"]
+    if not target:
+        return None, "فرمت درست: <شماره کانال یا all>"
+    if target.lower() == "all":
+        return [c for c in all_channels if c.get("enabled", True)], None
+    if target.isdigit():
+        idx = int(target) - 1
+        if 0 <= idx < len(all_channels):
+            return [all_channels[idx]], None
+        return None, f"شمارهٔ کانال {target} معتبر نیست."
+    return None, "مقدار باید عدد یا all باشه."
+
+
+def run_force_post_typed(token, config, admin_state, mods, videos, target, kind):
+    targets, err = resolve_post_targets(config, target)
+    owner_guid = config["owner_guid"]
+    if err:
+        core.send_message(token, owner_guid, f"⚠️ پست فوری: {err}")
+        return
+
+    kind_fa = "مود" if kind == "mod" else "ویدیو"
+    summary = []
+    for channel in targets:
+        guid = channel["guid"]
+        try:
+            if kind == "mod":
+                used = admin_state.setdefault("used_mods_per_channel", {}).setdefault(guid, [])
+                item, candidate_used = core.pick_item(mods, used)
+                if item is not None:
+                    core.send_mod(token, channel, item, admin_state)
+                    admin_state["used_mods_per_channel"][guid] = candidate_used
+                    summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
+            else:
+                used = admin_state.setdefault("used_videos_per_channel", {}).setdefault(guid, [])
+                item, candidate_used = core.pick_item(videos, used)
+                if item is not None:
+                    core.send_video(token, channel, item)
+                    admin_state["used_videos_per_channel"][guid] = candidate_used
+                    summary.append(f"🎬 {channel['name']}: ویدیو «{item['title']}»")
+        except Exception as e:
+            core.log_error(admin_state, f"پست فوری {kind_fa} برای {channel['name']}", e)
+
+    if summary:
+        core.send_message(token, owner_guid, "🚀 پست فوری انجام شد:\n" + "\n".join(summary))
+    else:
+        core.send_message(
+            token, owner_guid,
+            f"ℹ️ پست فوری: هیچ {kind_fa}یِ تکراری‌نشده‌ای برای این کانال(ها) موجود نبود."
+        )
+
+
+def run_posting_schedule(token, config, admin_state, mods, videos):
     now = core.tehran_now()
     today = now.strftime("%Y-%m-%d")
     minute_of_day = now.hour * 60 + now.minute
@@ -419,17 +259,15 @@ def run_posting_schedule(token, config, state):
     start_h = config["schedule"]["start_hour_tehran"]
     end_h = config["schedule"]["end_hour_tehran"]
     start_min, end_min = start_h * 60, end_h * 60
-
     if not (start_min <= minute_of_day <= end_min):
         return
 
-    posted = state.setdefault("posted_slots_today", {"date": today, "mod": {}, "video": {}})
+    posted = admin_state.setdefault("posted_slots_today", {"date": today, "mod": {}, "video": {}})
     if posted.get("date") != today:
         posted["date"] = today
         posted["mod"] = {}
         posted["video"] = {}
 
-    # باید با فاصلهٔ واقعیِ اجرای ورک‌فلو هماهنگ باشه (پیش‌فرض هر ۱۵ دقیقه)
     TOLERANCE_MIN = 15
     elapsed = minute_of_day - start_min
     posted_summary = []
@@ -452,272 +290,75 @@ def run_posting_schedule(token, config, state):
 
         try:
             if due_mod and not posted["mod"].get(mod_key):
-                used = state["used_mods_per_channel"].setdefault(guid, [])
-                item, candidate_used = core.pick_item(state["mods"], used)
+                used = admin_state.setdefault("used_mods_per_channel", {}).setdefault(guid, [])
+                item, candidate_used = core.pick_item(mods, used)
                 if item is not None:
-                    core.send_mod(token, channel, item, state)
-                    # فقط بعد از ارسال واقعاً موفق، به‌عنوان «مصرف‌شده» ثبت می‌شه —
-                    # قبلاً این خط قبل از send_mod اجرا می‌شد و اگه ارسال شکست
-                    # می‌خورد (حتی بعد از همهٔ retry ها)، مود همون لحظه برای
-                    # همیشه سوخته می‌شد و دیگه هیچ‌وقت دوباره امتحان نمی‌شد.
-                    state["used_mods_per_channel"][guid] = candidate_used
+                    core.send_mod(token, channel, item, admin_state)
+                    admin_state["used_mods_per_channel"][guid] = candidate_used
                     posted_summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
                 posted["mod"][mod_key] = True
 
             if due_video and not posted["video"].get(video_key):
-                used_v = state["used_videos_per_channel"].setdefault(guid, [])
-                vitem, candidate_used_v = core.pick_item(state["videos"], used_v)
+                used_v = admin_state.setdefault("used_videos_per_channel", {}).setdefault(guid, [])
+                vitem, candidate_used_v = core.pick_item(videos, used_v)
                 if vitem is not None:
                     core.send_video(token, channel, vitem)
-                    state["used_videos_per_channel"][guid] = candidate_used_v
+                    admin_state["used_videos_per_channel"][guid] = candidate_used_v
                     posted_summary.append(f"🎬 {channel['name']}: ویدیو «{vitem['title']}»")
                 posted["video"][video_key] = True
         except Exception as e:
-            core.log_error(state, f"ارسال به {channel['name']}", e)
+            core.log_error(admin_state, f"ارسال به {channel['name']}", e)
 
-    # پاک‌سازی اسلات‌های قدیمی که فایل سنگین نشه (فقط امروز رو نگه دار — بالا هندل شده با ریست روزانه)
     if posted_summary:
-        core.notify_owner(token, config, f"📤 گزارش پست {now.strftime('%H:%M')}\n" + "\n".join(posted_summary))
-
-
-def resolve_post_targets(config, target):
-    """target رشتهٔ 'all' یا شمارهٔ کانال (۱-پایه) هست. یه tuple
-    (لیست کانال‌ها, پیام خطا یا None) برمی‌گردونه."""
-    target = (target or "").strip()
-    all_channels = config["destination_channels"]
-    if not target:
-        return None, "فرمت درست: <شماره کانال یا all>"
-    if target.lower() == "all":
-        return [c for c in all_channels if c.get("enabled", True)], None
-    if target.isdigit():
-        idx = int(target) - 1
-        if 0 <= idx < len(all_channels):
-            return [all_channels[idx]], None
-        return None, f"شمارهٔ کانال {target} معتبر نیست."
-    return None, "مقدار باید عدد یا all باشه."
-
-
-def run_force_post_typed(token, config, state, target, kind):
-    """kind: 'mod' یا 'video' — فقط همون نوعِ محتوا رو فوری پست می‌کنه،
-    بدون توجه به ساعت برنامه."""
-    targets, err = resolve_post_targets(config, target)
-    if err:
-        core.notify_owner(token, config, f"⚠️ پست فوری: {err}")
-        return
-
-    kind_fa = "مود" if kind == "mod" else "ویدیو"
-    summary = []
-    for channel in targets:
-        guid = channel["guid"]
-        try:
-            if kind == "mod":
-                used = state["used_mods_per_channel"].setdefault(guid, [])
-                item, candidate_used = core.pick_item(state["mods"], used)
-                if item is not None:
-                    core.send_mod(token, channel, item, state)
-                    state["used_mods_per_channel"][guid] = candidate_used
-                    summary.append(f"🎮 {channel['name']}: مود «{item.get('title')}»")
-            else:
-                used = state["used_videos_per_channel"].setdefault(guid, [])
-                item, candidate_used = core.pick_item(state["videos"], used)
-                if item is not None:
-                    core.send_video(token, channel, item)
-                    state["used_videos_per_channel"][guid] = candidate_used
-                    summary.append(f"🎬 {channel['name']}: ویدیو «{item['title']}»")
-        except Exception as e:
-            core.log_error(state, f"پست فوری {kind_fa} برای {channel['name']}", e)
-
-    if summary:
-        core.notify_owner(token, config, "🚀 پست فوری انجام شد:\n" + "\n".join(summary))
-    else:
-        core.notify_owner(
-            token, config,
-            f"ℹ️ پست فوری: هیچ {kind_fa}یِ تکراری‌نشده‌ای برای این کانال(ها) موجود نبود.\n"
-            f"(مطمئن شو حداقل یک {kind_fa} در state.json ثبت شده — با /bugs یا پیام وضعیت چک کن.)"
-        )
-
-
-def run_force_post(token, config, state, target):
-    """برای سازگاری با ورودی force_post_channel در Actions (فقط مود)."""
-    if not (target or "").strip():
-        return
-    run_force_post_typed(token, config, state, target, "mod")
+        core.send_message(token, config["owner_guid"], f"📤 گزارش پست {now.strftime('%H:%M')}\n" + "\n".join(posted_summary))
 
 
 def main():
     config = core.load_config()
-    state = core.load_state()
+    admin_state = core.load_state()
     token = os.environ.get("RUBIKA_BOT_TOKEN") or config.get("bot_token")
     if not token:
         print("DEBUG: توکن پیدا نشد")
         return
 
-    core.track_channel_activation(state, config)
-    core.prune_known_users(state, config)
-    n_users_before = len(state.get("known_users", []))
+    archiver_data = fetch_archiver_data(config)
+    mods = (archiver_data or {}).get("mods", [])
+    videos = (archiver_data or {}).get("videos", [])
+    print(f"DEBUG: دادهٔ آرشیور -> مودها={len(mods)} ویدیوها={len(videos)} "
+          f"pending_owner_commands={len((archiver_data or {}).get('pending_owner_commands', []))}")
 
-    print(f"DEBUG: وضعیت لود شده -> last_offset_id={state.get('last_offset_id')!r} "
-          f"mods={len(state.get('mods', []))} videos={len(state.get('videos', []))} "
-          f"users={n_users_before} errors={len(state.get('errors', []))}")
-
-    if os.environ.get("FLUSH_UPDATES", "").strip().lower() in ("yes", "true", "1"):
-        flushed = 0
-        offset = state.get("last_offset_id")
-        for _ in range(30):  # حداکثر ۳۰ بار (۳۰×۵۰=۱۵۰۰ پیام) در یک اجرا
+    if archiver_data is not None:
+        # دستورهای مالک صف‌شده رو پردازش کن — هر id فقط یک‌بار (نشانگر محلی)
+        processed_ids = set(admin_state.setdefault("processed_owner_cmd_ids", []))
+        new_processed = []
+        for cmd in archiver_data.get("pending_owner_commands", []):
+            cmd_id = cmd.get("id")
+            if not cmd_id or cmd_id in processed_ids:
+                continue
             try:
-                resp = core.get_updates(token, offset_id=offset, limit=50)
+                handle_owner_command(token, config, admin_state, archiver_data, cmd.get("text", ""))
             except Exception as e:
-                core.log_error(state, "پاک‌سازی انبار", e)
-                break
-            batch = resp.get("updates", []) if isinstance(resp, dict) else []
-            next_off = resp.get("next_offset_id") if isinstance(resp, dict) else None
-            flushed += len(batch)
-            if not batch or not next_off or next_off == offset:
-                offset = next_off or core.extract_fallback_offset(batch) or offset
-                break
-            offset = next_off
+                core.log_error(admin_state, "پردازش دستور صف‌شدهٔ مالک", e)
+            new_processed.append(cmd_id)
 
-        if offset:
-            state["last_offset_id"] = offset
-        core.notify_owner(token, config, f"🧹 پاک‌سازی انجام شد. {flushed} پیام قدیمی بدون پاسخ دور ریخته شد.")
-        core.save_state(state)
-        print(f"DEBUG: flush کامل شد -> {flushed} پیام, offset نهایی={offset!r}")
-        return
-
-    if os.environ.get("TRIGGER_TYPE") == "workflow_dispatch" and core.should_send_now(state, "heartbeat", 8):
-        try:
-            me = core.get_me(token)
-            bot_name = (me.get("bot") or {}).get("title") or "ربات"
-            now_str = core.tehran_now().strftime("%Y-%m-%d %H:%M")
-            n_active_channels = len([c for c in config.get("destination_channels", []) if c.get("enabled", True)])
-            core.notify_owner(
-                token, config,
-                f"🟢 {bot_name} راه‌اندازی شد و وصل است.\n"
-                f"🕰 ساعت تهران: {now_str}\n"
-                f"👥 تعداد کاربران: {n_users_before}\n"
-                f"📡 تعداد کانال‌های فعال: {n_active_channels}\n"
-                f"🎮 تعداد مودها: {len(state.get('mods', []))}\n"
-                f"🎬 تعداد ویدیوها: {len(state.get('videos', []))}"
-            )
-        except Exception as e:
-            core.log_error(state, "تست اتصال (getMe)", e)
-
-    force_target = os.environ.get("FORCE_POST_CHANNEL", "")
-    if force_target:
-        try:
-            run_force_post(token, config, state, force_target)
-        except Exception as e:
-            core.log_error(state, "پست فوری", e)
-
-    try:
-        resp = core.get_updates(token, offset_id=state.get("last_offset_id"), limit=50)
-        updates = resp.get("updates", []) if isinstance(resp, dict) else []
-        next_offset = resp.get("next_offset_id") if isinstance(resp, dict) else None
-    except Exception as e:
-        core.log_error(state, "دریافت آپدیت‌ها", e)
-        updates = []
-        next_offset = None
-
-    print(f"DEBUG: تعداد آپدیت‌های دریافتی: {len(updates)} | next_offset={next_offset!r}")
-
-    for update in updates:
-        print(f"DEBUG: RAW update کامل: {update}")
-        msg = update.get("new_message") or update.get("updated_message") or update
-        if not isinstance(msg, dict):
-            continue
-        update_identity = core.get_update_identity(update, msg)
-        if core.was_processed(state, update_identity):
-            print(f"DEBUG: آپدیت تکراری رد شد -> {update_identity}")
-            continue
-        chat_id = msg.get("chat_id") or update.get("chat_id")
-        text = (msg.get("text") or "").strip()
-        print(f"DEBUG: پیام -> chat_id={chat_id} | text={text!r}")
-
-        try:
-            # ۱) اگه مسدوده (و مالک نیست)، فقط پیام مسدودی رو بده و رد شو
-            if chat_id and chat_id != config.get("owner_guid"):
-                block_info = core.is_blocked(state, chat_id)
-                if block_info:
-                    core.send_message(token, chat_id, core.build_blocked_message(block_info))
-                    continue
-
-            is_new_user = core.track_known_user(state, config, chat_id)
-            owner_needs_keypad = (
-                chat_id == config.get("owner_guid") and not state.get("owner_keypad_set")
-            )
-            if is_new_user or owner_needs_keypad:
-                try:
-                    core.set_chat_keypad(token, chat_id, ["/help", "/ticket"])
-                    if owner_needs_keypad:
-                        state["owner_keypad_set"] = True
-                except Exception as e:
-                    core.log_error(state, "تنظیم کیبورد ثابت", e)
-
-            # تشخیص اسپم/فعالیت بیش‌ازحد (فقط برای کاربرهای عادی، نه مالک/کانال‌ها)
-            if chat_id and chat_id not in (config.get("owner_guid"), config.get("source_channel_guid")):
-                if core.check_spam(state, chat_id) and core.should_send_now(state, f"spamreport:{chat_id}", core.SPAM_REPORT_COOLDOWN_MINUTES):
-                    core.notify_owner(
-                        token, config,
-                        f"🚨 فعالیت مشکوک/اسپم\n"
-                        f"GUID فرد: {chat_id}\n"
-                        f"بیش از {core.SPAM_THRESHOLD} پیام در {core.SPAM_WINDOW_MINUTES} دقیقهٔ اخیر."
-                    )
-
-            if chat_id and chat_id == config.get("source_channel_guid"):
-                print(f"DEBUG: RAW پیام کانال منبع (کامل): {msg}")
-
-            if text == "/myidver001" and chat_id:
-                core.send_message(token, chat_id, f"GUID این چت:\n{chat_id}")
-            elif text == "/start" and chat_id and chat_id not in (config.get("owner_guid"), config.get("source_channel_guid")):
-                handle_start_command(token, config, state, chat_id)
-            elif text == "/help" and chat_id:
-                help_text = config.get("help_text", "برای دریافت فایل مود، شمارهٔ زیر پست رو با # یا / به من بفرستید (مثلاً #1).")
-                core.send_message(token, chat_id, help_text)
-            elif chat_id and handle_ticket_flow(token, config, state, chat_id, text):
-                pass
-            elif text == "/file" and chat_id:
-                handle_file_command(token, config, state, chat_id)
-            elif not msg.get("file") and handle_number_request(token, config, state, chat_id, text):
-                pass
-            elif chat_id and msg.get("file") and chat_id in (
-                config.get("source_channel_guid"), config.get("owner_guid")
-            ):
-                # پست کانال منبع، یا فایل/عکسی که مستقیم (یا فوروارد) به
-                # پیوی خودِ ربات فرستاده شده — هر دو با یک منطق پردازش می‌شن
-                handle_source_channel_message(state, msg)
-            elif chat_id and chat_id == config.get("owner_guid"):
-                handle_owner_message(token, config, state, text, msg)
-        except Exception as e:
-            core.log_error(state, "پردازش پیام", e)
-        finally:
-            # حتی اگر پیام مربوط به دستور خاصی نبود، همان update دوباره پردازش نشود.
-            core.mark_processed(state, update_identity)
-
-    if next_offset:
-        # فقط next_offset_id خودِ API معتبر است؛ message_id آپدیت را به‌جای
-        # offset_id حدس نمی‌زنیم، چون همین حدس می‌تواند باعث تکرار آپدیت‌ها شود.
-        state["last_offset_id"] = next_offset
+        if new_processed:
+            all_ids = list(processed_ids) + new_processed
+            admin_state["processed_owner_cmd_ids"] = all_ids[-500:]  # سقف، تا سنگین نشه
     else:
-        print("DEBUG: next_offset_id خالی بود؛ offset قبلی حفظ شد و dedupe از تکرار جلوگیری می‌کند.")
+        print("DEBUG: چون داده‌ی آرشیور در دسترس نبود، دستورهای مالک این دور پردازش نشدن.")
 
     try:
-        run_posting_schedule(token, config, state)
+        run_posting_schedule(token, config, admin_state, mods, videos)
     except Exception as e:
-        core.log_error(state, "زمان‌بند پست‌گذاری", e)
+        core.log_error(admin_state, "زمان‌بند پست‌گذاری", e)
 
     try:
-        core.maybe_notify_new_errors(token, config, state)
+        core.maybe_notify_new_errors(token, config, admin_state)
     except Exception:
         pass
 
-    core.trim_stored_content(state)
-    core.prune_sent_log(state)  # پاک‌سازی تضمینیِ یادداشت‌های قدیمی (مثل heartbeat) هر اجرا
-
-    print(f"DEBUG: وضعیت قبل از ذخیره -> last_offset_id={state.get('last_offset_id')!r} "
-          f"mods={len(state.get('mods', []))} videos={len(state.get('videos', []))} "
-          f"users={len(state.get('known_users', []))}")
-
-    core.save_state(state)
+    core.prune_sent_log(admin_state)
+    core.save_state(admin_state)
 
 
 if __name__ == "__main__":
