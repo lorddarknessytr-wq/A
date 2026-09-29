@@ -322,19 +322,50 @@ _CUSTOM_QUOTE_RE = re.compile(r"/Quote(.*?)/Quote", re.IGNORECASE | re.DOTALL)
 
 
 def parse_custom_markup(text):
-    """هر بخش بین دو تا /Quote رو به‌صورت نقل‌قول علامت می‌زنه."""
+    """هر بخش بین دو تا /Quote رو به یک بلوکِ نقل‌قولِ روی خط خودش تبدیل
+    می‌کنه.
+
+    رفع باگ: متادیتای نوع Quote در روبیکا فقط وقتی که بازهٔ نقل‌قول از
+    *ابتدای یک خط* شروع بشه به‌صورت بصری اعمال می‌شه؛ اگه چیزی (even یک
+    فاصلهٔ خالی) قبلش روی همون خط باشه، سرور درخواست رو رد نمی‌کنه (پس
+    خطایی هم دیده نمی‌شه) ولی ظاهر باکس نقل‌قول اصلاً نمایش داده نمی‌شه.
+    چون متن‌های config.json معمولاً یک فاصلهٔ اضافه قبل/بعد از خودِ کلمهٔ
+    «/Quote» دارن (کپی‌پیست)، قبلاً همون یک فاصله باعث می‌شد from_index
+    از صفر/ابتدای خط جابه‌جا بشه و نقل‌قول اصلاً دیده نشه — با اینکه
+    کلمهٔ «/Quote» خودش درست حذف می‌شد و ظاهراً «مشکلی» به چشم نمی‌اومد.
+    الان: فاصله‌های خام دور خودِ نشانه حذف می‌شن، و قبل/بعدِ هر نقل‌قول
+    (اگه از قبل با \n تموم نشده باشه) یک خط جدید اضافه می‌شه.
+    """
     if not text:
         return []
-    parts = []
+
+    raw = []  # (chunk, is_quote)
     last = 0
     for m in _CUSTOM_QUOTE_RE.finditer(text):
-        if m.start() > last:
-            parts.append((text[last:m.start()], None))
-        if m.group(1):
-            parts.append((m.group(1), "quote"))
+        raw.append((text[last:m.start()], False))
+        raw.append((m.group(1) or "", True))
         last = m.end()
-    if last < len(text):
-        parts.append((text[last:], None))
+    raw.append((text[last:], False))
+
+    parts = []
+    for chunk, is_quote in raw:
+        if is_quote:
+            body = chunk.strip(" \t\r\n")
+            if not body:
+                continue
+            if parts and not parts[-1][0].endswith("\n"):
+                parts.append(("\n", None))
+            parts.append((body, "quote"))
+            parts.append(("\n", None))  # محتوای بعدی هم از خط جدید شروع بشه
+        else:
+            core_text = chunk.strip(" \t")
+            if not core_text:
+                continue
+            parts.append((core_text, None))
+
+    while parts and parts[-1] == ("\n", None):
+        parts.pop()
+
     return parts
 
 
