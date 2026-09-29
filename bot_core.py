@@ -1,20 +1,31 @@
 """
 bot_core.py
 ------------
-با متدهای رسمی روبیکا (فقط requests) کار می‌کند.
+هستهٔ ربات: ارتباط با API روبیکا (فقط requests)، پارس کپشن، ارسال
+پیام/فایل/مود/ویدیو، مدیریت state و ابزارهای کمکی.
 
-تغییرات این نسخه:
-- پارس کپشن «موقعیتی» و دقیق: خط‌به‌خط، بدون نیاز به برچسب‌هایی مثل
-  «توضیحات:» — فقط باید تگ #مود (برای عکس مود) یا #ویدئو (برای ویدیو)
-  جایی در کپشن باشد.
-- جلوگیری از سیل پیام با یک «دفترچهٔ ارسال» سبک (sent_log): قبل از هر
-  پیام دوره‌ای (مثل پیام راه‌اندازی)، چک می‌شود که در N دقیقهٔ اخیر
-  فرستاده نشده باشد؛ ورودی‌های قدیمی‌تر از ۱ ساعت خودکار پاک می‌شوند.
-- سوییچ per-channel «send_file_directly»: روشن = فایل مستقیم در کانال
-  پست شود؛ خاموش (پیش‌فرض) = فقط لینک دریافت از ربات نشان داده شود.
+منطق دستورها، آرشیو کانال منبع و زمان‌بند پست‌گذاری در run_bot.py است.
+
+نکات مهم این نسخه (رفع باگ‌ها):
+- نوع فایل (عکس/ویدیو/فایل) دیگه فقط به فیلد file_type وابسته نیست؛ چون
+  API روبیکا برای فایل‌های دریافتی معمولاً فقط file_id/file_name/size
+  می‌ده. تشخیص از روی پسوند نام فایل هم انجام می‌شه. همین باعث می‌شد
+  عکس به‌جای فایل (یا فایل به‌جای عکس) ارسال بشه.
+- api_call حالا فیلد status پاسخ روبیکا رو چک می‌کنه؛ قبلاً یک ارسال
+  ناموفق (با HTTP 200) موفق حساب می‌شد یا برعکس، و زنجیرهٔ fallback باعث
+  ارسال چندباره می‌شد.
+- برای متدهای ارسال، بعد از timeout دیگه کورکورانه دوباره ارسال نمی‌شه
+  (ممکنه پیام رسیده باشه) تا پست تکراری ایجاد نشه.
+- پیشرفت ارسال مود (کاور/فایل) ذخیره می‌شه؛ اگه فایل شکست بخوره، دفعهٔ
+  بعد کاور دوباره فرستاده نمی‌شه.
+- فقط مودهایی که هم کاور و هم فایل دارن انتخاب می‌شن.
 """
 
+import copy
+import hashlib
 import json
+import os
+import random
 import re
 import time
 import uuid
@@ -31,15 +42,27 @@ TEHRAN_OFFSET = timedelta(hours=3, minutes=30)
 MAX_ERRORS_STORED = 200
 ERRORS_PER_PAGE = 5
 ERROR_NOTIFY_COOLDOWN_MINUTES = 10
-REQUEST_TIMEOUT = 15
-UPLOAD_TIMEOUT = 90
+REQUEST_TIMEOUT = 20
+UPLOAD_TIMEOUT = 120
 MAX_PROCESSED_IDS = 1000
 MAX_STORED_MODS = 800
 MAX_STORED_VIDEOS = 800
+MAX_USED_IDS = 1500
+MAX_MESSAGE_LEN = 4000
+MAX_POST_ATTEMPTS = 3
+
+
+class RubikaAPIError(RuntimeError):
+    """پاسخ خطا از سرور روبیکا (ارسال قطعاً انجام نشده)."""
+
+
+class SendUncertainError(RuntimeError):
+    """قطع ارتباط/timeout حین ارسال؛ ممکنه پیام رسیده باشه، پس دوباره
+    نمی‌فرستیمش تا پست تکراری نشه."""
 
 
 # ---------------------------------------------------------------------------
-# فایل‌های JSON
+# فایل‌های JSON و state
 # ---------------------------------------------------------------------------
 def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -47,16 +70,83 @@ def load_json(path):
 
 
 def save_json(path, data):
-    with open(path, "w", encoding="utf-8") as f:
+    """ذخیرهٔ اتمیک: اول در فایل موقت، بعد جایگزینی؛ تا قطع‌شدن وسط نوشتن
+    state.json رو خراب نکنه."""
+    tmp = str(path) + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)
 
 
 def load_config():
     return load_json(CONFIG_PATH)
 
 
+DEFAULT_STATE = {
+    "last_offset_id": None,
+    "mods": [],
+    "videos": [],
+    "files_by_number": {},
+    "pending_photo": None,
+    "orphan_files": {},
+    "recent_files": {},
+    "used_mods_per_channel": {},
+    "used_videos_per_channel": {},
+    "mod_progress": {},
+    "channel_activated": {},
+    "known_users": [],
+    "blocked_users": {},
+    "awaiting_ticket": [],
+    "awaiting_broadcast": False,
+    "awaiting_channelcast": False,
+    "awaiting_panel_selection": False,
+    "sent_log": {},
+    "errors": [],
+    "last_error_notify_time": None,
+    "bug_page_offset": 0,
+    "pending_file_requests": {},
+    "processed_updates": [],
+    "activity_log": {},
+    "owner_keypad_set": False,
+    "posted_slots_today": {"date": None, "mod": {}, "video": {}},
+}
+LEGACY_STATE_KEYS = ("posted_hours_today", "awaiting_newguid")
+
+
+def normalize_state(state):
+    """کلیدهای جاافتاده رو می‌سازه و نوع‌های اشتباه رو درست می‌کنه تا با یک
+    state قدیمی/ناقص KeyError نخوریم."""
+    if not isinstance(state, dict):
+        state = {}
+    for key, default in DEFAULT_STATE.items():
+        cur = state.get(key)
+        if key not in state:
+            state[key] = copy.deepcopy(default)
+        elif isinstance(default, (list, dict)) and not isinstance(cur, type(default)):
+            state[key] = copy.deepcopy(default)
+    for key in LEGACY_STATE_KEYS:
+        state.pop(key, None)
+    posted = state["posted_slots_today"]
+    for sub in ("mod", "video"):
+        if not isinstance(posted.get(sub), dict):
+            posted[sub] = {}
+    posted.setdefault("date", None)
+    return state
+
+
 def load_state():
-    return load_json(STATE_PATH)
+    if not STATE_PATH.exists():
+        return normalize_state({})
+    try:
+        return normalize_state(load_json(STATE_PATH))
+    except (json.JSONDecodeError, OSError) as e:
+        # نگه‌داشتن نسخهٔ خراب برای بررسی، و شروع با state خالی
+        try:
+            os.replace(STATE_PATH, str(STATE_PATH) + ".broken")
+        except OSError:
+            pass
+        print(f"DEBUG: state.json خراب بود ({e}); با state خالی شروع شد.")
+        return normalize_state({})
 
 
 def save_state(state):
@@ -68,31 +158,92 @@ def tehran_now():
 
 
 # ---------------------------------------------------------------------------
+# ابزارهای متن
+# ---------------------------------------------------------------------------
+_INVISIBLE_RE = re.compile(r"[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
+_DIGIT_MAP = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+
+def normalize_digits(s):
+    return str(s or "").translate(_DIGIT_MAP)
+
+
+def clean_command_text(text):
+    """متن رو برای تشخیص دستور/شماره تمیز می‌کنه: حذف نیم‌فاصله و
+    کاراکترهای نامرئی، تبدیل رقم فارسی/عربی به انگلیسی. (برای ارسال متن
+    به دیگران از متن خام استفاده کن، نه این.)"""
+    return normalize_digits(_INVISIBLE_RE.sub("", str(text or ""))).strip()
+
+
+def channel_label(ch):
+    return ch.get("name") or ch.get("channel_link") or ch.get("guid") or "بدون‌نام"
+
+
+# ---------------------------------------------------------------------------
 # ارتباط خام با Rubika Bot API
 # ---------------------------------------------------------------------------
+def _is_send_method(method):
+    return method.startswith("send") or method == "forwardMessage"
+
+
 def api_call(token, method, payload=None, retries=3, backoff_seconds=2):
     """
-    فراخوانی متد API روبیکا. خطاهای موقتِ خودِ سرور روبیکا (502/503/504،
-    یعنی سرور لحظه‌ای شلوغ/داون بوده، نه اشکال ما) تا ۳ بار با فاصله
-    دوباره امتحان می‌شن؛ فقط بعد از شکستِ همهٔ تلاش‌ها خطا بالا می‌ره.
+    فراخوانی متد API روبیکا.
+    - خطاهای موقت سرور (429/502/503/504) و قطعی‌های شبکه برای متدهای
+      «خواندنی» با فاصله دوباره امتحان می‌شن.
+    - برای متدهای «ارسال» (sendMessage/sendFile/forwardMessage) فقط وقتی
+      دوباره امتحان می‌کنیم که مطمئنیم درخواست اصلاً به سرور نرسیده
+      (ConnectTimeout) یا سرور صراحتاً 429/503 گفته؛ در غیر این‌صورت
+      SendUncertainError می‌دیم تا پیام دوبار نره.
+    - فیلد status پاسخ چک می‌شه؛ غیر از OK یعنی خطا.
     """
-    import time as _time
     url = f"https://botapi.rubika.ir/v3/{token}/{method}"
+    is_send = _is_send_method(method)
+    retry_codes = (429, 503) if is_send else (429, 502, 503, 504)
     last_exc = None
+
     for attempt in range(1, retries + 1):
         try:
             resp = requests.post(url, json=payload or {}, timeout=REQUEST_TIMEOUT)
-            if resp.status_code in (502, 503, 504):
-                last_exc = RuntimeError(f"{resp.status_code} موقت از سرور روبیکا (تلاش {attempt}/{retries})")
-                _time.sleep(backoff_seconds * attempt)
-                continue
-            resp.raise_for_status()
-            body = resp.json()
-            return body.get("data", body) if isinstance(body, dict) else body
-        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+        except requests.exceptions.ConnectTimeout as e:
             last_exc = e
-            _time.sleep(backoff_seconds * attempt)
+            time.sleep(backoff_seconds * attempt)
             continue
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            if is_send:
+                raise SendUncertainError(f"{method}: قطع ارتباط حین ارسال ({e})") from e
+            last_exc = e
+            time.sleep(backoff_seconds * attempt)
+            continue
+
+        if resp.status_code in retry_codes:
+            last_exc = RubikaAPIError(f"{method}: HTTP {resp.status_code} موقت (تلاش {attempt}/{retries})")
+            time.sleep(backoff_seconds * attempt)
+            continue
+
+        try:
+            body = resp.json()
+        except ValueError:
+            body = None
+
+        if resp.status_code >= 400:
+            detail = ""
+            if isinstance(body, dict):
+                detail = f"{body.get('status', '')} {body.get('status_det', '') or body.get('dev_message', '')}".strip()
+            if not detail:
+                detail = resp.text[:200]
+            if is_send and resp.status_code >= 500:
+                raise SendUncertainError(f"{method}: HTTP {resp.status_code} {detail}")
+            raise RubikaAPIError(f"{method}: HTTP {resp.status_code} {detail}")
+
+        if isinstance(body, dict):
+            status = body.get("status")
+            if status is not None and str(status).upper() != "OK":
+                detail = body.get("status_det") or body.get("dev_message") or ""
+                raise RubikaAPIError(f"{method}: {status} {detail}".strip())
+            return body.get("data", body)
+        return body
+
     raise last_exc or RuntimeError(f"فراخوانی {method} بدون دلیل مشخص شکست خورد")
 
 
@@ -100,6 +251,45 @@ def get_me(token):
     return api_call(token, "getMe")
 
 
+def get_updates(token, offset_id=None, limit=50):
+    payload = {"limit": limit}
+    if offset_id:
+        payload["offset_id"] = offset_id
+    return api_call(token, "getUpdates", payload)
+
+
+def get_file(token, file_id):
+    return api_call(token, "getFile", {"file_id": file_id})
+
+
+def request_send_file(token, file_type):
+    return api_call(token, "requestSendFile", {"type": file_type or "File"})
+
+
+def get_chat(token, chat_id):
+    return api_call(token, "getChat", {"chat_id": chat_id})
+
+
+def forward_message(token, from_chat_id, message_id, to_chat_id):
+    return api_call(token, "forwardMessage", {
+        "from_chat_id": from_chat_id, "message_id": message_id, "to_chat_id": to_chat_id,
+    })
+
+
+def set_chat_keypad(token, chat_id, buttons):
+    """کیبورد ثابت پایین صفحه. buttons لیستی از متن دکمه‌هاست."""
+    rows = [{"buttons": [{"id": str(i), "type": "Simple", "button_text": t}]} for i, t in enumerate(buttons)]
+    payload = {
+        "chat_id": chat_id,
+        "chat_keypad_type": "New",
+        "chat_keypad": {"rows": rows, "resize_keyboard": True, "one_time_keyboard": False},
+    }
+    return api_call(token, "editChatKeypad", payload)
+
+
+# ---------------------------------------------------------------------------
+# فرمت‌دهی متن (metadata)
+# ---------------------------------------------------------------------------
 FORMAT_TYPES = {
     "bold": "Bold", "italic": "Italic", "underline": "Underline",
     "strike": "Strike", "spoiler": "Spoiler", "mono": "Mono",
@@ -108,22 +298,12 @@ FORMAT_TYPES = {
 
 
 def _utf16_len(s):
-    """طول رشته بر حسب واحدهای UTF-16 (مثل تلگرام) — هر ایموجی/کاراکتر
-    خارج از BMP دو واحد حساب می‌شه، نه یکی. قبلاً از len() پایتون
-    (تعداد کاراکتر خام) استفاده می‌شد که وقتی قبل از بخش فرمت‌شده
-    ایموجی بود، مرز بولد/نقل‌قول رو جابه‌جا می‌کرد و باعث می‌شد بخشی از
-    متن از داخل باکس «بیرون بزنه»."""
+    """طول رشته بر حسب واحدهای UTF-16 (ایموجی دو واحد حساب می‌شه)."""
     return len(s.encode("utf-16-le")) // 2
 
 
 def build_text_with_metadata(parts):
-    """
-    parts: لیستی از تاپل (متن, نوع‌فرمت یا None). نوع‌فرمت یکی از کلیدهای
-    FORMAT_TYPES (مثلاً "bold", "quote"). خروجی: (متن نهایی، آرایهٔ
-    metadata برای فرستادن به روبیکا). افست‌ها بر اساس واحد UTF-16
-    حساب می‌شن (همون قراردادی که تلگرام و به‌احتمال زیاد خودِ روبیکا
-    استفاده می‌کنن) تا مرز بولد/نقل‌قول با وجود ایموجی هم دقیق بمونه.
-    """
+    """parts: لیست (متن, نوع‌فرمت یا None) → (متن نهایی, metadata)."""
     text = ""
     metadata = []
     pos16 = 0
@@ -142,11 +322,7 @@ _CUSTOM_QUOTE_RE = re.compile(r"/Quote(.*?)/Quote", re.IGNORECASE | re.DOTALL)
 
 
 def parse_custom_markup(text):
-    """
-    برای متن‌های کاستوم داخل config.json: هر بخشی بین دو تا /Quote رو
-    به‌صورت نقل‌قول علامت می‌زنه. خروجی مستقیم قابل‌استفاده توی
-    build_text_with_metadata یا اضافه‌شدن به لیست parts هست.
-    """
+    """هر بخش بین دو تا /Quote رو به‌صورت نقل‌قول علامت می‌زنه."""
     if not text:
         return []
     parts = []
@@ -163,72 +339,97 @@ def parse_custom_markup(text):
 
 
 def send_message(token, chat_id, text, metadata=None):
+    text = str(text)
+    if len(text) > MAX_MESSAGE_LEN:
+        # پیام خیلی بلند: تکه‌تکه (بدون metadata، چون افست‌ها بهم می‌ریزن)
+        chunks, cur = [], ""
+        for line in text.split("\n"):
+            while len(line) > MAX_MESSAGE_LEN:
+                if cur:
+                    chunks.append(cur)
+                    cur = ""
+                chunks.append(line[:MAX_MESSAGE_LEN])
+                line = line[MAX_MESSAGE_LEN:]
+            if len(cur) + len(line) + 1 > MAX_MESSAGE_LEN:
+                chunks.append(cur)
+                cur = line
+            else:
+                cur = f"{cur}\n{line}" if cur else line
+        if cur:
+            chunks.append(cur)
+        result = None
+        for chunk in chunks:
+            result = api_call(token, "sendMessage", {"chat_id": chat_id, "text": chunk})
+        return result
+
     payload = {"chat_id": chat_id, "text": text}
     if metadata:
-        payload["metadata"] = {"meta_data_parts": metadata}
+        try:
+            return api_call(token, "sendMessage", {**payload, "metadata": {"meta_data_parts": metadata}})
+        except RubikaAPIError as e:
+            print(f"DEBUG: sendMessage با metadata رد شد ({e}); بدون metadata دوباره می‌فرستم")
     return api_call(token, "sendMessage", payload)
 
 
-def get_file(token, file_id):
-    return api_call(token, "getFile", {"file_id": file_id})
+# ---------------------------------------------------------------------------
+# تشخیص نوع فایل (عکس / ویدیو / فایل)
+# ---------------------------------------------------------------------------
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".heic", ".heif"}
+VIDEO_EXTS = {".mp4", ".mkv", ".mov", ".avi", ".webm", ".3gp", ".m4v", ".ts"}
+AUDIO_EXTS = {".mp3", ".m4a", ".ogg", ".wav", ".flac", ".aac"}
+
+_RAW_TYPE_MAP = {
+    "image": "Image", "photo": "Image", "picture": "Image",
+    "video": "Video", "videomessage": "Video",
+    "gif": "Gif",
+    "music": "Music", "audio": "Music",
+    "voice": "Voice",
+    "file": "File", "document": "File", "application": "File",
+}
 
 
-def request_send_file(token, file_type):
-    return api_call(token, "requestSendFile", {"type": file_type or "File"})
+def file_extension(file_name):
+    """پسوند با نقطه (مثلاً '.apk')؛ اگه نداشت/نامعتبر بود رشتهٔ خالی."""
+    name = str(file_name or "").strip()
+    if "." not in name:
+        return ""
+    ext = "." + name.rsplit(".", 1)[-1]
+    if len(ext) > 10 or " " in ext:
+        return ""
+    return ext.lower()
 
 
-def forward_message(token, from_chat_id, message_id, to_chat_id):
-    return api_call(token, "forwardMessage", {
-        "from_chat_id": from_chat_id, "message_id": message_id, "to_chat_id": to_chat_id,
-    })
+def kind_from_name(file_name):
+    ext = file_extension(file_name)
+    if ext in IMAGE_EXTS:
+        return "Image"
+    if ext in VIDEO_EXTS:
+        return "Video"
+    if ext in AUDIO_EXTS:
+        return "Music"
+    return None
 
 
-def _request_with_retry(method, url, retries=3, backoff_seconds=3, **kwargs):
-    """درخواست خام (دانلود/آپلود فایل) با تلاش مجدد. قبلاً این نوع
-    درخواست‌ها هیچ retry ای نداشتن — یک قطعی شبکهٔ لحظه‌ای (Timeout/
-    Connection aborted) کافی بود کل ارسال شکست بخوره؛ حالا مثل api_call
-    چند بار با فاصله دوباره امتحان می‌شن."""
-    last_exc = None
-    for attempt in range(1, retries + 1):
-        try:
-            resp = requests.request(method, url, **kwargs)
-            resp.raise_for_status()
-            return resp
-        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-            last_exc = e
-            print(f"DEBUG: درخواست {method} به {url[:60]}... ناموفق (تلاش {attempt}/{retries}): {e}")
-            if attempt < retries:
-                time.sleep(backoff_seconds * attempt)
-    raise last_exc
+def detect_file_kind(file_info):
+    """نوع فایل رو برمی‌گردونه: Image / Video / Gif / Music / Voice / File
+    یا None اگه نتونست تشخیص بده. اول file_type صریح، بعد پسوند نام فایل."""
+    if not isinstance(file_info, dict):
+        return None
+    raw = str(file_info.get("file_type") or file_info.get("type") or "").strip().lower()
+    if raw in _RAW_TYPE_MAP:
+        return _RAW_TYPE_MAP[raw]
+    name = (file_info.get("file_name") or file_info.get("name")
+            or file_info.get("original_name") or file_info.get("title"))
+    return kind_from_name(name)
 
 
-def reupload_file(token, file_id, file_type, file_name="file"):
-    """دانلود فایل با file_id قدیمی و آپلود دوباره‌اش تا file_id تازه و
-    معتبر برای چتِ مقصدِ جدید بگیریم (چون file_id یک چت همیشه برای چت
-    دیگه معتبر نیست)."""
-    file_info = get_file(token, file_id)
-    download_url = (file_info or {}).get("download_url")
-    if not download_url:
-        raise RuntimeError("getFile آدرس دانلود برنگردوند.")
-    r = _request_with_retry("GET", download_url, timeout=UPLOAD_TIMEOUT)
-    upload_req = request_send_file(token, normalize_send_file_type(file_type))
-    upload_url = (upload_req or {}).get("upload_url")
-    if not upload_url:
-        raise RuntimeError("requestSendFile آدرس آپلود برنگردوند.")
-    up = _request_with_retry("POST", upload_url, timeout=UPLOAD_TIMEOUT, files={"file": (file_name, r.content)})
-    result = up.json()
-    new_file_id = result.get("file_id") or (result.get("data") or {}).get("file_id")
-    if not new_file_id:
-        raise RuntimeError(f"آپلود مجدد جواب معتبر نداد: {result}")
-    return new_file_id
-
-
-def normalize_send_file_type(file_type):
-    """نوع‌های ناشناخته مثل Application را به File تبدیل می‌کند."""
-    value = str(file_type or "File").strip()
-    if value.lower() in {"image", "video", "file"}:
-        return value.title()
-    return "File"
+def normalize_send_file_type(file_type, file_name=None):
+    """نوع معتبر برای requestSendFile: File / Image / Video / Voice / Music / Gif.
+    اگه نوع ناشناخته بود، از پسوند نام فایل حدس می‌زنه؛ در نهایت File."""
+    raw = str(file_type or "").strip().lower()
+    if raw in _RAW_TYPE_MAP:
+        return _RAW_TYPE_MAP[raw]
+    return kind_from_name(file_name) or "File"
 
 
 def safe_file_name(file_name, fallback="file"):
@@ -238,106 +439,172 @@ def safe_file_name(file_name, fallback="file"):
     return name.replace("/", "_").replace("\\", "_")[:180]
 
 
-def file_extension(file_name):
-    """پسوند فایل اصلی را با نقطه برمی‌گرداند (مثلاً '.apk')؛ اگر
-    نداشت یا نامعتبر بود، رشتهٔ خالی برمی‌گرداند."""
-    name = str(file_name or "").strip()
-    if "." not in name:
-        return ""
-    ext = "." + name.rsplit(".", 1)[-1]
-    if len(ext) > 10 or " " in ext:
-        return ""
-    return ext
+# ---------------------------------------------------------------------------
+# ارسال فایل
+# ---------------------------------------------------------------------------
+def _request_with_retry(method, url, retries=3, backoff_seconds=3, **kwargs):
+    """درخواست خام (دانلود/آپلود) با تلاش مجدد روی قطعی شبکه."""
+    last_exc = None
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.request(method, url, **kwargs)
+            resp.raise_for_status()
+            return resp
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            last_exc = e
+            print(f"DEBUG: درخواست {method} ناموفق (تلاش {attempt}/{retries}): {e}")
+            if attempt < retries:
+                time.sleep(backoff_seconds * attempt)
+    raise last_exc
+
+
+def reupload_file(token, file_id, file_type, file_name="file"):
+    """دانلود فایل با file_id قدیمی و آپلود دوباره برای گرفتن file_id تازه.
+    نوع آپلود = نوع واقعی فایل (Image برای عکس)، تا عکس به‌صورت فایل
+    و فایل به‌صورت عکس ارسال نشه."""
+    file_info = get_file(token, file_id)
+    download_url = (file_info or {}).get("download_url")
+    if not download_url:
+        raise RuntimeError("getFile آدرس دانلود برنگردوند.")
+    r = _request_with_retry("GET", download_url, timeout=UPLOAD_TIMEOUT)
+    upload_req = request_send_file(token, normalize_send_file_type(file_type, file_name))
+    upload_url = (upload_req or {}).get("upload_url")
+    if not upload_url:
+        raise RuntimeError("requestSendFile آدرس آپلود برنگردوند.")
+    up = _request_with_retry("POST", upload_url, timeout=UPLOAD_TIMEOUT, files={"file": (file_name, r.content)})
+    try:
+        result = up.json()
+    except ValueError:
+        raise RuntimeError(f"آپلود مجدد جواب JSON نداد: {up.text[:200]}")
+    new_file_id = None
+    if isinstance(result, dict):
+        new_file_id = result.get("file_id") or (result.get("data") or {}).get("file_id")
+    if not new_file_id:
+        raise RuntimeError(f"آپلود مجدد جواب معتبر نداد: {result}")
+    return new_file_id
 
 
 def send_file(token, chat_id, file_id, text="", file_type=None, file_name="file",
               source_chat_id=None, source_message_id=None, metadata=None):
-    """ارسال فایل با اولویت مسیرهای سریع و با نوع فایل استاندارد.
-    metadata فقط روی تلاش مستقیم و re-upload اثر داره؛ اگه به فوروارد
-    از کانال منبع افتاد، کپشن اصلی همون‌جا عیناً حفظ می‌شه (بدون
-    فرمت‌دهی سفارشی ما).
-
-    توجه: این تابع کل زنجیره (مستقیم → forward → re-upload) را فقط
-    یک‌بار امتحان می‌کند، نه چند بار. تکرارِ کل زنجیره خطرناکه: اگه یه
-    تلاش واقعاً موفق بشه ولی فقط تشخیص «موفقیت» ما خطا بده، تکرار کل
-    زنجیره باعث پست دوبارهٔ همون فایل توی کانال می‌شه. قطعی‌های موقتِ
-    شبکه از قبل در سطح پایین‌تر (api_call و دانلود/آپلود فایل) چند بار
-    retry می‌شن، پس نیازی به تکرار کل زنجیره در این سطح نیست."""
-    send_type = normalize_send_file_type(file_type)
+    """
+    ارسال فایل (فقط یک‌بار به مقصد می‌رسه):
+      ۱) sendFile مستقیم با file_id (اگه metadata رد شد، بدون metadata)
+      ۲) اگه file_id برای این چت معتبر نبود: دانلود + آپلود مجدد + sendFile
+      ۳) آخرین راه: forwardMessage از کانال منبع (کپشن اصلی همون‌جا حفظ
+         می‌شه، نه کپشن سفارشی ما)
+    اگه حین ارسال قطع ارتباط/timeout پیش بیاد (SendUncertainError)، هیچ
+    تلاش دیگه‌ای نمی‌کنیم چون ممکنه فایل رسیده باشه.
+    """
+    send_type = normalize_send_file_type(file_type, file_name)
     safe_name = safe_file_name(file_name, "file")
 
-    def _try(fid, use_metadata=True):
-        payload = {
-            "chat_id": chat_id,
-            "file_id": fid,
-            "text": text,
-        }
+    def _send(fid, use_metadata):
+        payload = {"chat_id": chat_id, "file_id": fid, "text": text or ""}
         if use_metadata and metadata:
             payload["metadata"] = {"meta_data_parts": metadata}
-        result = api_call(token, "sendFile", payload)
-        if not isinstance(result, dict):
-            raise RuntimeError(f"پاسخ sendFile نامعتبر است: {result}")
-        msg_id = (
-            result.get("message_id") or result.get("new_message_id")
-            or (result.get("new_message") or {}).get("message_id")
-        )
-        if not msg_id:
-            raise RuntimeError(f"پاسخ sendFile بدون message_id: {result}")
-        return result
+        return api_call(token, "sendFile", payload)
 
-    try:
-        result = _try(file_id)
-        print(f"DEBUG: sendFile موفق (مستقیم) -> chat_id={chat_id}")
-        return result
-    except Exception as direct_error:
-        print(f"DEBUG: sendFile مستقیم ناموفق: {direct_error}")
+    def _send_with_meta_fallback(fid):
         if metadata:
             try:
-                result = _try(file_id, use_metadata=False)
-                print(f"DEBUG: sendFile بدون metadata موفق -> chat_id={chat_id}")
-                return result
-            except Exception as no_meta_error:
-                print(f"DEBUG: بدون metadata هم ناموفق: {no_meta_error}")
+                return _send(fid, True)
+            except RubikaAPIError as e:
+                print(f"DEBUG: sendFile با metadata رد شد ({e}); بدون metadata امتحان می‌کنم")
+        return _send(fid, False)
+
+    errors = []
+
+    try:
+        result = _send_with_meta_fallback(file_id)
+        print(f"DEBUG: sendFile موفق (مستقیم) -> chat_id={chat_id}")
+        return result
+    except SendUncertainError:
+        raise
+    except Exception as e:
+        errors.append(f"مستقیم: {e}")
+        print(f"DEBUG: sendFile مستقیم ناموفق: {e}")
+
+    try:
+        new_file_id = reupload_file(token, file_id, send_type, safe_name)
+        result = _send_with_meta_fallback(new_file_id)
+        print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id}")
+        return result
+    except SendUncertainError:
+        raise
+    except Exception as e:
+        errors.append(f"آپلود مجدد: {e}")
+        print(f"DEBUG: آپلود مجدد ناموفق: {e}")
 
     if source_chat_id and source_message_id:
         try:
-            fwd = forward_message(token, source_chat_id, source_message_id, chat_id)
-            if isinstance(fwd, dict) and (
-                fwd.get("new_message_id") or fwd.get("message_id")
-                or (fwd.get("new_message") or {}).get("message_id")
-            ):
-                print(f"DEBUG: forwardMessage موفق -> chat_id={chat_id}")
-                return fwd
-            print(f"DEBUG: forwardMessage پاسخ قابل‌تأیید نداد: {fwd}")
-        except Exception as forward_error:
-            print(f"DEBUG: forwardMessage ناموفق: {forward_error}")
+            result = forward_message(token, source_chat_id, source_message_id, chat_id)
+            print(f"DEBUG: forwardMessage موفق -> chat_id={chat_id}")
+            return result
+        except SendUncertainError:
+            raise
+        except Exception as e:
+            errors.append(f"forward: {e}")
+            print(f"DEBUG: forwardMessage ناموفق: {e}")
 
-    new_file_id = reupload_file(token, file_id, send_type, safe_name)
-    result = _try(new_file_id)
-    print(f"DEBUG: sendFile بعد از آپلود مجدد موفق -> chat_id={chat_id}")
-    return result
-
-
-def get_updates(token, offset_id=None, limit=50):
-    payload = {"limit": limit}
-    if offset_id:
-        payload["offset_id"] = offset_id
-    return api_call(token, "getUpdates", payload)
+    raise RuntimeError("ارسال فایل شکست خورد؛ " + " | ".join(errors))
 
 
 # ---------------------------------------------------------------------------
-# شناسایی کاربر در برابر کانال
+# شناسایی چت‌ها (کاربر / کانال / گروه) و آپدیت‌ها
 # ---------------------------------------------------------------------------
+def is_channel_guid(guid):
+    """GUID کانال‌های روبیکا با c0 شروع می‌شه (کاربر b0، گروه g0)."""
+    return str(guid or "").startswith("c0")
+
+
+def is_group_guid(guid):
+    return str(guid or "").startswith("g0")
+
+
+def is_user_guid(guid):
+    g = str(guid or "")
+    return bool(g) and not g.startswith(("c0", "g0"))
+
+
+def known_channel_guids(config):
+    guids = {config.get("source_channel_guid")}
+    for ch in config.get("destination_channels", []):
+        guids.add(ch.get("guid"))
+    for ch in config.get("required_join_channels", []):
+        guids.add(ch.get("guid"))
+    guids.discard(None)
+    guids.discard("")
+    return guids
+
+
+def extract_chat_id(update, msg):
+    """chat_id در آپدیت‌های روبیکا کنار خودِ update می‌آد، نه داخل message؛
+    قبلاً فقط msg.chat_id خونده می‌شد و برای پیام‌های کانال None می‌شد."""
+    chat_id = update.get("chat_id") if isinstance(update, dict) else None
+    if not chat_id and isinstance(msg, dict):
+        chat_id = msg.get("chat_id")
+        if not chat_id and str(msg.get("sender_type", "")).lower() == "user":
+            chat_id = msg.get("sender_id")
+    return chat_id
+
+
 def get_update_identity(update, msg=None):
+    """شناسهٔ یکتای آپدیت برای جلوگیری از پردازش تکراری. پیام ادیت‌شده
+    (همون message_id با متن/فایل جدید) باید دوباره پردازش بشه، برای همین
+    خلاصهٔ محتوا هم داخل شناسه هست."""
     if isinstance(update, dict):
         for key in ("update_id", "id"):
             if update.get(key) is not None:
                 return f"u:{update[key]}"
-    if isinstance(msg, dict):
-        for key in ("message_id", "id"):
-            if msg.get(key) is not None:
-                return f"m:{msg[key]}"
-    return None
+    msg = msg if isinstance(msg, dict) else {}
+    mid = msg.get("message_id") or msg.get("id")
+    if not mid:
+        return None
+    utype = "e" if (update.get("updated_message") or msg.get("is_edited")) else "n"
+    chat = extract_chat_id(update, msg) or ""
+    body = f"{msg.get('text', '')}|{(msg.get('file') or {}).get('file_id', '')}"
+    digest = hashlib.md5(body.encode("utf-8")).hexdigest()[:8]
+    return f"{utype}:{chat}:{mid}:{digest}"
 
 
 def was_processed(state, identity):
@@ -354,16 +621,16 @@ def mark_processed(state, identity):
         del items[:-MAX_PROCESSED_IDS]
 
 
-def known_channel_guids(config):
-    guids = {config.get("source_channel_guid")}
-    for ch in config.get("destination_channels", []):
-        guids.add(ch.get("guid"))
-    guids.discard(None)
-    return guids
+def extract_fallback_offset(updates):
+    if not updates:
+        return None
+    last = updates[-1]
+    msg = last.get("new_message") or last.get("updated_message") or {}
+    return last.get("update_id") or last.get("id") or msg.get("message_id")
 
 
 def track_known_user(state, config, chat_id):
-    if not chat_id or chat_id in known_channel_guids(config):
+    if not is_user_guid(chat_id) or chat_id in known_channel_guids(config):
         return False
     if chat_id == config.get("owner_guid"):
         return False
@@ -375,31 +642,33 @@ def track_known_user(state, config, chat_id):
 
 
 def prune_known_users(state, config):
-    """ورودی‌هایی که در واقع کانال هستن (مثلاً چون قبلاً GUID اشتباه بوده)
-    یا مالک ربات هستن رو از known_users پاک می‌کند — خودترمیم‌شونده."""
+    """ورودی‌هایی که در واقع کانال/گروه یا مالک‌اند رو از known_users پاک
+    می‌کنه (تشخیص با پیشوند GUID، پس کانال‌های ثبت‌نشده در config هم
+    کاربر حساب نمی‌شن)."""
     channels = known_channel_guids(config)
     owner = config.get("owner_guid")
-    users = state.get("known_users", [])
-    state["known_users"] = [u for u in users if u not in channels and u != owner]
+    state["known_users"] = [
+        u for u in state.get("known_users", [])
+        if is_user_guid(u) and u not in channels and u != owner
+    ]
 
 
 # ---------------------------------------------------------------------------
-# حافظهٔ موقت فایل‌های اخیر — برای پیام‌هایی که بعداً ادیت می‌شوند و در
-# آپدیتِ ادیت، اطلاعات فایل همراهش نیست (فقط متن جدید می‌آید)
+# حافظهٔ موقت فایل‌های اخیر (برای آپدیتِ ادیت پیام که فایل همراهش نیست)
 # ---------------------------------------------------------------------------
-RECENT_FILES_TTL_MINUTES = 120
+RECENT_FILES_TTL_MINUTES = 240
 
 
-def remember_recent_file(state, message_id, file_id, file_type):
-    if not message_id:
+def remember_recent_file(state, message_id, file_info):
+    if not message_id or not isinstance(file_info, dict):
         return
     cache = state.setdefault("recent_files", {})
     cache[str(message_id)] = {
-        "file_id": file_id,
-        "file_type": file_type,
+        "file_id": file_info.get("file_id"),
+        "file_name": file_info.get("file_name") or file_info.get("name"),
+        "file_type": file_info.get("file_type") or file_info.get("type"),
         "seen": tehran_now().strftime("%Y-%m-%d %H:%M"),
     }
-    # پاک‌سازی ورودی‌های قدیمی‌تر از RECENT_FILES_TTL_MINUTES
     cutoff = tehran_now().replace(tzinfo=None) - timedelta(minutes=RECENT_FILES_TTL_MINUTES)
     for k in list(cache.keys()):
         try:
@@ -412,13 +681,16 @@ def remember_recent_file(state, message_id, file_id, file_type):
 def recall_recent_file(state, message_id):
     if not message_id:
         return None
-    return state.get("recent_files", {}).get(str(message_id))
+    cached = state.get("recent_files", {}).get(str(message_id))
+    if not cached or not cached.get("file_id"):
+        return None
+    return {k: v for k, v in cached.items() if k != "seen" and v}
 
 
 # ---------------------------------------------------------------------------
 # پارس کپشن — موقعیتی و دقیق
 # ---------------------------------------------------------------------------
-def _content_lines(caption: str):
+def _content_lines(caption):
     lines = [l.strip() for l in (caption or "").splitlines() if l.strip()]
     return [l for l in lines if not l.startswith("#")]
 
@@ -426,34 +698,57 @@ def _content_lines(caption: str):
 _LABEL_RE = re.compile(r"^\s*(عنوان|توضیحات|توضیح|ورژن|نسخه)\s*[:：]\s*")
 
 
-def _strip_label(line: str) -> str:
-    """اگر خط با برچسبی مثل «عنوان:» شروع شده باشه، برچسب رو حذف می‌کنه؛
-    اگر نه، خودِ خط رو بدون تغییر برمی‌گردونه. یعنی هم فرمت با برچسب و
-    هم بدون برچسب پشتیبانی می‌شه."""
+def _strip_label(line):
     return _LABEL_RE.sub("", line).strip()
 
 
-_MOD_TAG_RE = re.compile(r"(?:^|\s)#مود(?:\s|$)")
-_VIDEO_TAG_RE = re.compile(r"(?:^|\s)#(?:ویدئو|ویدیو)(?:\s|$)")
+_MOD_TAG_RE = re.compile(r"(?<![\w#])#مود(?!\w)")
+_VIDEO_TAG_RE = re.compile(r"(?<![\w#])#(?:ویدئو|ویدیو|ویديو|ويدئو|ويديو)(?!\w)")
 _EXTENSION_RE = re.compile(r"^\s*(?:پسوند|فرمت|extension|ext)\s*[:：]\s*(.+?)\s*$", re.IGNORECASE)
+_NUMBER_RE = re.compile(r"#\s?(\d+)(?!\d|\.\d)")
+
+
+def has_mod_tag(caption):
+    return bool(_MOD_TAG_RE.search(_INVISIBLE_RE.sub("", caption or "")))
+
+
+def has_video_tag(caption):
+    return bool(_VIDEO_TAG_RE.search(_INVISIBLE_RE.sub("", caption or "")))
 
 
 def normalize_extension(value):
-    """ورودی مثل 'mcaddon' یا '.mcaddon' یا 'MCPACK' را به '.mcaddon' استاندارد می‌کند."""
+    """'mcaddon' یا '.mcaddon' یا 'MCPACK' → '.mcaddon'"""
     value = str(value or "").strip().lstrip(".")
     if not value or " " in value or len(value) > 12:
         return ""
     return "." + value.lower()
 
 
-def parse_mod_caption(caption: str):
+def extract_number(caption):
+    """شمارهٔ بعد از # (با پشتیبانی از رقم فارسی). صفرهای ابتدایی حذف
+    می‌شن تا #01 و #1 یکی حساب بشن."""
+    m = _NUMBER_RE.search(normalize_digits(_INVISIBLE_RE.sub("", caption or "")))
+    return str(int(m.group(1))) if m else None
+
+
+def extract_extension_line(caption):
+    for line in _content_lines(caption or ""):
+        m = _EXTENSION_RE.match(line)
+        if m:
+            return normalize_extension(m.group(1))
+    return ""
+
+
+def parse_mod_caption(caption):
+    """اگه تگ #مود نباشه None؛ وگرنه عنوان/توضیح/ورژن/پسوند/شماره."""
     caption = caption or ""
-    if not _MOD_TAG_RE.search(caption):
+    if not has_mod_tag(caption):
         return None
 
+    number = extract_number(caption)
     lines = _content_lines(caption)
     if not lines:
-        return {"title": "", "description": "", "version": "", "extension": "", "number": extract_number(caption)}
+        return {"title": "", "description": "", "version": "", "extension": "", "number": number}
 
     title = _strip_label(lines[0])
     body = lines[1:]
@@ -462,9 +757,8 @@ def parse_mod_caption(caption: str):
     extension_index = None
     extension_value = ""
 
-    # نسخه را هم با «ورژن: ...» و هم با عددهایی مثل 1.21 پیدا می‌کنیم.
     version_re = re.compile(r"^\s*(?:ورژن|نسخه)\s*[:：]?\s*(.+?)\s*$")
-    plain_version_re = re.compile(r"^\s*v?\d+(?:\.\d+){1,4}(?:[-+][\w.-]+)?\s*$", re.I)
+    plain_version_re = re.compile(r"^\s*v?\d+(?:\.\d+){1,4}\+?(?:[-+][\w.-]+)?\s*$", re.I)
 
     for idx, line in enumerate(body):
         ext_m = _EXTENSION_RE.match(line)
@@ -492,44 +786,30 @@ def parse_mod_caption(caption: str):
         "description": description,
         "version": version_value,
         "extension": extension_value,
-        "number": extract_number(caption),
+        "number": number,
     }
 
 
-
-def parse_video_caption(caption: str):
-    """فرمت مورد انتظار:
-    عنوان
-    #ویدئو
-    اگر تگ دقیق #ویدئو/#ویدیو نباشد، None برمی‌گردد."""
+def parse_video_caption(caption):
+    """اگه تگ #ویدئو/#ویدیو نباشه None؛ وگرنه {'title': ...}."""
     caption = caption or ""
-    if not _VIDEO_TAG_RE.search(caption):
+    if not has_video_tag(caption):
         return None
     lines = _content_lines(caption)
     title = _strip_label(lines[0]) if lines else "ویدیو جدید"
     return {"title": title}
 
 
-def extract_number(caption: str):
-    """شمارهٔ بعد از # را از هر کپشنی (عکس یا فایل) استخراج می‌کند."""
-    m = re.search(r"#(\d+)\b", caption or "")
-    return m.group(1) if m else None
-
-
-def extract_extension_line(caption: str):
-    """اگر کپشن (عکس یا خودِ فایل) یک خط 'پسوند: xxx' داشته باشه، پسوند
-    نرمال‌شده رو برمی‌گردونه؛ وگرنه رشتهٔ خالی."""
-    for line in _content_lines(caption or ""):
-        m = _EXTENSION_RE.match(line)
-        if m:
-            return normalize_extension(m.group(1))
-    return ""
-
-
 # ---------------------------------------------------------------------------
 # ارسال مود / ویدیو به یک کانال مقصد
 # ---------------------------------------------------------------------------
-def send_mod(token, channel, mod, state):
+def file_send_name(number, entry):
+    ext = (entry or {}).get("manual_extension") or file_extension((entry or {}).get("file_name"))
+    return f"{number}{ext}"
+
+
+def send_mod_cover(token, channel, mod, state):
+    """پست عکس مود با کپشن (عنوان، توضیح، ورژن، متن‌های سفارشی)."""
     direct = channel.get("send_file_directly", False)
     parts = []
 
@@ -539,15 +819,12 @@ def send_mod(token, channel, mod, state):
 
     if mod.get("description"):
         parts.append((f"⚙️- {mod['description']}", "quote"))
-        # توجه: بین توضیح و طریقهٔ دانلود عمداً خط خالی نمی‌گذاریم؛ چون
-        # هر کدوم metadata جدای خودشونو دارن، دو تا باکس نقل‌قولِ جدا
-        # دیده می‌شن نه یکی ادامه‌ی هم. اگه به‌جای این، یکی دیده شد،
-        # همین‌جا به‌جای "\n" بذار "\n\n".
         parts.append(("\n", None))
 
     if not direct and mod.get("number"):
+        bot_username = channel.get("bot_username") or "@TLP_AdminBot"
         parts.append((
-            f"برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو برای ربات (@TLP_AdminBot) بفرستید.",
+            f"برای دریافت فایل، عدد {mod['number']} یا #{mod['number']} رو برای ربات ({bot_username}) بفرستید.",
             "quote",
         ))
 
@@ -555,8 +832,9 @@ def send_mod(token, channel, mod, state):
         parts.append(("\n\n", None))
         parts.append((f"💾- ورژن: {mod['version']}", None))
 
-    parts.append(("\n\n", None))
-    parts.append((f" {channel['channel_link']}", None))
+    if channel.get("channel_link"):
+        parts.append(("\n\n", None))
+        parts.append((f" {channel['channel_link']}", None))
 
     if channel.get("mod_photo_extra_text"):
         parts.append(("\n\n", None))
@@ -564,33 +842,40 @@ def send_mod(token, channel, mod, state):
 
     text, metadata = build_text_with_metadata(parts)
 
-    source_guid = mod.get("source_channel_guid")
-    send_file(
+    # کاور همیشه «تصویر» است، مستقل از اینکه file_type ذخیره شده یا نه.
+    cover_name = safe_file_name(mod.get("photo_file_name"), "cover.jpg")
+    if kind_from_name(cover_name) != "Image":
+        cover_name = "cover.jpg"
+
+    return send_file(
         token, channel["guid"], mod["photo_file_id"], text, metadata=metadata,
-        file_type=mod.get("photo_file_type") or "Image", file_name="cover.jpg",
-        source_chat_id=source_guid, source_message_id=mod.get("photo_message_id"),
+        file_type="Image", file_name=cover_name,
+        source_chat_id=mod.get("source_channel_guid"), source_message_id=mod.get("photo_message_id"),
     )
 
-    if direct and mod.get("number"):
-        entry = state.get("files_by_number", {}).get(mod["number"])
-        if entry and entry.get("file_id"):
-            caption_text, caption_meta = build_text_with_metadata(
-                parse_custom_markup(channel.get("mod_file_caption", ""))
-            )
-            send_file(
-                token, channel["guid"], entry["file_id"], caption_text, metadata=caption_meta,
-                file_type=entry.get("file_type") or "File",
-                file_name=f"{mod['number']}{entry.get('manual_extension') or file_extension(entry.get('file_name'))}",
-                source_chat_id=source_guid, source_message_id=entry.get("message_id"),
-            )
+
+def send_mod_file(token, channel, mod, state):
+    """پست فایل مود (فقط وقتی send_file_directly روشنه) با کپشن سفارشی."""
+    number = mod.get("number")
+    entry = state.get("files_by_number", {}).get(str(number)) if number else None
+    if not entry or not entry.get("file_id"):
+        raise RuntimeError(f"فایل مود شمارهٔ {number} در آرشیو پیدا نشد.")
+    caption_text, caption_meta = build_text_with_metadata(
+        parse_custom_markup(channel.get("mod_file_caption", ""))
+    )
+    return send_file(
+        token, channel["guid"], entry["file_id"], caption_text, metadata=caption_meta,
+        file_type=entry.get("file_type") or "File",
+        file_name=file_send_name(number, entry),
+        source_chat_id=entry.get("source_channel_guid"), source_message_id=entry.get("message_id"),
+    )
 
 
 def send_video(token, channel, video):
-    # دکمهٔ روشن/خاموش ویدیو برای این کانال (در config.json هر کانال:
-    # "videos_enabled": false برای خاموش کردن).
+    """پست ویدیو در کانال. True اگه ارسال شد، False اگه برای این کانال خاموشه."""
     if not channel.get("videos_enabled", True):
-        print(f"DEBUG: ارسال ویدیو برای {channel.get('name', channel.get('guid'))} خاموشه (videos_enabled=false)")
-        return
+        print(f"DEBUG: ارسال ویدیو برای {channel_label(channel)} خاموشه (videos_enabled=false)")
+        return False
 
     parts = []
     if video.get("title"):
@@ -609,9 +894,10 @@ def send_video(token, channel, video):
     text, metadata = build_text_with_metadata(parts)
     send_file(
         token, channel["guid"], video["video_file_id"], text, metadata=metadata,
-        file_type=video.get("file_type") or "Video", file_name="video.mp4",
+        file_type="Video", file_name=safe_file_name(video.get("file_name"), "video.mp4"),
         source_chat_id=video.get("source_channel_guid"), source_message_id=video.get("message_id"),
     )
+    return True
 
 
 def pick_item(items, used_ids):
@@ -621,23 +907,106 @@ def pick_item(items, used_ids):
     if not available:
         used_ids = []
         available = items
-    chosen = __import__("random").choice(available)
-    return chosen, used_ids + [chosen["id"]]
+    chosen = random.choice(available)
+    return chosen, (used_ids + [chosen["id"]])[-MAX_USED_IDS:]
+
+
+def usable_mods(state):
+    """فقط مودهایی که هم عکس کاور و هم فایل دارن؛ قبلاً مود بدون فایل هم
+    انتخاب می‌شد و فقط عکس پست می‌شد."""
+    files = state.get("files_by_number", {})
+    return [
+        m for m in state.get("mods", [])
+        if m.get("photo_file_id") and m.get("number")
+        and (files.get(str(m["number"])) or {}).get("file_id")
+    ]
+
+
+def _run_stage(state, prog, stage, fn, label):
+    """یک مرحلهٔ ارسال (cover/file) رو یک‌بار اجرا می‌کنه و در prog ثبت
+    می‌کنه. اگه وضعیتش نامطمئن بود (timeout)، فرض می‌کنیم رسیده و
+    دوباره نمی‌فرستیم."""
+    if prog.get(stage):
+        return
+    try:
+        fn()
+    except SendUncertainError as e:
+        log_error(state, f"ارسال نامطمئن ({label})", e)
+    prog[stage] = True
+
+
+def post_next_mod(token, channel, state):
+    """مود بعدیِ استفاده‌نشده رو (کاور + در صورت نیاز فایل) در کانال پست
+    می‌کنه. پیشرفت هر کانال ذخیره می‌شه تا اگه مرحلهٔ فایل شکست خورد،
+    دفعهٔ بعد کاور دوباره ارسال نشه. None اگه مودی برای ارسال نبود."""
+    guid = channel["guid"]
+    label = channel_label(channel)
+    progress_all = state.setdefault("mod_progress", {})
+    mods = usable_mods(state)
+    used = state.setdefault("used_mods_per_channel", {}).setdefault(guid, [])
+
+    prog = progress_all.get(guid)
+    item = None
+    if prog:
+        item = next((m for m in mods if m["id"] == prog.get("mod_id")), None)
+        if item is None:
+            progress_all.pop(guid, None)
+            prog = None
+
+    if item is None:
+        item, candidate_used = pick_item(mods, used)
+        if item is None:
+            return None
+        prog = {"mod_id": item["id"], "cover": False, "file": False,
+                "attempts": 0, "candidate_used": candidate_used}
+        progress_all[guid] = prog
+
+    prog["attempts"] = prog.get("attempts", 0) + 1
+    candidate_used = prog.get("candidate_used") or (used + [item["id"]])
+    direct = channel.get("send_file_directly", False)
+
+    try:
+        _run_stage(state, prog, "cover", lambda: send_mod_cover(token, channel, item, state), f"کاور {label}")
+        if direct:
+            _run_stage(state, prog, "file", lambda: send_mod_file(token, channel, item, state), f"فایل {label}")
+    except Exception:
+        if prog["attempts"] >= MAX_POST_ATTEMPTS:
+            # بعد از چند بار شکست، این مود رو رد می‌کنیم تا کانال گیر نکنه
+            state["used_mods_per_channel"][guid] = candidate_used
+            progress_all.pop(guid, None)
+            log_error(state, f"رد شدن مود برای {label}", f"مود «{item.get('title')}» بعد از {prog['attempts']} تلاش رد شد.")
+        raise
+
+    state["used_mods_per_channel"][guid] = candidate_used
+    progress_all.pop(guid, None)
+    return item
+
+
+def post_next_video(token, channel, state):
+    """ویدیوی بعدی رو پست می‌کنه. None اگه ویدیویی نبود یا خاموشه."""
+    if not channel.get("videos_enabled", True):
+        return None
+    guid = channel["guid"]
+    used = state.setdefault("used_videos_per_channel", {}).setdefault(guid, [])
+    video, candidate_used = pick_item(state.get("videos", []), used)
+    if video is None:
+        return None
+    try:
+        send_video(token, channel, video)
+    except SendUncertainError as e:
+        log_error(state, f"ارسال نامطمئن (ویدیو {channel_label(channel)})", e)
+    state["used_videos_per_channel"][guid] = candidate_used
+    return video
 
 
 # ---------------------------------------------------------------------------
 # جلوگیری از سیل پیام‌های دوره‌ای (دفترچهٔ ارسال سبک)
 # ---------------------------------------------------------------------------
 def prune_sent_log(state, max_age_hours=1):
-    """حذف رکوردهای قدیمی‌تر از max_age_hours از دفترچهٔ ارسال (مثل
-    یادداشت‌های تکراری «ربات فعال است»/heartbeat) تا فایل state.json
-    سنگین نشه. جدا از should_send_now هم قابل‌فراخوانیه تا این پاک‌سازی
-    هر اجرا تضمینی انجام بشه، نه فقط وقتی یک کلید خاص چک می‌شه."""
     log = state.get("sent_log", {})
     if not log:
         return
-    now = tehran_now().replace(tzinfo=None)
-    cutoff = now - timedelta(hours=max_age_hours)
+    cutoff = tehran_now().replace(tzinfo=None) - timedelta(hours=max_age_hours)
     for k in list(log.keys()):
         try:
             if datetime.strptime(log[k], "%Y-%m-%d %H:%M") < cutoff:
@@ -647,12 +1016,10 @@ def prune_sent_log(state, max_age_hours=1):
 
 
 def should_send_now(state, key, min_interval_minutes):
-    """اگر برای این key در min_interval_minutes اخیر پیامی ثبت نشده، True
-    برمی‌گرداند و زمان الان را ثبت می‌کند. ورودی‌های قدیمی‌تر از ۱ ساعت
-    خودکار حذف می‌شوند تا فایل سنگین نشود."""
+    """True اگه برای این key در min_interval_minutes اخیر چیزی ثبت نشده
+    (و زمان الان رو ثبت می‌کنه)."""
     log = state.setdefault("sent_log", {})
     now = tehran_now().replace(tzinfo=None)
-
     last = log.get(key)
     if last:
         try:
@@ -661,32 +1028,13 @@ def should_send_now(state, key, min_interval_minutes):
                 return False
         except Exception:
             pass
-
     log[key] = now.strftime("%Y-%m-%d %H:%M")
     prune_sent_log(state)
     return True
 
 
 # ---------------------------------------------------------------------------
-# پیام به مالک ربات
-# ---------------------------------------------------------------------------
-def get_chat(token, chat_id):
-    return api_call(token, "getChat", {"chat_id": chat_id})
-
-
-def set_chat_keypad(token, chat_id, buttons):
-    """کیبورد ثابت پایین صفحه رو تنظیم می‌کنه. buttons یه لیست از متن دکمه‌هاست."""
-    rows = [{"buttons": [{"id": str(i), "type": "Simple", "button_text": t}]} for i, t in enumerate(buttons)]
-    payload = {
-        "chat_id": chat_id,
-        "chat_keypad_type": "New",
-        "chat_keypad": {"rows": rows, "resize_keyboard": True, "one_time_keyboard": False},
-    }
-    return api_call(token, "editChatKeypad", payload)
-
-
-# ---------------------------------------------------------------------------
-# پخش پیام به همهٔ کانال‌های مقصد
+# پخش پیام
 # ---------------------------------------------------------------------------
 def broadcast_to_channels(token, config, text):
     sent, failed = 0, 0
@@ -698,7 +1046,22 @@ def broadcast_to_channels(token, config, text):
             sent += 1
         except Exception as e:
             failed += 1
-            print(f"DEBUG: channelcast failed for {ch.get('name')}: {e}")
+            print(f"DEBUG: channelcast failed for {channel_label(ch)}: {e}")
+    return sent, failed
+
+
+def broadcast_to_users(token, state, text):
+    sent, failed = 0, 0
+    for uid in list(state.get("known_users", [])):
+        if not is_user_guid(uid):
+            continue
+        try:
+            send_message(token, uid, text)
+            sent += 1
+        except Exception as e:
+            failed += 1
+            print(f"DEBUG: broadcast failed for {uid}: {e}")
+        time.sleep(0.2)
     return sent, failed
 
 
@@ -706,8 +1069,6 @@ def broadcast_to_channels(token, config, text):
 # مسدودسازی کاربران
 # ---------------------------------------------------------------------------
 def is_blocked(state, chat_id):
-    """اگه کاربر مسدوده، دیکشنری اطلاعات مسدودی رو برمی‌گردونه؛ وگرنه None.
-    اگه تاریخ انقضا گذشته باشه، خودکار از لیست حذف می‌شه."""
     blocked = state.get("blocked_users", {})
     info = blocked.get(chat_id)
     if not info:
@@ -762,6 +1123,9 @@ def build_blocked_message(info):
     )
 
 
+# ---------------------------------------------------------------------------
+# پیام به مالک، خطاها و باگ‌ها
+# ---------------------------------------------------------------------------
 def notify_owner(token, config, text):
     owner = config.get("owner_guid")
     if not owner or owner.startswith("PUT_YOUR"):
@@ -845,7 +1209,7 @@ def build_panel_list(config):
     lines = ["🎛 پنل مدیریت کانال‌ها", ""]
     for i, ch in enumerate(channels, start=1):
         status = "✅ فعال" if ch.get("enabled", True) else "⛔ غیرفعال"
-        lines.append(f"{i}. {ch.get('name', ch['guid'])} — {status}")
+        lines.append(f"{i}. {channel_label(ch)} — {status}")
     lines.append("\nبرای دیدن جزئیات، عدد همون کانال رو بفرستید.")
     return "\n".join(lines)
 
@@ -861,7 +1225,8 @@ def build_channel_detail(config, state, index):
     status = "✅ فعال" if ch.get("enabled", True) else "⛔ غیرفعال"
     delivery = "مستقیم در کانال" if ch.get("send_file_directly") else "از طریق ربات (پیوی)"
     return (
-        f"📊 {ch.get('name', guid)}\n"
+        f"📊 {channel_label(ch)}\n"
+        f"GUID: {guid}\n"
         f"وضعیت: {status}\n"
         f"روش تحویل فایل: {delivery}\n"
         f"تعداد پست‌های ارسالی: {posts_count}\n"
@@ -869,16 +1234,16 @@ def build_channel_detail(config, state, index):
     )
 
 
-# ---------------------------------------------------------------------------
-# جلوگیری از سنگین‌شدن state.json: مودها/ویدیوهای خیلی قدیمی رو نگه
-# نمی‌داریم (فایل‌های واقعی در خودِ روبیکا می‌مونن، فقط از رده‌خارج‌ترین
-# ورودی‌های آرشیو داخلی رو کم می‌کنیم).
-# ---------------------------------------------------------------------------
 def trim_stored_content(state):
+    """جلوگیری از سنگین‌شدن state.json."""
     for key, limit in (("mods", MAX_STORED_MODS), ("videos", MAX_STORED_VIDEOS)):
         items = state.get(key, [])
         if len(items) > limit:
             state[key] = items[-limit:]
+    for key in ("used_mods_per_channel", "used_videos_per_channel"):
+        for guid, ids in list(state.get(key, {}).items()):
+            if len(ids) > MAX_USED_IDS:
+                state[key][guid] = ids[-MAX_USED_IDS:]
 
 
 def track_channel_activation(state, config):
@@ -890,78 +1255,19 @@ def track_channel_activation(state, config):
 
 
 # ---------------------------------------------------------------------------
-# رفع باگ: پیشروی offset حتی وقتی روبیکا next_offset_id خالی برمی‌گردونه
-# (وقتی صفحه‌ی آخره). بدون این، last_offset_id هیچ‌وقت جلو نمی‌ره و همون
-# پیام‌های قدیمی هر بار از اول پردازش می‌شن.
+# متن عضویت اجباری (فقط اطلاع‌رسانی؛ /file عضویت رو چک نمی‌کنه)
 # ---------------------------------------------------------------------------
-def extract_fallback_offset(updates):
-    if not updates:
-        return None
-    last = updates[-1]
-    msg = last.get("new_message") or last.get("updated_message") or {}
-    return last.get("update_id") or last.get("id") or msg.get("message_id")
-
-
-# ---------------------------------------------------------------------------
-# عضویت اجباری در کانال — بدون متد رسمیِ مستند «چک عضویت» (بر خلاف
-# تلگرام). با نام و شکل ورودیِ متدهای مشابه (banChatMember/unbanChatMember
-# که chat_id+user_id می‌گیرن) امتحان می‌کنیم. اگه روبیکا چنین متدی
-# نداشته باشه، به‌جای مسدود کردن همه‌ی کاربرهای واقعی پشت یه چکِ خراب،
-# fail-open می‌کنیم (رد میشن) و به مالک هشدار می‌دیم.
-# ---------------------------------------------------------------------------
-def check_chat_member(token, channel_guid, user_guid):
-    """True/False/None. None یعنی نتونستیم مطمئن چک کنیم."""
-    try:
-        result = api_call(token, "getChatMember", {"chat_id": channel_guid, "user_id": user_guid})
-    except Exception as e:
-        print(f"DEBUG: getChatMember ناموفق (channel={channel_guid}, user={user_guid}): {e}")
-        return None
-    print(f"DEBUG: getChatMember خام: {result}")
-    status = None
-    if isinstance(result, dict):
-        status = result.get("status") or (result.get("member") or {}).get("status") or (result.get("chat_member") or {}).get("status")
-    if not status:
-        return None
-    return str(status).lower() in ("member", "creator", "admin", "administrator", "owner")
-
-
-def check_all_required_channels(token, config, user_guid):
-    """
-    (all_joined: bool, missing: list, check_reliable: bool) برمی‌گردونه.
-    check_reliable=False یعنی نتونستیم واقعاً چک کنیم (متد جواب معتبر
-    نداد) — در این حالت صدازننده باید fail-open رفتار کنه.
-    """
-    channels = config.get("required_join_channels", [])
-    if not channels:
-        return True, [], True
-    missing = []
-    any_unreliable = False
-    for ch in channels:
-        status = check_chat_member(token, ch["guid"], user_guid)
-        if status is None:
-            any_unreliable = True
-            continue
-        if not status:
-            missing.append(ch)
-    if any_unreliable:
-        return (len(missing) == 0), missing, False
-    return (len(missing) == 0), missing, True
-
-
 def build_join_prompt(channels):
-    lines = [
-        "📣 برای استفاده از ربات باید در کانال های زیر عضو شوید:",
-        "",
-    ]
+    lines = ["📣 برای استفاده از ربات باید در کانال‌های زیر عضو شوید:", ""]
     if channels:
         for ch in channels:
-            lines.append(str(ch.get("guid", "")).strip())
+            lines.append(str(ch.get("link") or ch.get("guid") or "").strip())
     else:
         lines.append("هیچ کانالی تنظیم نشده است.")
     lines.extend([
         "",
-        "✨️ پس از عضویت در کانال های بالا برای دریافت فایل مود /file را ارسال کنید",
-        "⚠️ اگر در چنل های بالا عضو هستید فقط /file را بزنید*"
+        "✨ پس از عضویت در کانال‌های بالا، برای دریافت فایل مود /file را ارسال کنید.",
+        "⚠️ اگر قبلاً عضو هستید، فقط /file را بزنید.",
     ])
     return "\n".join(lines)
 
@@ -994,7 +1300,7 @@ def check_spam(state, chat_id):
 
 
 # ---------------------------------------------------------------------------
-# پلن‌های زمان‌بندی پست‌گذاری (قابل تنظیم سراسری یا برای هر کانال)
+# پلن‌های زمان‌بندی پست‌گذاری
 # ---------------------------------------------------------------------------
 DEFAULT_PLANS = {
     "0": {"mod_interval_hours": 2, "video_interval_hours": 4.5},
@@ -1010,57 +1316,3 @@ def resolve_channel_plan(config, channel):
     mod_h = channel.get("mod_interval_hours", plan.get("mod_interval_hours", 1))
     video_h = channel.get("video_interval_hours", plan.get("video_interval_hours", 3))
     return float(mod_h), float(video_h)
-
-
-# ---------------------------------------------------------------------------
-# پخش همگانی
-# ---------------------------------------------------------------------------
-def broadcast_to_users(token, state, text):
-    users = state.get("known_users", [])
-    sent, failed = 0, 0
-    for uid in users:
-        try:
-            send_message(token, uid, text)
-            sent += 1
-        except Exception as e:
-            failed += 1
-            print(f"DEBUG: broadcast failed for {uid}: {e}")
-    return sent, failed
-
-
-# ---------------------------------------------------------------------------
-# پل ارتباطی بین مخزن آرشیور و مخزن ادمین
-# ---------------------------------------------------------------------------
-MAX_QUEUED_OWNER_COMMANDS = 200
-
-
-def queue_owner_command(state, chat_id, text):
-    """مخزن آرشیور، دستورهای مالک رو خودش اجرا نمی‌کنه — فقط توی این صف
-    ذخیره می‌کنه تا مخزن ادمین (که همهٔ منطق دستورها رو داره) بعداً
-    بخونه و پردازش کنه."""
-    queue = state.setdefault("pending_owner_commands", [])
-    queue.append({
-        "id": uuid.uuid4().hex[:12],
-        "chat_id": chat_id,
-        "text": text,
-        "time": tehran_now().strftime("%Y-%m-%d %H:%M:%S"),
-    })
-    if len(queue) > MAX_QUEUED_OWNER_COMMANDS:
-        del queue[: len(queue) - MAX_QUEUED_OWNER_COMMANDS]
-
-
-def fetch_repo_json_file(pat, owner, repo, path, branch="main"):
-    """یک فایل JSON رو از یک مخزن گیت‌هاب (حتی خصوصی) با GitHub Contents
-    API می‌خونه. pat فقط نیاز به دسترسیِ خواندنِ همون مخزن داره؛ هیچ
-    نوشتنی توی مخزن دیگه انجام نمی‌شه."""
-    import base64
-    url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-    headers = {
-        "Authorization": f"token {pat}",
-        "Accept": "application/vnd.github+json",
-    }
-    resp = requests.get(url, headers=headers, params={"ref": branch}, timeout=REQUEST_TIMEOUT)
-    resp.raise_for_status()
-    body = resp.json()
-    content = base64.b64decode(body["content"]).decode("utf-8")
-    return json.loads(content)

@@ -987,13 +987,10 @@
   "awaiting_ticket": [],
   "awaiting_broadcast": false,
   "awaiting_channelcast": false,
-  "awaiting_newguid": false,
   "awaiting_panel_selection": true,
-  "posted_hours_today": {
-    "date": null,
-    "hours": []
+  "sent_log": {
+    "heartbeat": "2026-09-26 23:19"
   },
-  "sent_log": {},
   "errors": [],
   "last_error_notify_time": "2026-09-26 23:13",
   "bug_page_offset": 0,
@@ -1184,5 +1181,7 @@
       "c0CkD2t08fb7278be73f1113291ad44d:1": true,
       "c0Dstdk0f57ec41df351be2d40c89404:1": true
     }
-  }
+  },
+  "orphan_files": {},
+  "mod_progress": {}
 }
