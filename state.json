@@ -2233,6 +2233,13 @@
       "category": "پاک‌سازی انبار",
       "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f72422bb090>, 'Connection to botapi.rubika.i",
       "notified": false
+    },
+    {
+      "id": "168ccf",
+      "time": "2026-10-01 00:46",
+      "category": "پاک‌سازی انبار",
+      "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f337f85b590>, 'Connection to botapi.rubika.i",
+      "notified": false
     }
   ],
   "last_error_notify_time": "2026-09-30 16:58",
