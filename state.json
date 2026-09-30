@@ -2089,6 +2089,13 @@
       "category": "ارسال مود به c0Dstdk0f57ec41df351be2d40c89404",
       "message": "ارسال فایل شکست خورد؛ مستقیم: HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/sendFile (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f5572ae65d0>, 'C",
       "notified": true
+    },
+    {
+      "id": "e87c13",
+      "time": "2026-09-30 12:10",
+      "category": "پاک‌سازی انبار",
+      "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f04cf12ec90>, 'Connection to botapi.rubika.i",
+      "notified": false
     }
   ],
   "last_error_notify_time": "2026-09-30 11:50",
