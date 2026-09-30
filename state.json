@@ -1960,7 +1960,7 @@
       "mod_id": "1eb13aee",
       "cover": false,
       "file": false,
-      "attempts": 1,
+      "attempts": 2,
       "candidate_used": [
         "03295a2e",
         "21ac49f8",
@@ -1977,7 +1977,7 @@
       "mod_id": "2a7d3d93",
       "cover": false,
       "file": false,
-      "attempts": 1,
+      "attempts": 2,
       "candidate_used": [
         "03295a2e",
         "73c0d2b5",
@@ -2010,7 +2010,7 @@
   "awaiting_channelcast": false,
   "awaiting_panel_selection": false,
   "sent_log": {
-    "heartbeat": "2026-09-30 10:34"
+    "heartbeat": "2026-09-30 11:00"
   },
   "errors": [
     {
@@ -2061,9 +2061,37 @@
       "category": "دریافت آپدیت‌ها",
       "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f09b82747d0>, 'Connection to botapi.rubika.i",
       "notified": true
+    },
+    {
+      "id": "e33442",
+      "time": "2026-09-30 11:06",
+      "category": "تست اتصال (getMe)",
+      "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getMe (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f5572adccd0>, 'Connection to botapi.rubika.ir tim",
+      "notified": true
+    },
+    {
+      "id": "c481a6",
+      "time": "2026-09-30 11:13",
+      "category": "دریافت آپدیت‌ها",
+      "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f5572adc0d0>, 'Connection to botapi.rubika.i",
+      "notified": true
+    },
+    {
+      "id": "be77ad",
+      "time": "2026-09-30 11:31",
+      "category": "ارسال مود به BarBariio_yt",
+      "message": "ارسال فایل شکست خورد؛ مستقیم: HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/sendFile (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f5572ac2b10>, 'C",
+      "notified": true
+    },
+    {
+      "id": "912b0a",
+      "time": "2026-09-30 11:50",
+      "category": "ارسال مود به c0Dstdk0f57ec41df351be2d40c89404",
+      "message": "ارسال فایل شکست خورد؛ مستقیم: HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/sendFile (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f5572ae65d0>, 'C",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-30 10:47",
+  "last_error_notify_time": "2026-09-30 11:50",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
