@@ -2010,7 +2010,7 @@
   "awaiting_channelcast": false,
   "awaiting_panel_selection": false,
   "sent_log": {
-    "heartbeat": "2026-09-30 11:00"
+    "heartbeat": "2026-09-30 12:30"
   },
   "errors": [
     {
@@ -2095,10 +2095,24 @@
       "time": "2026-09-30 12:10",
       "category": "پاک‌سازی انبار",
       "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f04cf12ec90>, 'Connection to botapi.rubika.i",
-      "notified": false
+      "notified": true
+    },
+    {
+      "id": "20f4c7",
+      "time": "2026-09-30 12:37",
+      "category": "تست اتصال (getMe)",
+      "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getMe (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f531b5e3e50>, 'Connection to botapi.rubika.ir tim",
+      "notified": true
+    },
+    {
+      "id": "df13cc",
+      "time": "2026-09-30 12:43",
+      "category": "دریافت آپدیت‌ها",
+      "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f531b5e33d0>, 'Connection to botapi.rubika.i",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-30 11:50",
+  "last_error_notify_time": "2026-09-30 12:43",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
