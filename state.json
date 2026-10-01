@@ -1980,7 +1980,7 @@
       "mod_id": "5405bc75",
       "cover": false,
       "file": false,
-      "attempts": 1,
+      "attempts": 2,
       "candidate_used": [
         "03295a2e",
         "73c0d2b5",
@@ -2014,7 +2014,7 @@
   "awaiting_channelcast": false,
   "awaiting_panel_selection": false,
   "sent_log": {
-    "heartbeat": "2026-09-30 16:44"
+    "heartbeat": "2026-10-01 21:56"
   },
   "errors": [
     {
@@ -2225,31 +2225,52 @@
       "time": "2026-09-30 17:50",
       "category": "پاک‌سازی انبار",
       "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f69b1803610>, 'Connection to botapi.rubika.i",
-      "notified": false
+      "notified": true
     },
     {
       "id": "229925",
       "time": "2026-09-30 22:19",
       "category": "پاک‌سازی انبار",
       "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f72422bb090>, 'Connection to botapi.rubika.i",
-      "notified": false
+      "notified": true
     },
     {
       "id": "168ccf",
       "time": "2026-10-01 00:46",
       "category": "پاک‌سازی انبار",
       "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f337f85b590>, 'Connection to botapi.rubika.i",
-      "notified": false
+      "notified": true
     },
     {
       "id": "5d06f2",
       "time": "2026-10-01 11:23",
       "category": "پاک‌سازی انبار",
       "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f9025868210>, 'Connection to botapi.rubika.i",
-      "notified": false
+      "notified": true
+    },
+    {
+      "id": "90f169",
+      "time": "2026-10-01 22:03",
+      "category": "تست اتصال (getMe)",
+      "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getMe (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f9157c8a8d0>, 'Connection to botapi.rubika.ir tim",
+      "notified": true
+    },
+    {
+      "id": "f9c33b",
+      "time": "2026-10-01 22:10",
+      "category": "دریافت آپدیت‌ها",
+      "message": "HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/getUpdates (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f9157c89410>, 'Connection to botapi.rubika.i",
+      "notified": true
+    },
+    {
+      "id": "a16dba",
+      "time": "2026-10-01 22:32",
+      "category": "ارسال مود به c0Dstdk0f57ec41df351be2d40c89404",
+      "message": "ارسال فایل شکست خورد؛ مستقیم: HTTPSConnectionPool(host='botapi.rubika.ir', port=443): Max retries exceeded with url: /v3/CEBJBE0RNZXCGMXPFTRXNSVFQMNJGPPMYWWDBUUTGKPLYRLHBVUACOSEGJQVWESA/sendFile (Caused by ConnectTimeoutError(<HTTPSConnection(host='botapi.rubika.ir', port=443) at 0x7f9157c546d0>, 'C",
+      "notified": true
     }
   ],
-  "last_error_notify_time": "2026-09-30 16:58",
+  "last_error_notify_time": "2026-10-01 22:32",
   "bug_page_offset": 0,
   "pending_file_requests": {},
   "processed_updates": [
@@ -2381,10 +2402,8 @@
   "activity_log": {},
   "owner_keypad_set": true,
   "posted_slots_today": {
-    "date": "2026-09-30",
+    "date": "2026-10-01",
     "mod": {},
-    "video": {
-      "c0CkD2t08fb7278be73f1113291ad44d:0": true
-    }
+    "video": {}
   }
 }
